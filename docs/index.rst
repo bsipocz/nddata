@@ -8,6 +8,7 @@ this package will be here sometime...
   :maxdepth: 2
 
   nddata/index.rst
+  utils/index.rst
 
 .. note:: The layout of this directory is simply a suggestion.  To follow
           traditional practice, do *not* edit this page, but instead place

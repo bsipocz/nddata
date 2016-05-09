@@ -19,7 +19,7 @@ __all__ = ['NDData']
 class NDData(NDDataBase):
     """
     A container for `numpy.ndarray`-based datasets, using the
-    `~astropy.nddata.NDDataBase` interface.
+    `~nddata.nddata.NDDataBase` interface.
 
     The key distinction from raw `numpy.ndarray` is the presence of
     additional metadata such as uncertainty, mask, unit, a coordinate system
@@ -86,7 +86,7 @@ class NDData(NDDataBase):
     ``data`` in a `NDData` object can be accessed through the `data`
     attribute::
 
-        >>> from astropy.nddata import NDData
+        >>> from nddata.nddata import NDData
         >>> nd = NDData([1,2,3])
         >>> nd.data
         array([1, 2, 3])
@@ -101,7 +101,7 @@ class NDData(NDDataBase):
         >>> q = np.array([1,2,3,4]) * u.m
         >>> nd2 = NDData(q, unit=u.cm)
         INFO: overwriting Quantity's current unit with specified unit. \
-[astropy.nddata.nddata]
+[nddata.nddata.nddata]
         >>> nd2.data
         array([ 1.,  2.,  3.,  4.])
         >>> nd2.unit

@@ -57,7 +57,7 @@ def format_doc(docstring, *args, **kwargs):
 
     Replacing the current docstring is very easy::
 
-        >>> from astropy.utils.decorators import format_doc
+        >>> from nddata.utils.decorators import format_doc
         >>> @format_doc('''Perform num1 + num2''')
         ... def add(num1, num2):
         ...     return num1+num2
