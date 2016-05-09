@@ -1,12 +1,36 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
 from collections import OrderedDict, Mapping
-
 from weakref import ref
 
-from .exceptions import MissingParentNDDataException
+import numpy as np
 
-__all__ = ['MetaDescriptor', 'ParentNDDataDescriptor']
+from .exceptions import MissingParentNDDataException
+from ..utils.numpy import is_numeric
+
+__all__ = ['DataDescriptor', 'MetaDescriptor', 'ParentNDDataDescriptor']
+
+
+class DataDescriptor(object):
+    """Descriptor for a numerical `numpy.ndarray` data property that allows
+    also None.
+
+    Raises
+    ------
+    TypeError
+        If :func:`numpy.asarray` on the input returns a non-numerical
+        `numpy.ndarray`.
+    """
+    def __get__(self, obj, objtype=None):
+        return getattr(obj, '_data', None)
+
+    def __set__(self, obj, value):
+        if value is not None:
+            value = np.asarray(value)
+            if not is_numeric(value):
+                raise TypeError('data cannot be converted to numpy array '
+                                'containing numbers.')
+        setattr(obj, '_data', value)
 
 
 class MetaDescriptor(object):
@@ -26,7 +50,7 @@ class MetaDescriptor(object):
             value = OrderedDict()
         elif not isinstance(value, Mapping):
             raise TypeError("meta attribute must be dict-like")
-        obj._meta = value
+        setattr(obj, '_meta', value)
 
 
 class ParentNDDataDescriptor(object):
@@ -53,7 +77,7 @@ class ParentNDDataDescriptor(object):
         # Weakrefs must be called to yield the object they point to.
         return result()
 
-    def __set__(self, instance, value):
+    def __set__(self, obj, value):
         if value is not None:
             value = ref(value)
-        setattr(instance, '_parent_nddata', value)
+        setattr(obj, '_parent_nddata', value)
