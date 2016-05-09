@@ -60,12 +60,6 @@ matrix:
           env: ASTROPY_VERSION=lts
         - python: 3.5
           env: ASTROPY_VERSION=lts
-        - python: 2.7
-          env: SETUP_CMD='egg_info'
-        - python: 3.4
-          env: SETUP_CMD='egg_info'
-        - python: 3.5
-          env: SETUP_CMD='egg_info'
 
         # Try older numpy versions
         - python: 2.7
@@ -74,10 +68,16 @@ matrix:
           env: NUMPY_VERSION=1.9
         - python: 2.7
           env: NUMPY_VERSION=1.8
+        - python: 2.7
+          env: NUMPY_VERSION=1.7
 
         # Try numpy pre-release
         - python: 3.5
           env: NUMPY_VERSION=prerelease
+
+        # Do a PEP8 test
+        - python: 2.7
+          env: MAIN_CMD='pep8 astropy --count' SETUP_CMD=''
 
 before_install:
 
