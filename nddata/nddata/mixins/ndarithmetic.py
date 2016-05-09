@@ -11,7 +11,8 @@ import warnings
 
 from ..nduncertainty import NDUncertainty
 from astropy.units import dimensionless_unscaled
-from astropy.utils import format_doc, sharedmethod
+from astropy.utils import sharedmethod
+from ...utils import format_doc
 from astropy.utils.exceptions import AstropyDeprecationWarning
 
 __all__ = ['NDArithmeticMixin']
