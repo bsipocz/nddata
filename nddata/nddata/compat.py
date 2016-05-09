@@ -37,7 +37,7 @@ class NDDataArray(NDArithmeticMixin, NDSlicingMixin, NDIOMixin, NDData):
         will always be copies by *reference* , so you should make copy
         the ``data`` before passing it in if that's the  desired behavior.
 
-    uncertainty : `~astropy.nddata.NDUncertainty`, optional
+    uncertainty : `~nddata.nddata.NDUncertainty`, optional
         Uncertainties on the data.
 
     mask : `~numpy.ndarray`-like, optional
@@ -49,11 +49,11 @@ class NDDataArray(NDArithmeticMixin, NDSlicingMixin, NDIOMixin, NDData):
         ``mask`` here will causes the mask from the masked array to be
         ignored.
 
-    flags : `~numpy.ndarray`-like or `~astropy.nddata.FlagCollection`, optional
+    flags : `~numpy.ndarray`-like or `~nddata.nddata.FlagCollection`, optional
         Flags giving information about each pixel. These can be specified
         either as a Numpy array of any type (or an object which can be converted
         to a Numpy array) with a shape matching that of the
-        data, or as a `~astropy.nddata.FlagCollection` instance which has a
+        data, or as a `~nddata.nddata.FlagCollection` instance which has a
         shape matching that of the data.
 
     wcs : undefined, optional
@@ -268,7 +268,7 @@ class NDDataArray(NDArithmeticMixin, NDSlicingMixin, NDIOMixin, NDData):
 
         Returns
         -------
-        result : `~astropy.nddata.NDData`
+        result : `~nddata.nddata.NDData`
             The resulting dataset
 
         Raises

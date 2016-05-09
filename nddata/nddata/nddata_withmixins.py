@@ -40,7 +40,7 @@ class NDDataRef(NDArithmeticMixin, NDIOMixin, NDSlicingMixin, NDData):
     The mixins allow operation that are not possible with `NDData` or
     `NDDataBase`, i.e. simple arithmetics::
 
-        >>> from astropy.nddata import NDDataRef, StdDevUncertainty
+        >>> from nddata.nddata import NDDataRef, StdDevUncertainty
         >>> import numpy as np
 
         >>> data = np.ones((3,3), dtype=np.float)

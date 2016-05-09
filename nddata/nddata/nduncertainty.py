@@ -27,7 +27,7 @@ class IncompatibleUncertaintiesException(Exception):
 
 class MissingDataAssociationException(Exception):
     """This exception should be used to indicate that an uncertainty instance
-    has not been associated with a parent `~astropy.nddata.NDData` object.
+    has not been associated with a parent `~nddata.nddata.NDData` object.
     """
 
 
@@ -397,7 +397,7 @@ class StdDevUncertainty(NDUncertainty):
     `StdDevUncertainty` should always be associated with an `NDData`-like
     instance, either by creating it during initialization::
 
-        >>> from astropy.nddata import NDData, StdDevUncertainty
+        >>> from nddata.nddata import NDData, StdDevUncertainty
         >>> ndd = NDData([1,2,3],
         ...              uncertainty=StdDevUncertainty([0.1, 0.1, 0.1]))
         >>> ndd.uncertainty

@@ -83,9 +83,9 @@ def overlap_slices(large_array_shape, small_array_shape, position,
         the ``'partial'`` mode, but ``slices_small`` will be adjusted to
         return only the overlapping elements.  In the ``'strict'`` mode,
         the small array has to be fully contained in the large array,
-        otherwise an `~astropy.nddata.utils.PartialOverlapError` is
+        otherwise an `~nddata.nddata.utils.PartialOverlapError` is
         raised.  In all modes, non-overlapping arrays will raise a
-        `~astropy.nddata.utils.NoOverlapError`.
+        `~nddata.nddata.utils.NoOverlapError`.
 
     Returns
     -------
@@ -177,9 +177,9 @@ def extract_array(array_large, shape, position, mode='partial',
         small array and the large array is sufficient.  For the
         ``'strict'`` mode, the small array has to be fully contained
         within the large array, otherwise an
-        `~astropy.nddata.utils.PartialOverlapError` is raised.   In all
+        `~nddata.nddata.utils.PartialOverlapError` is raised.   In all
         modes, non-overlapping arrays will raise a
-        `~astropy.nddata.utils.NoOverlapError`.  In ``'partial'`` mode,
+        `~nddata.nddata.utils.NoOverlapError`.  In ``'partial'`` mode,
         positions in the small array that do not overlap with the large
         array will be filled with ``fill_value``.  In ``'trim'`` mode
         only the overlapping elements are returned, thus the resulting
@@ -211,7 +211,7 @@ def extract_array(array_large, shape, position, mode='partial',
     a small array of shape 3x5:
 
     >>> import numpy as np
-    >>> from astropy.nddata.utils import extract_array
+    >>> from nddata.nddata.utils import extract_array
     >>> large_array = np.arange(110).reshape((11, 10))
     >>> extract_array(large_array, (3, 5), (7, 7))
     array([[65, 66, 67, 68, 69],
@@ -275,7 +275,7 @@ def add_array(array_large, array_small, position):
     array of ones with a shape of 3x3:
 
     >>> import numpy as np
-    >>> from astropy.nddata.utils import add_array
+    >>> from nddata.nddata.utils import add_array
     >>> large_array = np.zeros((5, 5))
     >>> small_array = np.ones((3, 3))
     >>> add_array(large_array, small_array, (1, 2))
@@ -322,7 +322,7 @@ def subpixel_indices(position, subsampling):
 
     If no subsampling is used, then the subpixel indices returned are always 0:
 
-    >>> from astropy.nddata.utils import subpixel_indices
+    >>> from nddata.nddata.utils import subpixel_indices
     >>> subpixel_indices([1.2, 3.4, 5.6],1)
     array([ 0.,  0.,  0.])
 
@@ -373,7 +373,7 @@ def block_reduce(data, block_size, func=np.sum):
     Examples
     --------
     >>> import numpy as np
-    >>> from astropy.nddata.utils import block_reduce
+    >>> from nddata.nddata.utils import block_reduce
     >>> data = np.arange(16).reshape(4, 4)
     >>> block_reduce(data, 2)    # doctest: +SKIP
     array([[10, 18],
@@ -437,7 +437,7 @@ def block_replicate(data, block_size, conserve_sum=True):
     Examples
     --------
     >>> import numpy as np
-    >>> from astropy.nddata.utils import block_replicate
+    >>> from nddata.nddata.utils import block_replicate
     >>> data = np.array([[0., 1.], [2., 3.]])
     >>> block_replicate(data, 2)
     array([[ 0.  ,  0.  ,  0.25,  0.25],
@@ -542,9 +542,9 @@ class Cutout2D(object):
             cutout array and the input ``data`` array is sufficient.
             For the ``'strict'`` mode, the cutout array has to be fully
             contained within the ``data`` array, otherwise an
-            `~astropy.nddata.utils.PartialOverlapError` is raised.   In
+            `~nddata.nddata.utils.PartialOverlapError` is raised.   In
             all modes, non-overlapping arrays will raise a
-            `~astropy.nddata.utils.NoOverlapError`.  In ``'partial'``
+            `~nddata.nddata.utils.NoOverlapError`.  In ``'partial'``
             mode, positions in the cutout array that do not overlap with
             the ``data`` array will be filled with ``fill_value``.  In
             ``'trim'`` mode only the overlapping elements are returned,
@@ -564,14 +564,14 @@ class Cutout2D(object):
 
         Returns
         -------
-        result : `~astropy.nddata.utils.Cutout2D`
+        result : `~nddata.nddata.utils.Cutout2D`
             A cutout object containing the 2D cutout data array and the
             updated WCS, if ``wcs`` is input.
 
         Examples
         --------
         >>> import numpy as np
-        >>> from astropy.nddata.utils import Cutout2D
+        >>> from nddata.nddata.utils import Cutout2D
         >>> from astropy import units as u
         >>> data = np.arange(20.).reshape(5, 4)
         >>> cutout1 = Cutout2D(data, (2, 2), (3, 3))

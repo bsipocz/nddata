@@ -838,7 +838,7 @@ def test_deprecated_functions_still_working():
     from astropy.units import dimensionless_unscaled
     from copy import deepcopy
     from astropy import log
-    from astropy.nddata import conf
+    from nddata.nddata import conf
 
     class OldNDArithmetic(NDData):
 

@@ -20,7 +20,7 @@ __all__ = ['NDArithmeticMixin']
 # Global so it doesn't pollute the class dict unnecessarily:
 
 # Docstring templates for add, subtract, multiply, divide methods.
-_arit_doc = """Performs {name} based on `~astropy.nddata.NDData`.
+_arit_doc = """Performs {name} based on `~nddata.nddata.NDData`.
 
     Parameters
     ----------
@@ -95,7 +95,7 @@ _arit_doc = """Performs {name} based on `~astropy.nddata.NDData`.
 
     Returns
     -------
-    result : `~astropy.nddata.NDData`-like
+    result : `~nddata.nddata.NDData`-like
         The resulting dataset.
 
     Notes
@@ -116,7 +116,7 @@ class NDArithmeticMixin(object):
 
     When subclassing, be sure to list the superclasses in the correct order
     so that the subclass sees NDData as the main superclass. See
-    `~astropy.nddata.NDDataArray` for an example.
+    `~nddata.nddata.NDDataArray` for an example.
 
     Notes
     -----
@@ -150,9 +150,9 @@ class NDArithmeticMixin(object):
 
     Examples
     --------
-    Using this Mixin with `~astropy.nddata.NDData`:
+    Using this Mixin with `~nddata.nddata.NDData`:
 
-        >>> from astropy.nddata import NDData, NDArithmeticMixin
+        >>> from nddata.nddata import NDData, NDArithmeticMixin
         >>> class NDDataWithMath(NDArithmeticMixin, NDData):
         ...     pass
 
