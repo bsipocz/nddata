@@ -8,9 +8,9 @@ TODO: This should be updated.
 # should keep this content at the top.
 # ----------------------------------------------------------------------------
 from ._astropy_init import *
+from . import nddata
 # ----------------------------------------------------------------------------
 
 # For egg_info test builds to pass, put package imports here.
 if not _ASTROPY_SETUP_:
-    # TODO: Import something useful
     pass
