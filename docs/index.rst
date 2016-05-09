@@ -2,12 +2,12 @@ Documentation
 =============
 
 This is an affiliated package for the AstroPy package. The documentation for
-this package is here:
+this package will be here sometime...
 
 .. toctree::
   :maxdepth: 2
 
-  packagename/index.rst
+  nddata/index.rst
 
 .. note:: The layout of this directory is simply a suggestion.  To follow
           traditional practice, do *not* edit this page, but instead place
