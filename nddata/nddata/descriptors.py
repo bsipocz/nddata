@@ -50,7 +50,6 @@ class ParentNDDataDescriptor(object):
             # be only emitted if someone manually set the private attribute.
             raise TypeError('parent_nddata should be a weakref.ref object to '
                             'avoid circular references.')
-            return result
         # Weakrefs must be called to yield the object they point to.
         return result()
 
