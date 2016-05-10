@@ -76,8 +76,8 @@ matrix:
           env: NUMPY_VERSION=prerelease
 
         # Do a PEP8 test
-        - python: 2.7
-          env: MAIN_CMD='pep8 astropy --count' SETUP_CMD=''
+        # - python: 2.7
+        #   env: MAIN_CMD='pep8 astropy --count' SETUP_CMD=''
 
 before_install:
 
