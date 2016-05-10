@@ -21,7 +21,7 @@ from .mixins.ndslicing import *
 from .mixins.ndio import *
 
 from .compat import *
-from .utils import *
+from . import utils
 
 from astropy import config as _config
 

@@ -52,7 +52,7 @@ Now let's create a cutout for the single object in this image.  We
 create a cutout centered at position ``(x, y) = (49.7, 100.1)`` with a
 size of ``(ny, nx) = (40, 50)`` pixels::
 
-    >>> from nddata.nddata import Cutout2D
+    >>> from nddata.nddata.utils import Cutout2D
     >>> from astropy import units as u
     >>> position = (49.7, 100.1)
     >>> size = (40, 50)     # pixels
@@ -94,7 +94,7 @@ image:
     import numpy as np
     import matplotlib.pyplot as plt
     from astropy.modeling.models import Gaussian2D
-    from nddata.nddata import Cutout2D
+    from nddata.nddata.utils import Cutout2D
     y, x = np.mgrid[0:500, 0:500]
     data = Gaussian2D(1, 50, 100, 10, 5, theta=0.5)(x, y)
     position = (49.7, 100.1)
@@ -114,7 +114,7 @@ the :meth:`~nddata.nddata.utils.Cutout2D.plot_on_original` method:
     import numpy as np
     import matplotlib.pyplot as plt
     from astropy.modeling.models import Gaussian2D
-    from nddata.nddata import Cutout2D
+    from nddata.nddata.utils import Cutout2D
     y, x = np.mgrid[0:500, 0:500]
     data = Gaussian2D(1, 50, 100, 10, 5, theta=0.5)(x, y)
     position = (49.7, 100.1)
@@ -259,7 +259,7 @@ Now let's create the cutout array using the
     import numpy as np
     import matplotlib.pyplot as plt
     from astropy.modeling.models import Gaussian2D
-    from nddata.nddata import Cutout2D
+    from nddata.nddata.utils import Cutout2D
     from astropy.coordinates import SkyCoord
     from astropy.wcs import WCS
     y, x = np.mgrid[0:500, 0:500]
@@ -321,7 +321,7 @@ position, and ``wcs`` object from above to create a cutout with size
     import numpy as np
     import matplotlib.pyplot as plt
     from astropy.modeling.models import Gaussian2D
-    from nddata.nddata import Cutout2D
+    from nddata.nddata.utils import Cutout2D
     from astropy.coordinates import SkyCoord
     from astropy.wcs import WCS
     from astropy import units as u
