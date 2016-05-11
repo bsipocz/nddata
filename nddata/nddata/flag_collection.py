@@ -9,6 +9,7 @@ import numpy as np
 
 from astropy.utils.misc import isiterable
 
+
 __all__ = ['FlagCollection']
 
 

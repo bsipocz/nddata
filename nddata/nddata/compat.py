@@ -1,22 +1,20 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-# This module contains a class equivalent to pre-1.0 NDData.
 
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import numpy as np
 
-from astropy.units import UnitsError, UnitConversionError, Unit
 from astropy import log
+from astropy.units import UnitsError, UnitConversionError, Unit
 
+from .flag_collection import FlagCollection
 from .nddata import NDData
 from .nduncertainty import NDUncertainty
-
 from .mixins.ndslicing import NDSlicingMixin
 from .mixins.ndarithmetic import NDArithmeticMixin
 from .mixins.ndio import NDIOMixin
 
-from .flag_collection import FlagCollection
 
 __all__ = ['NDDataArray']
 

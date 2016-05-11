@@ -1,19 +1,19 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-# This module implements the I/O mixin to the NDData class.
 
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import numpy as np
-import astropy.units as u
-from astropy import log
-from astropy.wcs import WCS
 
+from astropy import log
 from astropy.io import registry as io_registry
 from astropy.io import fits
+import astropy.units as u
+from astropy.wcs import WCS
 
-from ..nduncertainty import StdDevUncertainty, UnknownUncertainty
 from ..nddata import NDData
+from ..nduncertainty import StdDevUncertainty, UnknownUncertainty
+
 
 __all__ = ['NDIOMixin', 'read_nddata_fits', 'write_nddata_fits']
 

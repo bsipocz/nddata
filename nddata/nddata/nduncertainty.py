@@ -3,16 +3,17 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-import numpy as np
 from abc import ABCMeta, abstractproperty, abstractmethod
 from copy import deepcopy
 import weakref
 
-# from ..utils.compat import ignored
-from astropy.utils import deprecated
+import numpy as np
+
+from astropy.extern import six
+
 from astropy import log
 from astropy.units import Unit, Quantity
-from astropy.extern import six
+from astropy.utils import deprecated
 
 __all__ = ['MissingDataAssociationException',
            'IncompatibleUncertaintiesException', 'NDUncertainty',

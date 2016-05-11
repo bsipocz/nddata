@@ -1,17 +1,13 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
-"""
-This module implements a class based on NDData with all Mixins.
-"""
-
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from .nddata import NDData
-
-from .mixins.ndslicing import NDSlicingMixin
 from .mixins.ndarithmetic import NDArithmeticMixin
 from .mixins.ndio import NDIOMixin
+from .mixins.ndslicing import NDSlicingMixin
+
 
 __all__ = ['NDDataRef']
 
