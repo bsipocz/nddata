@@ -78,7 +78,8 @@ class TestIOFunctions(object):
 
     def test_nddata_write_read_mask_boolean(self, tmpdir):
         ndd1 = NDData(np.ones((3, 3)),
-                      mask=np.array([[1, 0, 1], [0, 1, 0], [1, 0, 1]], dtype=bool))
+                      mask=np.array([[1, 0, 1], [0, 1, 0], [1, 0, 1]],
+                                    dtype=bool))
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)
@@ -172,6 +173,37 @@ class TestIOFunctions(object):
         ndd2 = read_nddata_fits(filename)
 
         self.compare_nddata(ndd1, ndd2)
+
+    def test_nddata_write_read_unit_uppercase(self, tmpdir):
+        ndd1 = NDData(np.ones((3, 3)))
+        ndd1.meta['BUNIT'] = 'ADU'
+        # ADU cannot be parsed but it can be parsed if it tries lowercase. We
+        # need to change 'kw_unit' during writing though otherwise it will be
+        # deleted.
+
+        filename = str(self.temp(tmpdir))
+        write_nddata_fits(ndd1, filename, kw_unit='blub')
+        ndd2 = read_nddata_fits(filename)
+
+        # It couldn't be parsed so it will have no unit
+        # TODO: Catch info-message here
+        ndd3 = NDData(ndd1, unit=None)
+
+        self.compare_nddata(ndd3, ndd2)
+
+    def test_nddata_write_read_unit_deletes_keyword(self, tmpdir):
+        ndd1 = NDData(np.ones((3, 3)))
+        ndd1.meta['BUNIT'] = 'adu'
+
+        filename = str(self.temp(tmpdir))
+        write_nddata_fits(ndd1, filename)  # this should delete BUNIT keyword!
+        ndd2 = read_nddata_fits(filename)
+
+        # Since we had no unit
+        ndd3 = NDData(ndd1, unit=None)
+        del ndd3.meta['BUNIT']
+
+        self.compare_nddata(ndd3, ndd2)
 
     def test_nddata_write_read_meta(self, tmpdir):
         meta = dict([(j, i) for i, j in enumerate('abcdefghijklmnopqrstuvwxyz')])

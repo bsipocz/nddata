@@ -165,7 +165,7 @@ def write_nddata_fits(ndd, filename, ext_mask='mask', ext_uncert='uncert',
     number ``0``).
     """
     # Comment card strings to allow roundtripping (must be identical to read!)
-    kw_hdr_masktype = 'boolmask'
+    kw_hdr_masktype = 'boolean mask'
     kw_hdr_uncerttype = {
         StdDevUncertainty: 'standard deviation uncertainty',
         UnknownUncertainty: 'unknown uncertainty type'}
