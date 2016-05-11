@@ -6,10 +6,11 @@ from __future__ import (absolute_import, division, print_function,
 import warnings
 
 from astropy.utils import wraps
-from astropy.utils.exceptions import AstropyUserWarning
 from astropy.utils.compat.funcsigs import signature
+from astropy.utils.exceptions import AstropyUserWarning
 
 from .nddata import NDData
+
 
 __all__ = ['support_nddata']
 

@@ -1,23 +1,22 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-# This module implements the Arithmetic mixin to the NDData class.
 
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from copy import deepcopy
-
-import numpy as np
 import warnings
 
-from ..nduncertainty import NDUncertainty
+import numpy as np
+
 from astropy.units import dimensionless_unscaled
 from astropy.utils import sharedmethod
-from ...utils import format_doc
 from astropy.utils.exceptions import AstropyDeprecationWarning
 
-__all__ = ['NDArithmeticMixin']
+from ..nduncertainty import NDUncertainty
+from ...utils.decorators import format_doc
 
-# Global so it doesn't pollute the class dict unnecessarily:
+
+__all__ = ['NDArithmeticMixin']
 
 # Docstring templates for add, subtract, multiply, divide methods.
 _arit_doc = """Performs {name} based on `~nddata.nddata.NDData`.
