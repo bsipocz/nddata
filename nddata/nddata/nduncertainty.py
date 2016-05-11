@@ -107,7 +107,6 @@ class NDUncertainty(object):
 
         Defined as abstract property so subclasses *have* to override this.
         """
-        return None
 
     @property
     def supports_correlated(self):
@@ -315,19 +314,19 @@ class NDUncertainty(object):
 
     @abstractmethod
     def _propagate_add(self, other_uncert, result_data, correlation):
-        return None
+        """"""
 
     @abstractmethod
     def _propagate_subtract(self, other_uncert, result_data, correlation):
-        return None
+        """"""
 
     @abstractmethod
     def _propagate_multiply(self, other_uncert, result_data, correlation):
-        return None
+        """"""
 
     @abstractmethod
     def _propagate_divide(self, other_uncert, result_data, correlation):
-        return None
+        """"""
 
 
 class UnknownUncertainty(NDUncertainty):
@@ -363,16 +362,16 @@ class UnknownUncertainty(NDUncertainty):
         raise IncompatibleUncertaintiesException(msg)
 
     def _propagate_add(self, other_uncert, result_data, correlation):
-        return None
+        """"""
 
     def _propagate_subtract(self, other_uncert, result_data, correlation):
-        return None
+        """"""
 
     def _propagate_multiply(self, other_uncert, result_data, correlation):
-        return None
+        """"""
 
     def _propagate_divide(self, other_uncert, result_data, correlation):
-        return None
+        """"""
 
 
 class StdDevUncertainty(NDUncertainty):

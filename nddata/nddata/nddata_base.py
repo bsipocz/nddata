@@ -28,7 +28,6 @@ class NDDataBase(object):
     def data(self):
         """The stored dataset.
         """
-        pass
 
     @abstractproperty
     def mask(self):
@@ -37,19 +36,16 @@ class NDDataBase(object):
         Masks should follow the ``numpy`` convention that **valid** data points
         are marked by ``False`` and **invalid** ones with ``True``.
         """
-        return None
 
     @abstractproperty
     def unit(self):
         """Unit for the dataset.
         """
-        return None
 
     @abstractproperty
     def wcs(self):
         """World coordinate system (WCS) for the dataset.
         """
-        return None
 
     @abstractproperty
     def meta(self):
@@ -57,7 +53,6 @@ class NDDataBase(object):
 
         Should be `dict`-like.
         """
-        return None
 
     @abstractproperty
     def uncertainty(self):
@@ -67,4 +62,3 @@ class NDDataBase(object):
         uncertainty is stored, such as ``"std"`` for standard deviation or
         ``"var"`` for variance.
         """
-        return None
