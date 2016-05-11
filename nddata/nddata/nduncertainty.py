@@ -171,7 +171,6 @@ class NDUncertainty(object):
         possible since propagation might need the uncertain data besides the
         uncertainty.
         """
-        from .nddata import NDData
         message = "uncertainty is not associated with an NDData object."
         try:
             if self._parent_nddata is None:
@@ -181,7 +180,7 @@ class NDUncertainty(object):
                 # to get the object the reference points to.
                 if isinstance(self._parent_nddata, weakref.ref):
                     return self._parent_nddata()
-                elif isinstance(self._parent_nddata, NDData):
+                else:
                     log.info("parent_nddata should be a weakref to an NDData "
                              "object.")
                     return self._parent_nddata

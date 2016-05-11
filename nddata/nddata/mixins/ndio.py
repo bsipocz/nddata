@@ -15,7 +15,7 @@ from astropy.io import fits
 from ..nduncertainty import StdDevUncertainty, UnknownUncertainty
 from ..nddata import NDData
 
-__all__ = ['NDIOMixin', 'read_data_fits', 'write_data_fits']
+__all__ = ['NDIOMixin', 'read_nddata_fits', 'write_nddata_fits']
 
 
 class NDIOMixin(object):
@@ -44,9 +44,9 @@ class NDIOMixin(object):
         io_registry.write(self, *args, **kwargs)
 
 
-def read_data_fits(filename, ext_data=0, ext_meta=0, ext_mask='mask',
-                   ext_uncert='uncert', kw_unit='bunit', copy=False,
-                   dtype=None, **kwargs_for_open):
+def read_nddata_fits(filename, ext_data=0, ext_meta=0, ext_mask='mask',
+                     ext_uncert='uncert', kw_unit='bunit',
+                     dtype=None, **kwargs_for_open):
     """
     Read data from a FITS file and wrap the contents in a \
     `~astropy.nddata.NDData`.
@@ -66,10 +66,6 @@ def read_data_fits(filename, ext_data=0, ext_meta=0, ext_mask='mask',
         The header keyword which translates to the unit for the data. Set it
         to ``None`` if parsing the unit results in a ValueError during reading.
         Default is ``'bunit'``.
-
-    copy : bool, optional
-        Copy the data while creating the `~astropy.nddata.NDData` instance?
-        Default is ``False``.
 
     dtype : `numpy.dtype`-like or None, optional
         If not ``None`` the data array is converted to this dtype before
@@ -125,21 +121,23 @@ def read_data_fits(filename, ext_data=0, ext_meta=0, ext_mask='mask',
         if kw_unit is not None and kw_unit in meta:
             try:
                 unit = u.Unit(meta[kw_unit])
-            except ValueError:
-                # ValueError is raised if the unit isn't convertible to an
-                # astropy unit. Maybe they tried all-uppercase: maybe lowercase
-                # will work
-                unit = u.Unit(meta[kw_unit].lower())
+            except ValueError as exc:
+                log.info(str(exc))
+                # TODO: Possibly convert it to lower-case and try it again.
+                # Could yield totally wrong results if the prefix "M" would be
+                # converted to "m".
+                # Possible way to do it:
+                # unit = u.Unit(meta[kw_unit].lower())
         wcs = WCS(meta)
 
     # Just create an NDData instance: This will be upcast to the appropriate
     # class
     return NDData(data, meta=meta, mask=mask, uncertainty=uncertainty,
-                  wcs=wcs, unit=unit, copy=copy)
+                  wcs=wcs, unit=unit, copy=False)
 
 
-def write_data_fits(ndd, filename, ext_mask='mask', ext_uncert='uncert',
-                    kw_unit='bunit', **kwargs_for_write):
+def write_nddata_fits(ndd, filename, ext_mask='mask', ext_uncert='uncert',
+                      kw_unit='bunit', **kwargs_for_write):
     """
     Take an `~astropy.nddata.NDData`-like object and save it as FITS file.
 
@@ -239,5 +237,5 @@ def write_data_fits(ndd, filename, ext_mask='mask', ext_uncert='uncert',
 
 
 # TODO: Register reader and writer WITHOUT identifier (for now...)
-io_registry.register_reader('simple_fits', NDIOMixin, read_data_fits)
-io_registry.register_writer('simple_fits', NDIOMixin, write_data_fits)
+io_registry.register_reader('simple_fits', NDIOMixin, read_nddata_fits)
+io_registry.register_writer('simple_fits', NDIOMixin, write_nddata_fits)
