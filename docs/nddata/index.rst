@@ -171,6 +171,7 @@ Using ``nddata``
    mixins/index.rst
    subclassing.rst
    utils.rst
+   interface.rst
 
 Reference/API
 =============
