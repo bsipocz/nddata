@@ -124,102 +124,116 @@ class NDData(NDDataBase):
         # to the superclass NDDataBase should be in here.
         super(NDData, self).__init__()
 
+        # The class name of the data parameter customize the info messages.
+        name = data.__class__.__name__
+
+        # Setup some temporary variables to hold implicitly passed arguments
+        # so we can check for conflicts after collecting them.
+        unit2 = None
+        meta2 = None
+        mask2 = None
+        uncertainty2 = None
+        wcs2 = None
+
         # Check if data is any type from which to collect some implicitly
         # passed parameters.
         if isinstance(data, NDData):  # don't use self.__class__ (issue #4137)
-            # Of course we need to check the data because subclasses with other
-            # init-logic might be passed in here. We could skip these
-            # tests if we compared for self.__class__ but that has other
-            # drawbacks.
-
-            # Comparing if there is an explicit and an implicit unit parameter.
-            # If that is the case use the explicit one and issue a warning
-            # that there might be a conflict. In case there is no explicit
-            # unit just overwrite the unit parameter with the NDData.unit
-            # and proceed as if that one was given as parameter. Same for the
-            # other parameters.
-            if (unit is not None and data.unit is not None and
-                    unit != data.unit):
-                log.info("overwriting NDData's current "
-                         "unit with specified unit.")
-            elif data.unit is not None:
-                unit = data.unit
-
-            if uncertainty is not None and data.uncertainty is not None:
-                log.info("overwriting NDData's current "
-                         "uncertainty with specified uncertainty.")
-            elif data.uncertainty is not None:
-                uncertainty = data.uncertainty
-
-            if mask is not None and data.mask is not None:
-                log.info("overwriting NDData's current "
-                         "mask with specified mask.")
-            elif data.mask is not None:
-                mask = data.mask
-
-            if wcs is not None and data.wcs is not None:
-                log.info("overwriting NDData's current "
-                         "wcs with specified wcs.")
-            elif data.wcs is not None:
-                wcs = data.wcs
-
-            if meta is not None and data.meta is not None:
-                log.info("overwriting NDData's current "
-                         "meta with specified meta.")
-            elif data.meta is not None:
-                meta = data.meta
-
+            # Another NDData object get all attributes
+            unit2 = data.unit
+            meta2 = data.meta
+            mask2 = data.mask
+            uncertainty2 = data.uncertainty
+            wcs2 = data.wcs
             data = data.data
-
+        elif hasattr(data, '__astropy_nddata__'):
+            # Something that provides an interface to convert to NDData
+            # collect the dictionary returned by it but assume not every
+            # argument is provided, therefore use get with None default
+            kwargs = data.__astropy_nddata__()
+            # data is the only required argument here so let it fail if the
+            # other class doesn't provide it.
+            if 'data' not in kwargs:
+                raise TypeError(
+                    "missing data from interface class {0}".format(name))
+            unit2 = kwargs.get('unit', None)
+            meta2 = kwargs.get('meta', None)
+            mask2 = kwargs.get('mask', None)
+            uncertainty2 = kwargs.get('uncertainty', None)
+            wcs2 = kwargs.get('wcs', None)
+            data = kwargs['data']
         else:
             if hasattr(data, 'mask') and hasattr(data, 'data'):
-                # Seperating data and mask
-                if mask is not None:
-                    log.info("overwriting Masked Objects's current "
-                             "mask with specified mask.")
-                else:
-                    mask = data.mask
-
-                # Just save the data for further processing, we could be given
-                # a masked Quantity or something else entirely. Better to check
-                # it first.
+                # Probably a masked array: Get mask and then data
+                mask2 = data.mask
                 data = data.data
-
+            # It could be a masked quantity so no elif here.
             if isinstance(data, Quantity):
-                if unit is not None and unit != data.unit:
-                    log.info("overwriting Quantity's current "
-                             "unit with specified unit.")
-                else:
-                    unit = data.unit
+                # A quantity get the unit and the value.
+                unit2 = data.unit
                 data = data.value
 
-        # Quick check on the parameters if they match the requirements.
-        if (not hasattr(data, 'shape') or not hasattr(data, '__getitem__') or
-                not hasattr(data, '__array__')):
-            # Data doesn't look like a numpy array, try converting it to
-            # one.
-            data = np.array(data, subok=True, copy=False)
+        if any(not hasattr(data, attr)
+                for attr in ('shape', '__getitem__', '__array__')):
+            # Data doesn't look like a numpy array, try converting it to one.
+            data2 = np.array(data, subok=True, copy=False)
+        else:
+            data2 = data
 
         # Another quick check to see if what we got looks like an array
         # rather than an object (since numpy will convert a
         # non-numerical/non-string inputs to an array of objects).
-        if data.dtype == 'O':
-            raise TypeError("could not convert data to numpy array.")
+        if data2.dtype.kind not in 'buifc':
+            raise TypeError(
+                "could not convert {0} to numpy array.".format(name))
 
+        # Check if explicit or implicit argument should be used and raise an
+        # info if both are provided
+        msg = "overwriting {0}'s current {1} with specified {1}."
+
+        # Units are relativly cheap to compare so only raise the info message
+        # if both are set and not equal. No need to compare the other arguments
+        # though, especially since comparing numpy arrays could be expensive.
+        if unit is not None and unit2 is not None and unit != unit2:
+            log.info(msg.format(name, 'unit'))
+        elif unit2 is not None:
+            unit = unit2
+
+        if mask is not None and mask2 is not None:
+            log.info(msg.format(name, 'mask'))
+        elif mask2 is not None:
+            mask = mask2
+
+        if meta and meta2:  # check if it's not empty here!
+            log.info(msg.format(name, 'meta'))
+        elif meta2:
+            meta = meta2
+
+        if wcs is not None and wcs2 is not None:
+            log.info(msg.format(name, 'wcs'))
+        elif wcs2 is not None:
+            wcs = wcs2
+
+        if uncertainty is not None and uncertainty2 is not None:
+            log.info(msg.format(name, 'uncertainty'))
+        elif uncertainty2 is not None:
+            uncertainty = uncertainty2
+
+        # Copy if necessary
         if copy:
-            # Data might have been copied before but no way of validating
-            # without another variable.
-            data = deepcopy(data)
+            # only copy data if it wasn't converted before.
+            if data is data2:
+                data2 = deepcopy(data2)
+            # always copy these mask, wcs and uncertainty
             mask = deepcopy(mask)
             wcs = deepcopy(wcs)
-            # no need to copy meta because the meta descriptor will always copy
-            # and units don't need to be copied anyway.
-            # meta = deepcopy(meta)
-            # unit = deepcopy(unit)
             uncertainty = deepcopy(uncertainty)
+            # no need to copy meta because the meta descriptor will always copy
+            # meta = deepcopy(meta)
+            # and units don't need to be copied anyway.
+            # unit = deepcopy(unit)
 
         # Store the attributes
-        self._data = data
+        self._data = data2
         self.mask = mask
         self.wcs = wcs
         self.meta = meta

@@ -6,13 +6,13 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import textwrap
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 
 import numpy as np
 from numpy.testing import assert_array_equal
 
 from ..nddata import NDData
-from ..nduncertainty import NDUncertainty, StdDevUncertainty
+from ..nduncertainty import NDUncertainty, StdDevUncertainty, UnknownUncertainty
 from astropy.tests.helper import pytest
 from astropy import units as u
 from astropy.utils import NumpyRNGContext
@@ -57,7 +57,7 @@ class FakeNumpyArray(object):
 
     @property
     def dtype(self):
-        return 'fake'
+        return namedtuple('dtype', ['kind'], verbose=True)('f')
 
 
 class MinimalUncertainty(object):
@@ -82,6 +82,36 @@ class BadNDDataSubclass(NDData):
         self._wcs = wcs
         self._unit = unit
         self._meta = meta
+
+
+class NDDataInterface(object):
+
+    def __init__(self, data, uncertainty=None, mask=None, wcs=None,
+                 meta=None, unit=None):
+        self._data = data
+        self._uncertainty = uncertainty
+        self._mask = mask
+        self._wcs = wcs
+        self._unit = unit
+        self._meta = meta
+
+    def __astropy_nddata__(self):
+        return {'data': self._data, 'uncertainty': self._uncertainty,
+                'mask': self._mask, 'unit': self._unit, 'wcs': self._wcs,
+                'meta': self._meta}
+
+
+class NDDataPartialInterface(NDDataInterface):
+
+    def __astropy_nddata__(self):
+        return {'data': self._data, 'unit': self._unit, 'meta': self._meta}
+
+
+class NDDataBrokenInterface(NDDataInterface):
+
+    def __astropy_nddata__(self):
+        return {'meta': self._meta, 'uncertainty': self._uncertainty,
+                'mask': self._mask, 'unit': self._unit, 'wcs': self._wcs}
 
 
 # Setter tests
@@ -433,3 +463,39 @@ def test_arithmetic_not_supported():
     ndd = NDData(np.ones((5, 5)))
     with pytest.raises(TypeError):
         ndd + ndd
+
+
+def test_nddata_interface():
+    nddlike = NDDataInterface([1], 2, 3, 4, {1: 1}, 6)
+    ndd = NDData(nddlike)
+
+    # TODO: akward test because comparing number to Quantity
+    assert ndd.unit == nddlike._unit
+    assert ndd.mask == nddlike._mask
+    assert ndd.wcs == nddlike._wcs
+    assert ndd.meta == nddlike._meta
+    assert type(ndd.meta) == type(nddlike._meta) # make sure it's really a dict
+    np.testing.assert_array_equal(ndd.data, np.asarray(nddlike._data))
+    np.testing.assert_array_equal(ndd.uncertainty.array,
+                                  np.asarray(nddlike._uncertainty))
+    assert isinstance(ndd.uncertainty, UnknownUncertainty)
+
+
+def test_nddata_partial_interface():
+    nddlike = NDDataPartialInterface([1], 2, 3, 4, {1: 1}, 6)
+    ndd = NDData(nddlike)
+
+    # TODO: akward test because comparing number to Quantity
+    assert ndd.unit == nddlike._unit
+    assert ndd.meta == nddlike._meta
+    assert type(ndd.meta) == type(nddlike._meta) # make sure it's really a dict
+    np.testing.assert_array_equal(ndd.data, np.asarray(nddlike._data))
+    assert ndd.uncertainty is None
+    assert ndd.mask is None
+    assert ndd.wcs is None
+
+
+def test_nddata_broken_interface():
+    nddlike = NDDataBrokenInterface([1], 2, 3, 4, {1: 1}, 6)
+    with pytest.raises(TypeError):
+        NDData(nddlike)

@@ -20,8 +20,22 @@ Adding another property
 
     >>> class NDDataWithFlags(NDData):
     ...     def __init__(self, *args, **kwargs):
-    ...         # Remove flags attribute if given and pass it to the setter.
-    ...         self.flags = kwargs.pop('flags') if 'flags' in kwargs else None
+    ...         # We allowed args and kwargs so find out where the data is.
+    ...         data = args[0] if args else kwargs['data']
+    ...
+    ...         # There are three ways to get flags:
+    ...         # 1.) explicitly given if they are given they should be used.
+    ...         flags = kwargs.pop('flags', None)
+    ...         if flags is None:
+    ...             # 2.) another NDData - maybe with flags
+    ...             if isinstance(data, NDData):
+    ...                 flags = getattr(data, 'flags', None)
+    ...             # 3.) implements the NDData interface, maybe returns flags
+    ...             elif hasattr(data, '__astropy_nddata__'):
+    ...                 flags = data.__astropy_nddata__().get('flags', None)
+    ...
+    ...         # afterwards set it and call the parents init
+    ...         self.flags = flags
     ...         super(NDDataWithFlags, self).__init__(*args, **kwargs)
     ...
     ...     @property
