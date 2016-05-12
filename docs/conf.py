@@ -65,6 +65,9 @@ exclude_patterns.append('_templates')
 rst_epilog += """
 """
 
+# show inherited members for classes
+automodsumm_inherited_members = True
+
 # -- Project information ------------------------------------------------------
 
 # This does not *have* to match the package name, but typically does
