@@ -107,7 +107,6 @@ Having a setter for the data
     ...
     ...     @NDData.data.setter
     ...     def data(self, value):
-    ...         # Convert mask to numpy array
     ...         self._data = np.asarray(value)
 
     >>> ndd = NDDataWithDataSetter([1,2,3])
@@ -199,9 +198,9 @@ you could use ``kwargs['flags'] = self.flags`` and omit the ``[item]``.
 Arithmetic on an existing property
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Customizing how an existing property is handled during arithmetics is possible
+Customizing how an existing property is handled during arithmetic is possible
 with some arguments to the function calls like
-:meth:`~nddata.nddata.NDArithmeticMixin.add` but if it's possible to hardcode
+:meth:`~nddata.nddata.NDArithmeticMixin.add` but it's possible to hardcode
 behaviour too. The actual operation on the attribute (except for ``unit``) is
 done in a method ``_arithmetic_*`` where ``*`` is the name of the property.
 
@@ -224,8 +223,8 @@ For example to customize how the ``meta`` will be affected during arithmetics::
     ...             result_meta['exposure'] = operation(result_meta['exposure'], operand.data)
     ...         return result_meta # return it
 
-To trigger this method the ``handle_meta`` argument must not be ``None``,
-``"ff"`` or ``"first_found"``::
+To trigger this method the ``handle_meta`` argument to arithmetic methods can
+be anything except ``None`` or ``"first_found"``::
 
     >>> ndd = NDDataWithMetaArithmetics([1,2,3], meta={'exposure': 10})
     >>> ndd2 = ndd.add(10, handle_meta='')
@@ -252,8 +251,8 @@ Changing default argument for arithmetic operations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If the goal is to change the default value of an existing parameter for
-arithmetic methods. Maybe because explicitly specifying the parameter each
-time you're calling an arithmetic operation is too much effort you can easily
+arithmetic methods, maybe because explicitly specifying the parameter each
+time you're calling an arithmetic operation is too much effort, you can easily
 change the default value of existing parameters by changing it in the method
 signature of ``_arithmetic``::
 
@@ -281,7 +280,7 @@ signature of ``_arithmetic``::
     False
 
 The parameter controlling how properties are handled are all keyword-only
-so using the ``*args, **kwargs`` approach allows only to alter one default
+so using the ``*args, **kwargs`` approach allows one to only alter one default
 without needing to care about the positional order of arguments. But using
 ``def _arithmetic(self, *args, handle_mask=None, **kwargs)`` doesn't work
 for python 2.

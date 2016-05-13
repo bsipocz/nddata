@@ -54,7 +54,7 @@ class NDData(NDDataBase):
         Default is ``None``.
 
     meta : `dict`-like object, optional
-        Additional meta informations about the dataset. If no meta is provided
+        Additional meta information about the dataset. If no meta is provided
         an empty `collections.OrderedDict` is created.
         Default is ``None``.
 
@@ -64,13 +64,10 @@ class NDData(NDDataBase):
         Default is ``None``.
 
     copy : `bool`, optional
-        Save the attributes as copy? ``True`` copies every attribute before
-        saving it while ``False`` tries to save every parameter as reference.
-        Note however that it is not always possible to save the input as
-        reference.
+        Indicates whether to save the arguments as copy. ``True`` copies
+        every attribute before saving it while ``False`` tries to save every
+        parameter as reference.
         Default is ``False``.
-
-        .. versionadded:: 1.2
 
     Raises
     ------
@@ -80,7 +77,7 @@ class NDData(NDDataBase):
     Attributes
     ----------
     meta : `dict`-like
-        Additional meta informations about the dataset.
+        Additional meta information about the dataset.
 
     Notes
     -----
@@ -95,7 +92,7 @@ class NDData(NDDataBase):
 
     Given a conflicting implicit and an explicit parameter during
     initialization, for example the ``data`` is a `~astropy.units.Quantity` and
-    the unit parameter is not None. Then the implicit parameter is replaced
+    the unit parameter is not ``None``, then the implicit parameter is replaced
     (without conversion) by the explicit one and a warning is issued::
 
         >>> import numpy as np
