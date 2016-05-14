@@ -49,7 +49,7 @@ class NDDataBase(object):
 
     @abstractproperty
     def meta(self):
-        """Additional meta informations about the dataset.
+        """Additional meta information about the dataset.
 
         Should be `dict`-like.
         """
