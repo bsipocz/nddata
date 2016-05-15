@@ -9,13 +9,18 @@ import numpy as np
 
 from astropy import log
 from astropy.units import Unit, Quantity
-from astropy.utils.metadata import MetaData
+# TODO: Could be omitted if astropy/#4921 is merged
+from ..utils.descriptors import MetaData
+# from astropy.utils.metadata import MetaData
 
 from .nddata_base import NDDataBase
 from .nduncertainty import NDUncertainty, UnknownUncertainty
 
 
 __all__ = ['NDData']
+
+
+_meta_doc = """`dict`-like : Additional meta information about the dataset."""
 
 
 class NDData(NDDataBase):
@@ -73,11 +78,6 @@ class NDData(NDDataBase):
     ------
     TypeError
         In case ``data`` or ``meta`` don't meet the restrictions.
-
-    Attributes
-    ----------
-    meta : `dict`-like
-        Additional meta information about the dataset.
 
     Notes
     -----
@@ -255,12 +255,9 @@ class NDData(NDDataBase):
         """
         return self._data
 
-    # Instead of a custom property use the MetaData descriptor. It will check
-    # if the meta is dict-like.
-    # TODO: reading the documentation from a descriptor using Sphinx isn't
-    # trivial so this attribute is documented in the class docstring but
-    # it would be better to define it here.
-    meta = MetaData()
+    # Instead of a custom property use the MetaData descriptor also used for
+    # Tables. It will check if the meta is dict-like or raise an exception.
+    meta = MetaData(doc=_meta_doc, copy=False)
 
     @property
     def mask(self):
