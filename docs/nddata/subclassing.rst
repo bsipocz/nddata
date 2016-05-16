@@ -105,7 +105,11 @@ Having a setter for the data
 
     >>> class NDDataWithDataSetter(NDData):
     ...
-    ...     @NDData.data.setter
+    ...     @property
+    ...     def data(self):
+    ...         return self._data
+    ...
+    ...     @data.setter
     ...     def data(self, value):
     ...         self._data = np.asarray(value)
 

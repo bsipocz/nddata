@@ -10,7 +10,7 @@ import numpy as np
 from astropy import log
 from astropy.units import Unit, Quantity
 # TODO: Could be omitted if astropy/#4921 is merged
-from ..utils.descriptors import MetaData
+from ..utils.descriptors import MetaData, NumericalNumpyData
 # from astropy.utils.metadata import MetaData
 
 from .nddata_base import NDDataBase
@@ -19,7 +19,11 @@ from .nduncertainty import NDUncertainty, UnknownUncertainty
 
 __all__ = ['NDData']
 
+_data_doc = """`numpy.ndarray`-like : The stored dataset.
 
+The data cannot be set directly but it probably can be modified
+in-place.
+"""
 _meta_doc = """`dict`-like : Additional meta information about the dataset."""
 
 
@@ -169,19 +173,10 @@ class NDData(NDDataBase):
                 unit2 = data.unit
                 data = data.value
 
-        if any(not hasattr(data, attr)
-                for attr in ('shape', '__getitem__', '__array__')):
-            # Data doesn't look like a numpy array, try converting it to one.
-            data2 = np.array(data, subok=True, copy=False)
-        else:
-            data2 = data
-
-        # Another quick check to see if what we got looks like an array
-        # rather than an object (since numpy will convert a
-        # non-numerical/non-string inputs to an array of objects).
-        if data2.dtype.kind not in 'buifc':
-            raise TypeError(
-                "could not convert {0} to numpy array.".format(name))
+        # At this point we know what the data is
+        self.data = data
+        if copy and self.data is data:
+            self.data = deepcopy(data)
 
         # Check if explicit or implicit argument should be used and raise an
         # info if both are provided
@@ -215,11 +210,8 @@ class NDData(NDDataBase):
         elif uncertainty2 is not None:
             uncertainty = uncertainty2
 
-        # Copy if necessary
+        # Copy if necessary (data is already copied)
         if copy:
-            # only copy data if it wasn't converted before.
-            if data is data2:
-                data2 = deepcopy(data2)
             # always copy these mask, wcs and uncertainty
             mask = deepcopy(mask)
             wcs = deepcopy(wcs)
@@ -230,7 +222,6 @@ class NDData(NDDataBase):
             # unit = deepcopy(unit)
 
         # Store the attributes
-        self._data = data2
         self.mask = mask
         self.wcs = wcs
         self.meta = meta
@@ -246,14 +237,8 @@ class NDData(NDDataBase):
         body = np.array2string(self.data, separator=', ', prefix=prefix)
         return ''.join([prefix, body, ')'])
 
-    @property
-    def data(self):
-        """`numpy.ndarray`-like : The stored dataset.
 
-        The data cannot be set directly but it probably can be modified
-        in-place.
-        """
-        return self._data
+    data = NumericalNumpyData('data', _data_doc)
 
     # Instead of a custom property use the MetaData descriptor also used for
     # Tables. It will check if the meta is dict-like or raise an exception.
