@@ -161,7 +161,9 @@ class NDData(NDDataBase):
                 unit2 = data.unit
                 data = data.value
 
-        # At this point we know what the data is
+        # At this point we know what the data is, set it and copy it if it
+        # wasn't already copied during setting (for example lists are already
+        # copied)
         self.data = data
         if copy and self.data is data:
             self.data = deepcopy(data)
@@ -214,7 +216,6 @@ class NDData(NDDataBase):
         self.wcs = wcs
         self.meta = meta
         self.unit = unit
-        # Call the setter for uncertainty to further check the uncertainty
         self.uncertainty = uncertainty
 
     def __str__(self):
