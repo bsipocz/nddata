@@ -10,7 +10,7 @@ import numpy as np
 from astropy import log
 from astropy.units import Unit, Quantity
 # TODO: Could be omitted if astropy/#4921 is merged
-from ..utils.descriptors import MetaData, NumericalNumpyData
+from ..utils import descriptors
 # from astropy.utils.metadata import MetaData
 
 from .nddata_base import NDDataBase
@@ -18,13 +18,6 @@ from .nduncertainty import NDUncertainty, UnknownUncertainty
 
 
 __all__ = ['NDData']
-
-_data_doc = """`numpy.ndarray`-like : The stored dataset.
-
-The data cannot be set directly but it probably can be modified
-in-place.
-"""
-_meta_doc = """`dict`-like : Additional meta information about the dataset."""
 
 
 class NDData(NDDataBase):
@@ -151,17 +144,12 @@ class NDData(NDDataBase):
             # collect the dictionary returned by it but assume not every
             # argument is provided, therefore use get with None default
             kwargs = data.__astropy_nddata__()
-            # data is the only required argument here so let it fail if the
-            # other class doesn't provide it.
-            if 'data' not in kwargs:
-                raise TypeError(
-                    "missing data from interface class {0}".format(name))
             unit2 = kwargs.get('unit', None)
             meta2 = kwargs.get('meta', None)
             mask2 = kwargs.get('mask', None)
             uncertainty2 = kwargs.get('uncertainty', None)
             wcs2 = kwargs.get('wcs', None)
-            data = kwargs['data']
+            data = kwargs.get('data', None)
         else:
             if hasattr(data, 'mask') and hasattr(data, 'data'):
                 # Probably a masked array: Get mask and then data
@@ -237,27 +225,29 @@ class NDData(NDDataBase):
         body = np.array2string(self.data, separator=', ', prefix=prefix)
         return ''.join([prefix, body, ')'])
 
+    @descriptors.Data
+    def data(self):
+        """`numpy.ndarray`-like : The stored dataset.
 
-    data = NumericalNumpyData('data', _data_doc)
+        Only numerical arrays can be saved or ``None``.
+        """
 
     # Instead of a custom property use the MetaData descriptor also used for
     # Tables. It will check if the meta is dict-like or raise an exception.
-    meta = MetaData(doc=_meta_doc, copy=False)
+    @descriptors.Meta
+    def meta(self):
+        """`dict`-like : Additional meta information about the dataset.
+        """
 
-    @property
+    @descriptors.Mask
     def mask(self):
         """any type : Mask for the dataset, if any.
 
         Masks should follow the ``numpy`` convention that **valid** data points
         are marked by ``False`` and **invalid** ones with ``True``.
         """
-        return self._mask
 
-    @mask.setter
-    def mask(self, value):
-        self._mask = value
-
-    @property
+    @descriptors.Unit
     def unit(self):
         """`~astropy.units.Unit` : Unit for the dataset, if any.
 
@@ -268,27 +258,13 @@ class NDData(NDDataBase):
           scale or otherwise affect the saved data or uncertainty. Appropriate
           conversion of these values must be done manually.
         """
-        return self._unit
 
-    @unit.setter
-    def unit(self, value):
-        # Simply replace the unit without converting data or uncertainty:
-        if value is None:
-            self._unit = None
-        else:
-            self._unit = Unit(value)
-
-    @property
+    @descriptors.WCS
     def wcs(self):
         """any type : World coordinate system (WCS) for the dataset, if any.
         """
-        return self._wcs
 
-    @wcs.setter
-    def wcs(self, value):
-        self._wcs = value
-
-    @property
+    @descriptors.Uncertainty
     def uncertainty(self):
         """any type : Uncertainty in the dataset, if any.
 
@@ -298,29 +274,3 @@ class NDData(NDDataBase):
         `NDUncertainty` - but isn't mandatory. If the uncertainty has no such
         attribute the uncertainty is stored as `UnknownUncertainty`.
         """
-        return self._uncertainty
-
-    @uncertainty.setter
-    def uncertainty(self, value):
-        if value is not None:
-            # There is one requirements on the uncertainty: That
-            # it has an attribute 'uncertainty_type'.
-            # If it does not match this requirement convert it to an unknown
-            # uncertainty.
-            if not hasattr(value, 'uncertainty_type'):
-                log.info('uncertainty should have attribute uncertainty_type.')
-                value = UnknownUncertainty(value, copy=False)
-
-            # If it is a subclass of NDUncertainty we must set the
-            # parent_nddata attribute. (#4152)
-            if isinstance(value, NDUncertainty):
-                # In case the uncertainty already has a parent create a new
-                # instance because we need to assume that we don't want to
-                # steal the uncertainty from another NDData object
-                if value._parent_nddata is not None:
-                    value = value.__class__(value, copy=False)
-                # Then link it to this NDData instance (internally this needs
-                # to be saved as weakref but that's done by NDUncertainty
-                # setter).
-                value.parent_nddata = self
-        self._uncertainty = value

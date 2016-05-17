@@ -177,9 +177,6 @@ Reference/API
 =============
 
 .. automodapi:: nddata.nddata
-    :no-inheritance-diagram:
 
 .. automodapi:: nddata.nddata.utils
     :no-inheritance-diagram:
-
-.. _APE 7: https://github.com/astropy/astropy-APEs/blob/master/APE7.rst

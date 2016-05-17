@@ -66,7 +66,11 @@ Customize the setter for a property
 
     >>> class NDDataMaskBoolNumpy(NDData):
     ...
-    ...     @NDData.mask.setter
+    ...     @property
+    ...     def mask(self):
+    ...         return self._mask
+    ...
+    ...     @mask.setter
     ...     def mask(self, value):
     ...         # Convert mask to boolean numpy array.
     ...         self._mask = np.array(value, dtype=np.bool_)
@@ -85,18 +89,21 @@ super property set the attribute afterwards::
     >>> import numpy as np
 
     >>> class NDDataUncertaintyShapeChecker(NDData):
+    ...     @property
+    ...     def uncertainty(self):
+    ...         return self._uncertainty
     ...
-    ...     @NDData.uncertainty.setter
+    ...     @uncertainty.setter
     ...     def uncertainty(self, value):
     ...         value = np.asarray(value)
     ...         if value.shape != self.data.shape:
     ...             raise ValueError('uncertainty must have the same shape as the data.')
     ...         # Call the setter of the super class in case it might contain some
     ...         # important logic (only True for meta, unit and uncertainty)
-    ...         super(NDDataUncertaintyShapeChecker, self.__class__).uncertainty.fset(self, value)
+    ...         super(NDDataUncertaintyShapeChecker, self.__class__).uncertainty.__set__(self, value)
 
     >>> ndd = NDDataUncertaintyShapeChecker([1,2,3], uncertainty=[2,3,4])
-    INFO: uncertainty should have attribute uncertainty_type. [nddata.nddata.nddata]
+    INFO: uncertainty should have attribute uncertainty_type. [nddata.utils.descriptors]
     >>> ndd.uncertainty
     UnknownUncertainty([2, 3, 4])
 

@@ -1,8 +1,7 @@
 Documentation
 =============
 
-This is an affiliated package for the AstroPy package. The documentation for
-this package will be here sometime...
+This is a private spinoff of the `astropy.nddata` module.
 
 .. toctree::
     :maxdepth: 2
@@ -16,10 +15,3 @@ Meta informations
     :maxdepth: 1
 
     changelog
-
-.. note:: The layout of this directory is simply a suggestion.  To follow
-          traditional practice, do *not* edit this page, but instead place
-          all documentation for the affiliated package inside ``packagename/``.
-          The traditional practice was intended to allow the affiliated
-          package to eventually be merged into the main astropy package.
-          You can follow this practice or choose your own layout.

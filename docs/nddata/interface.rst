@@ -40,7 +40,7 @@ would probably not be the case for real classes but provides a good example::
     ...
     >>> nddlike = NDDataInterface([1], 2, 3, 4, {1: 1}, 'm')
     >>> ndd = NDData(nddlike)
-    INFO: uncertainty should have attribute uncertainty_type. [nddata.nddata.nddata]
+    INFO: uncertainty should have attribute uncertainty_type. [nddata.utils.descriptors]
 
     >>> ndd
     NDData([1])
@@ -48,7 +48,7 @@ would probably not be the case for real classes but provides a good example::
     3
 
     >>> ndd = NDDataRef(nddlike)
-    INFO: uncertainty should have attribute uncertainty_type. [nddata.nddata.nddata]
+    INFO: uncertainty should have attribute uncertainty_type. [nddata.utils.descriptors]
     >>> ndd
     NDDataRef([1])
 
@@ -90,10 +90,7 @@ subclasses) and only the relevant ones are used::
 Broken interfaces
 ^^^^^^^^^^^^^^^^^
 
-.. warning::
-    The only attribute that **must** be provided is ``data``.
-
-It will fail if the return doesn't include a value for the ``data``::
+It will also work if the return doesn't include a value for the ``data``::
 
     >>> class NDDataBrokenInterface(NDDataInterface):
     ...     def __astropy_nddata__(self):
@@ -101,8 +98,7 @@ It will fail if the return doesn't include a value for the ``data``::
     ...                 'mask': self.mask, 'unit': self.unit, 'wcs': self.wcs}
 
     >>> nddlike = NDDataBrokenInterface([1], 2, 3, 4, {1: 1}, 'm')
-    >>> try:
-    ...     ndd = NDDataRef(nddlike)
-    ... except TypeError as exc:
-    ...     print('{0} : {1}'.format(exc.__class__.__name__, exc))
-    TypeError : missing data from interface class NDDataBrokenInterface
+    >>> ndd = NDDataRef(nddlike)
+    INFO: uncertainty should have attribute uncertainty_type. [nddata.utils.descriptors]
+    >>> ndd.data is None
+    True
