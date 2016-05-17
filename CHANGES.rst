@@ -16,6 +16,8 @@ New Features
  - ``utils.descriptors`` module added which contains several descriptors to
    allow reusing common attribute requirements. PR #13
 
+ - ``utils.sentinels`` module added to create custom sentinals. PR #17
+
 
 API changes
 ^^^^^^^^^^^
@@ -32,4 +34,6 @@ API changes
 Bug fixes
 ^^^^^^^^^
 
- - None
+ - Given explicit and implicit attributes during NDData creation the implicit
+   one was ignored if the implicit attribute was None and the explicit argument
+   was not None. PR #17

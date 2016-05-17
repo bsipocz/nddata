@@ -8,28 +8,16 @@ from copy import deepcopy
 import numpy as np
 
 from astropy import log
-from astropy.units import Unit, Quantity
+from astropy.units import Quantity
 # TODO: Could be omitted if astropy/#4921 is merged
 from ..utils import descriptors
 # from astropy.utils.metadata import MetaData
 
 from .nddata_base import NDDataBase
-from .nduncertainty import NDUncertainty, UnknownUncertainty
+from ..utils.sentinels import ParameterNotSpecified
 
 
 __all__ = ['NDData']
-
-
-class Sentinel(object):
-    """Class representing that a given parameter is not specified if None, etc.
-    should be valid values."""
-    def __repr__(self):
-        return self.__str__()
-
-    def __str__(self):
-        return 'not specified'
-
-NotSpecified = Sentinel()
 
 
 class NDData(NDDataBase):
@@ -121,8 +109,9 @@ class NDData(NDDataBase):
     NDDataArray
     """
 
-    def __init__(self, data, uncertainty=NotSpecified, mask=NotSpecified,
-                 wcs=NotSpecified, meta=NotSpecified, unit=NotSpecified,
+    def __init__(self, data, uncertainty=ParameterNotSpecified,
+                 mask=ParameterNotSpecified, wcs=ParameterNotSpecified,
+                 meta=ParameterNotSpecified, unit=ParameterNotSpecified,
                  copy=False):
 
         # Rather pointless since the NDDataBase does not implement any setting
@@ -196,28 +185,28 @@ class NDData(NDDataBase):
         # if both are set and not equal. No need to compare the other arguments
         # though, especially since comparing numpy arrays could be expensive
         # and errors when using `==` or `!=`.
-        if unit is NotSpecified:
+        if unit is ParameterNotSpecified:
             unit = unit2
         elif unit2 is not None and unit != unit2:  # compare unit here
             # Conflict message
             log.info(msg.format(name, 'unit'))
 
-        if mask is NotSpecified:
+        if mask is ParameterNotSpecified:
             mask = mask2
         elif mask2 is not None:
             log.info(msg.format(name, 'mask'))
 
-        if meta is NotSpecified:
+        if meta is ParameterNotSpecified:
             meta = meta2
         elif meta2 is not None:
             log.info(msg.format(name, 'meta'))
 
-        if wcs is NotSpecified:
+        if wcs is ParameterNotSpecified:
             wcs = wcs2
         elif wcs2 is not None:
             log.info(msg.format(name, 'wcs'))
 
-        if uncertainty is NotSpecified:
+        if uncertainty is ParameterNotSpecified:
             uncertainty = uncertainty2
         elif uncertainty2 is not None:
             log.info(msg.format(name, 'uncertainty'))

@@ -40,3 +40,14 @@ NumPy related utilities.
 
 .. automodapi:: nddata.utils.numpyutils
     :no-inheritance-diagram:
+
+
+Sentinels
+=========
+
+Sentinels are classes where there is at most one instance, like `None` or
+`True` and `False`. This modolue contains some custom sentinels and a
+factory to create them.
+
+.. automodapi:: nddata.utils.sentinels
+    :no-inheritance-diagram:

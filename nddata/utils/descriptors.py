@@ -619,7 +619,7 @@ class Uncertainty(AdvancedDescriptor):
         their own parent instead of stealing the ``parent``. Then the
         ``parent_nddata`` is set to the instance the setter was called on.
         """
-        from ..nddata.nddata import NDUncertainty, UnknownUncertainty
+        from ..nddata import NDUncertainty, UnknownUncertainty
         # There is one requirements on the uncertainty: That
         # it has an attribute 'uncertainty_type'.
         # If it does not match this requirement convert it to an unknown
