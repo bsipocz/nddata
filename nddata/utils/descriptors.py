@@ -181,7 +181,8 @@ class AdvancedDescriptor(BaseDescriptor):
     `BaseDescriptor`. The difference only shows what happens if you use the
     getter when the private attribute doesn't exist::
 
-        >>> from nddata.utils.descriptors import BaseDescriptor, AdvancedDescriptor
+        >>> from nddata.utils.descriptors import (BaseDescriptor,
+        ...                                       AdvancedDescriptor)
         >>> class Test(object):
         ...     data1 = BaseDescriptor('data1', copy=False)
         ...     data2 = AdvancedDescriptor('data2', copy=False)
@@ -618,7 +619,7 @@ class Uncertainty(AdvancedDescriptor):
         their own parent instead of stealing the ``parent``. Then the
         ``parent_nddata`` is set to the instance the setter was called on.
         """
-        from ..nddata.nddata import (NDUncertainty, UnknownUncertainty)
+        from ..nddata.nddata import NDUncertainty, UnknownUncertainty
         # There is one requirements on the uncertainty: That
         # it has an attribute 'uncertainty_type'.
         # If it does not match this requirement convert it to an unknown
