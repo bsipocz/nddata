@@ -356,7 +356,10 @@ def test_subclassing_advanced3():
 
     # Now test that even though data1 has copy it is not deepcopied because
     # the process function only casts to list
-    alist = [[1,1,1], 2, 2]
+
+    # This is not a Bug, this is a test that normally the values are not copied
+    # TWICE. (which would be inefficient)
+    alist = [[1, 1, 1], 2, 2]
     t.data1 = alist
     t.data2 = alist
     alist[0][0] = 20
