@@ -511,3 +511,23 @@ def test_nddata_no_data_interface():
     np.testing.assert_array_equal(ndd.uncertainty.array,
                                   np.asarray(nddlike._uncertainty))
     assert isinstance(ndd.uncertainty, UnknownUncertainty)
+
+def test_nddata_sentinels():
+    quantity = np.arange(10) * u.m
+    ndd = NDData(quantity, unit=None)
+    assert ndd.unit is None
+
+    masked_array = np.ma.array(np.ones(3), mask=[1, 0, 1])
+    ndd = NDData(masked_array, mask=None)
+    assert ndd.mask is None
+
+    nddata_all = NDData(100, mask=True, uncertainty=5, unit='cm', wcs=10,
+                        meta={1: 10})
+    ndd = NDData(nddata_all, mask=None, uncertainty=None, unit=None, wcs=None,
+                 meta=None)
+    assert ndd.mask is None
+    assert ndd.uncertainty is None
+    assert ndd.unit is None
+    assert ndd.wcs is None
+    assert len(ndd.meta) == 0
+    assert isinstance(ndd.meta, OrderedDict)
