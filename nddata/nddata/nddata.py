@@ -185,43 +185,42 @@ class NDData(NDDataBase):
         # info if both are provided
         msg = "overwriting {0}'s current {1} with specified {1}."
 
+        # Check which argument to take. Only in one case the implicit one is
+        # used: When the explicit one isn't specified.
+        # In every other case the explicit argument is used.
+        # But if the explicit one is specified and the implicit one is also
+        # given then print a message.
+        # The "NotSpecified" value must not be used to set the argument!!!
+
         # Units are relativly cheap to compare so only raise the info message
         # if both are set and not equal. No need to compare the other arguments
-        # though, especially since comparing numpy arrays could be expensive.
-        if unit is not NotSpecified and unit2 is not None and unit != unit2:
-            log.info(msg.format(name, 'unit'))
-        elif unit2 is not None:
+        # though, especially since comparing numpy arrays could be expensive
+        # and errors when using `==` or `!=`.
+        if unit is NotSpecified:
             unit = unit2
-        elif unit is NotSpecified:
-            unit = None
+        elif unit2 is not None and unit != unit2:  # compare unit here
+            # Conflict message
+            log.info(msg.format(name, 'unit'))
 
-        if mask is not NotSpecified and mask2 is not None:
-            log.info(msg.format(name, 'mask'))
-        elif mask2 is not None:
+        if mask is NotSpecified:
             mask = mask2
-        elif mask is NotSpecified:
-            mask = None
+        elif mask2 is not None:
+            log.info(msg.format(name, 'mask'))
 
-        if meta is not NotSpecified and meta2:  # check if it's not empty here!
-            log.info(msg.format(name, 'meta'))
-        elif meta2:
+        if meta is NotSpecified:
             meta = meta2
-        elif meta is NotSpecified:
-            meta = None
+        elif meta2 is not None:
+            log.info(msg.format(name, 'meta'))
 
-        if wcs is not NotSpecified and wcs2 is not None:
-            log.info(msg.format(name, 'wcs'))
-        elif wcs2 is not None:
+        if wcs is NotSpecified:
             wcs = wcs2
-        elif wcs is NotSpecified:
-            wcs = None
+        elif wcs2 is not None:
+            log.info(msg.format(name, 'wcs'))
 
-        if uncertainty is not NotSpecified and uncertainty2 is not None:
-            log.info(msg.format(name, 'uncertainty'))
-        elif uncertainty2 is not None:
+        if uncertainty is NotSpecified:
             uncertainty = uncertainty2
-        elif uncertainty is NotSpecified:
-            uncertainty = None
+        elif uncertainty2 is not None:
+            log.info(msg.format(name, 'uncertainty'))
 
         # Copy if necessary (data is already copied)
         if copy:
