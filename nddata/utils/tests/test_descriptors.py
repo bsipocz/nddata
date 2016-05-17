@@ -3,12 +3,18 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from collections import OrderedDict
+import collections
+from fractions import Fraction
+from decimal import Decimal
+
+import numpy as np
 
 from astropy.tests.helper import pytest
-from astropy.io.fits import Header
+from astropy.io import fits
+import astropy.units as u
 
-from ..descriptors import BaseDescriptor, AdvancedDescriptor, Meta, Data
+from .. import descriptors
+from ..descriptors import BaseDescriptor, AdvancedDescriptor
 
 
 def test_basedescriptor():
@@ -367,64 +373,191 @@ def test_subclassing_advanced3():
     assert t.data2[0][0] == 20
 
 
+# No need to test wcs or mask descriptor because they are simply the
+# base descriptor...
+
+
 def test_meta_descriptor():
 
-    class MetaWithoutDocWithCopy(object):
+    class MetaDescriptorTest(object):
         # descriptor without doc and copy=True
-        meta = Meta('meta', copy=True)
+        meta1 = descriptors.Meta('meta1', doc='test', copy=True)
+        meta2 = descriptors.Meta('meta2', doc='test', copy=False)
 
-    class MetaWithDocWithoutCopy(object):
-        # descriptor with doc and copy=False
-        meta = Meta('meta', doc='test', copy=False)
+    assert MetaDescriptorTest.meta1.__doc__ == 'test'
+    assert MetaDescriptorTest.meta2.__doc__ == 'test'
 
-    assert MetaWithoutDocWithCopy.meta.__doc__ == ''
-    assert MetaWithDocWithoutCopy.meta.__doc__ == 'test'
+    t = MetaDescriptorTest()
 
-    a = MetaWithoutDocWithCopy()
+    # Check default
+    assert isinstance(t.meta1, collections.OrderedDict)
+    assert isinstance(t.meta2, collections.OrderedDict)
 
-    b = MetaWithDocWithoutCopy()
+    # Set to valid meta-objects
+    for i in ({},
+              collections.defaultdict(int),
+              collections.OrderedDict(),
+              collections.Counter(),
+              fits.Header()):
+        t.meta1 = i
+        t.meta2 = i
+        assert t.meta1.__class__ == i.__class__
+        assert t.meta2.__class__ == i.__class__
 
-    # Check valid and invalid inputs
-    for i in (a, b):
+        # test copy
+        i['a'] = 10
+        assert 'a' not in t.meta1
+        assert t.meta2['a'] == 10
 
-        assert isinstance(i.meta, OrderedDict)
-        # after the first get access the _meta is set to be an Ordereddict
-        assert isinstance(i._meta, OrderedDict)
-        assert len(i.meta) == 0
+    # Make sure it doesn't let not-Mappings pass, for example integer
+    with pytest.raises(TypeError):
+        t.meta1 = 10
+    with pytest.raises(TypeError):
+        t.meta2 = 10
 
-        # Check that the private and public attribute are in sync
-        i._meta['a'] = 100
-        assert i.meta['a'] == 100
-        i.meta['a'] = 0
-        assert i.meta['a'] == 0
 
-        # Setting to None sets the private attribute to an empty ordereddict.
-        i.meta = None
-        assert isinstance(i._meta, OrderedDict)
-        assert isinstance(i.meta, OrderedDict)
-        assert len(i.meta) == 0
+def test_data_descriptor():
 
-        i.meta = {}
-        assert isinstance(i.meta, dict)
-        assert len(i.meta) == 0
+    class DataDescriptorTest(object):
+        data1 = descriptors.Data('data1', copy=False)
+        data2 = descriptors.Data('data2', copy=True)
 
-        i.meta = Header()
-        assert isinstance(i.meta, Header)
-        assert len(i.meta) == 0
+    t = DataDescriptorTest()
 
+    # Has no default
+    assert t.data1 is None
+    assert t.data2 is None
+
+    # Valid inputs are: numbers, lists, nested lists, numpy arrays
+    # other stuff that looks like a numpy array (don't test the last one...)
+    for i in (1, 1.5, 2+4j,
+              [1, 2, 3], [[1, 1], [1, 1], [1, 1]],
+              np.arange(100), np.ones((5, 5, 5, 5, 5))):
+        t.data1 = i
+        t.data2 = i
+        assert isinstance(t.data1, np.ndarray)
+        assert isinstance(t.data2, np.ndarray)
+
+    # Numbers but not convertable:
+    for i in (Fraction(1, 4), Decimal('3.14')):
         with pytest.raises(TypeError):
-            i.meta = 10
+            t.data1 = i
+        with pytest.raises(TypeError):
+            t.data2 = i
 
-    meta = {'a': 10}
-    a.meta = meta
-    b.meta = meta
-    meta['a'] = 5
-    # a does copy so it has the original values
-    assert a.meta['a'] == 10
-    assert a.meta is not meta
-    # b doesn't copy and only saves a reference
-    assert b.meta['a'] == 5
-    assert b.meta is meta
+    # Test copy: numpy array
+    data = np.ones((3, 3))
+    t.data1 = data
+    t.data2 = data
+    data[0, 0] = 50
+    assert t.data1[0, 0] == 50
+    assert t.data2[0, 0] == 1
 
-# TODO: The other descriptors should be extensivly tested in NDData but maybe
-# add some more tests here...
+    # Now a special case: Nested lists make sure they are deepcopied even if
+    # they were changed in process_value
+    data = [[1, 1], [2, 2]]
+    t.data1 = data
+    t.data2 = data
+    data[0][0] = 100
+    assert t.data1[0, 0] == 1
+    assert t.data2[0, 0] == 1
+
+
+def test_unit_descriptor():
+
+    class UnitDescriptorTest(object):
+        unit1 = descriptors.Unit('unit1', copy=False)
+        unit2 = descriptors.Unit('unit2', copy=True)
+
+    t = UnitDescriptorTest()
+
+    # Test allowed cases: unit or string
+    for i in (u.m, u.m*u.s/u.kg,
+              'm', 'm*s/kg'):
+
+        t.unit1 = i
+        t.unit2 = i
+        assert isinstance(t.unit1, (u.UnitBase, u.Unit))
+        assert isinstance(t.unit2, (u.UnitBase, u.Unit))
+
+        # no need to test copy since we always create a new unit.
+
+
+def test_uncertainty_descriptor():
+
+    class UncertaintyDescriptorTest(object):
+        uncert1 = descriptors.Uncertainty('uncert1', copy=False)
+        uncert2 = descriptors.Uncertainty('uncert2', copy=True)
+
+    t = UncertaintyDescriptorTest()
+
+    from ...nddata import UnknownUncertainty, StdDevUncertainty, NDUncertainty
+
+    # Test not-NDUncertainty will be wrapped in unknown uncertainty
+    data = np.ones((3, 3))
+    t.uncert1 = data
+    t.uncert2 = data
+
+    assert isinstance(t.uncert1, UnknownUncertainty)
+    assert isinstance(t.uncert2, UnknownUncertainty)
+    assert t.uncert1.parent_nddata is t
+    assert t.uncert2.parent_nddata is t
+
+    # Test if it copies it
+    data[0, 0] = 2
+    assert t.uncert1.array[0, 0] == 2
+    assert t.uncert2.array[0, 0] == 1
+
+    # Test unknownuncertainty
+    data = np.ones((3, 3))
+    t.uncert1 = UnknownUncertainty(data, copy=False)
+    t.uncert2 = UnknownUncertainty(data, copy=False)
+
+    assert isinstance(t.uncert1, UnknownUncertainty)
+    assert isinstance(t.uncert2, UnknownUncertainty)
+    assert t.uncert1.parent_nddata is t
+    assert t.uncert2.parent_nddata is t
+
+    # Test if it copies it - that was the reason I didn't copy while creating
+    # the UnknownUncertainty
+    data[0, 0] = 2
+    assert t.uncert1.array[0, 0] == 2
+    assert t.uncert2.array[0, 0] == 1
+
+    # Test stddevuncertainty
+    data = np.ones((3, 3))
+    t.uncert1 = StdDevUncertainty(data, copy=False)
+    t.uncert2 = StdDevUncertainty(data, copy=False)
+
+    assert isinstance(t.uncert1, StdDevUncertainty)
+    assert isinstance(t.uncert2, StdDevUncertainty)
+    assert t.uncert1.parent_nddata is t
+    assert t.uncert2.parent_nddata is t
+
+    # Test if it copies it - that was the reason I didn't copy while creating
+    # the StdDevUncertainty
+    data[0, 0] = 2
+    assert t.uncert1.array[0, 0] == 2
+    assert t.uncert2.array[0, 0] == 1
+
+    # Check that a new instance is created when assigning the uncertainty from
+    # another instance
+    another = UncertaintyDescriptorTest()
+    another.uncert1 = t.uncert1
+    another.uncert2 = t.uncert2
+    # Make sure every uncertainty still links to it's parent
+    assert t.uncert1.parent_nddata is t
+    assert t.uncert2.parent_nddata is t
+    assert another.uncert1.parent_nddata is another
+    assert another.uncert2.parent_nddata is another
+    # Check that they are different objects but with the same class
+    assert t.uncert1 is not another.uncert1
+    assert t.uncert2 is not another.uncert2
+    assert t.uncert1.__class__ == another.uncert1.__class__
+    assert t.uncert2.__class__ == another.uncert2.__class__
+
+    # Change the originals in order to check if the array is shared:
+    t.uncert1.array[1, 1] = 100
+    t.uncert2.array[1, 1] = 100
+    assert another.uncert1.array[1, 1] == 100
+    assert another.uncert2.array[1, 1] == 1
