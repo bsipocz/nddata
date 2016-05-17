@@ -20,6 +20,18 @@ from .nduncertainty import NDUncertainty, UnknownUncertainty
 __all__ = ['NDData']
 
 
+class Sentinel(object):
+    """Class representing that a given parameter is not specified if None, etc.
+    should be valid values."""
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return 'not specified'
+
+NotSpecified = Sentinel()
+
+
 class NDData(NDDataBase):
     """
     A container for `numpy.ndarray`-based datasets, using the
@@ -109,8 +121,9 @@ class NDData(NDDataBase):
     NDDataArray
     """
 
-    def __init__(self, data, uncertainty=None, mask=None, wcs=None,
-                 meta=None, unit=None, copy=False):
+    def __init__(self, data, uncertainty=NotSpecified, mask=NotSpecified,
+                 wcs=NotSpecified, meta=NotSpecified, unit=NotSpecified,
+                 copy=False):
 
         # Rather pointless since the NDDataBase does not implement any setting
         # but before the NDDataBase did call the uncertainty
@@ -175,30 +188,40 @@ class NDData(NDDataBase):
         # Units are relativly cheap to compare so only raise the info message
         # if both are set and not equal. No need to compare the other arguments
         # though, especially since comparing numpy arrays could be expensive.
-        if unit is not None and unit2 is not None and unit != unit2:
+        if unit is not NotSpecified and unit2 is not None and unit != unit2:
             log.info(msg.format(name, 'unit'))
         elif unit2 is not None:
             unit = unit2
+        elif unit is NotSpecified:
+            unit = None
 
-        if mask is not None and mask2 is not None:
+        if mask is not NotSpecified and mask2 is not None:
             log.info(msg.format(name, 'mask'))
         elif mask2 is not None:
             mask = mask2
+        elif mask is NotSpecified:
+            mask = None
 
-        if meta and meta2:  # check if it's not empty here!
+        if meta is not NotSpecified and meta2:  # check if it's not empty here!
             log.info(msg.format(name, 'meta'))
         elif meta2:
             meta = meta2
+        elif meta is NotSpecified:
+            meta = None
 
-        if wcs is not None and wcs2 is not None:
+        if wcs is not NotSpecified and wcs2 is not None:
             log.info(msg.format(name, 'wcs'))
         elif wcs2 is not None:
             wcs = wcs2
+        elif wcs is NotSpecified:
+            wcs = None
 
-        if uncertainty is not None and uncertainty2 is not None:
+        if uncertainty is not NotSpecified and uncertainty2 is not None:
             log.info(msg.format(name, 'uncertainty'))
         elif uncertainty2 is not None:
             uncertainty = uncertainty2
+        elif uncertainty is NotSpecified:
+            uncertainty = None
 
         # Copy if necessary (data is already copied)
         if copy:
