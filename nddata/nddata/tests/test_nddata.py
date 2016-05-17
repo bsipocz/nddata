@@ -108,6 +108,8 @@ class NDDataPartialInterface(NDDataInterface):
 
 
 class NDDataBrokenInterface(NDDataInterface):
+    # Broken means it has no data. Which is allowed but generally not
+    # recommended.
 
     def __astropy_nddata__(self):
         return {'meta': self._meta, 'uncertainty': self._uncertainty,
@@ -495,7 +497,17 @@ def test_nddata_partial_interface():
     assert ndd.wcs is None
 
 
-def test_nddata_broken_interface():
+def test_nddata_no_data_interface():
     nddlike = NDDataBrokenInterface([1], 2, 3, 4, {1: 1}, 6)
-    with pytest.raises(TypeError):
-        NDData(nddlike)
+    ndd = NDData(nddlike)
+
+    # TODO: akward test because comparing number to Quantity
+    assert ndd.unit == nddlike._unit
+    assert ndd.mask == nddlike._mask
+    assert ndd.wcs == nddlike._wcs
+    assert ndd.meta == nddlike._meta
+    assert type(ndd.meta) == type(nddlike._meta) # make sure it's really a dict
+    assert ndd.data is None
+    np.testing.assert_array_equal(ndd.uncertainty.array,
+                                  np.asarray(nddlike._uncertainty))
+    assert isinstance(ndd.uncertainty, UnknownUncertainty)

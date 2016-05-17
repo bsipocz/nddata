@@ -231,7 +231,7 @@ or on the instance directly::
 but it will print an info message if there is no ``uncertainty_type``::
 
     >>> ndd.uncertainty = np.array([5, 1, 2, 10])
-    INFO: uncertainty should have attribute uncertainty_type. [nddata.nddata.nddata]
+    INFO: uncertainty should have attribute uncertainty_type. [nddata.utils.descriptors]
     >>> ndd.uncertainty
     UnknownUncertainty([ 5,  1,  2, 10])
 

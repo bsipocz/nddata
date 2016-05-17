@@ -5,7 +5,7 @@ from __future__ import (absolute_import, division, print_function,
 
 import numpy as np
 
-from ..numpy import is_numeric_array
+from ..numpyutils import is_numeric_array
 
 
 NUMERIC = [True, 1, -1, 1.0, 1+1j]

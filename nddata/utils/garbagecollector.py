@@ -23,10 +23,6 @@ def assert_memory_leak(func, specific_objects=None):
         the function was called. If given a class it checks only if objects
         of this class are present that were not before the function was called.
 
-    Returns
-    -------
-    None
-
     Raises
     ------
     AssertionError

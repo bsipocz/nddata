@@ -85,14 +85,13 @@ Advanced options
 ----------------
 
 The normal python operators ``+``, ``-``, ... are not implemented because
-the methods provide several options how to proceed with the additional
-attributes.
+the methods provide several options how to process the additional attributes.
 
 data, unit
 ^^^^^^^^^^
 
 For ``data`` and ``unit`` there are no parameters. Every arithmetic
-operation lets the `astropy.units.Quantity`-framework evaluate the result
+operation lets the `~astropy.units.Quantity`-framework evaluate the result
 or fail and abort the operation.
 
 Adding two NDData objects with the same unit works::
