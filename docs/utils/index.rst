@@ -46,7 +46,7 @@ Sentinels
 =========
 
 Sentinels are classes where there is at most one instance, like `None` or
-`True` and `False`. This modolue contains some custom sentinels and a
+`True` and `False`. This module contains some custom sentinels and a
 factory to create them.
 
 .. automodapi:: nddata.utils.sentinels
