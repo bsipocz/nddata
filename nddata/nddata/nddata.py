@@ -66,7 +66,7 @@ class NDData(NDDataBase):
         Default is ``None``.
 
     flags : any type, optional
-        Flags for the dataset
+        Flags for the dataset.
 
     copy : `bool`, optional
         Indicates whether to save the arguments as copy. ``True`` copies
