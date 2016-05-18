@@ -256,6 +256,23 @@ class NDData(NDDataBase):
         body = np.array2string(self.data, separator=', ', prefix=prefix)
         return ''.join([prefix, body, ')'])
 
+    def copy(self):
+        """Returns a deepcopy of the class.
+
+        Returns
+        -------
+        copy : `NDData`-like
+            A deepcopy of the current instance.
+
+        Notes
+        -----
+        If it is called on a subclass the copy be the same subclass. But if
+        additional properties were added they are only deepcopied if the
+        subclass uses :func:`copy.deepcopy` on the additional attribute during
+        initialization.
+        """
+        return self.__class__(self, copy=True)
+
     @descriptors.Data
     def data(self):
         """`numpy.ndarray`-like : The stored dataset.

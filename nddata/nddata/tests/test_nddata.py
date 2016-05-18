@@ -545,3 +545,24 @@ def test_meta_copied():
     ndd = NDData(None, meta=meta)
     ndd.meta[1] = 2
     assert meta[1] == 2
+
+
+def test_copy_method():
+    ndd = NDData(np.ones((3, 3)), mask=np.ones((3, 3)), unit='m',
+                 meta={'a': 100}, uncertainty=np.ones((3, 3)),
+                 wcs=np.ones((3, 3)))
+
+    ndd2 = ndd.copy()
+
+    # Alter elements so we can verify if copied
+    ndd.data[0, 0] = 10
+    ndd.mask[0, 0] = 0
+    ndd.meta['a'] = 10
+    ndd.uncertainty.array[0, 0] = 10
+    ndd.wcs[0, 0] = 10
+
+    assert ndd2.data[0, 0] == 1
+    assert ndd2.mask[0, 0] == 1
+    assert ndd2.meta['a'] == 100
+    assert ndd2.uncertainty.array[0, 0] == 1
+    assert ndd2.wcs[0, 0] == 1

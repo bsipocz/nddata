@@ -18,6 +18,8 @@ New Features
 
  - ``utils.sentinels`` module added to create custom sentinals. PR #17
 
+ - NDData got a copy method. PR #18
+
 
 API changes
 ^^^^^^^^^^^
