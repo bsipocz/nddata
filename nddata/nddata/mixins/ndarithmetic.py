@@ -43,10 +43,6 @@ _arit_doc = """Performs {name} based on `~nddata.nddata.NDData`.
             this assumes that the uncertainties are `NDUncertainty`-like.
             Default is ``True``.
 
-            .. versionchanged:: 1.2
-              Besides boolean values also ``None`` is accepted. Using it as
-              positional keyword is deprecated.
-
         - **handle_mask** : callable, ``'first_found'`` or ``None``, optional
 
             If ``None`` the result will have no mask. If ``'first_found'`` the
@@ -54,8 +50,6 @@ _arit_doc = """Performs {name} based on `~nddata.nddata.NDData`.
             mask). If it is a callable then the specified callable must
             create the results ``mask`` and if necessary provide a copy.
             Default is `numpy.logical_or`.
-
-            .. versionadded:: 1.2
 
         - **handle_meta** : callable, ``'first_found'`` or ``None``, optional
 
@@ -65,7 +59,14 @@ _arit_doc = """Performs {name} based on `~nddata.nddata.NDData`.
             must create the results ``meta`` and if necessary provide a copy.
             Default is ``None``.
 
-            .. versionadded:: 1.2
+        - **handle_flags** : callable, ``'first_found'`` or ``None``, optional
+
+            If ``None`` the result will have no flags. If ``'first_found'`` the
+            result will have a copied version of the first operand that has a
+            (not empty) flags. If it is a callable then the specified callable
+            must create the results ``flags`` and if necessary provide a copy.
+            If the flags are a bitmask `numpy.bitwise_or` might be a match.
+            Default is ``None``.
 
         - **compare_wcs** : callable, ``'first_found'`` or ``None``, optional
 
@@ -77,16 +78,12 @@ _arit_doc = """Performs {name} based on `~nddata.nddata.NDData`.
             ``False`` was given otherwise it raises a ``ValueError`` if the
             comparison was not successful. Default is ``'first_found'``.
 
-            .. versionadded:: 1.2
-
         - **uncertainty_correlation** : number or `numpy.ndarray`, optional
 
             The correlation between the two operands is used for correct error
             propagation for correlated data as given in:
             https://en.wikipedia.org/wiki/Propagation_of_uncertainty#Example_formulas
             Default is ``0``.
-
-            .. versionadded:: 1.2
 
         - others : any type
 
@@ -176,8 +173,9 @@ class NDArithmeticMixin(object):
 
     def _arithmetic(self, operation, operand,
                     propagate_uncertainties=True, handle_mask=np.logical_or,
-                    handle_meta=None, uncertainty_correlation=0,
-                    compare_wcs='first_found', **kwds):
+                    handle_meta=None, handle_flags=None,
+                    uncertainty_correlation=0, compare_wcs='first_found',
+                    **kwds):
         """
         Base method which calculates the result of the arithmetic operation.
 
@@ -202,6 +200,9 @@ class NDArithmeticMixin(object):
             see :meth:`NDArithmeticMixin.add`.
 
         handle_meta : callable, ``'first_found'`` or ``None``, optional
+            see :meth:`NDArithmeticMixin.add`.
+
+        handle_flags : callable, ``'first_found'`` or ``None``, optional
             see :meth:`NDArithmeticMixin.add`.
 
         compare_wcs : callable, ``'first_found'`` or ``None``, optional
@@ -231,7 +232,7 @@ class NDArithmeticMixin(object):
         # Find the appropriate keywords for the appropriate method (not sure
         # if data and uncertainty are ever used ...)
         kwds2 = {'mask': {}, 'meta': {}, 'wcs': {},
-                 'data': {}, 'uncertainty': {}}
+                 'data': {}, 'uncertainty': {}, 'flags': {}}
         for i in kwds:
             splitted = i.split('_', 1)
             try:
@@ -282,6 +283,18 @@ class NDArithmeticMixin(object):
             kwargs['mask'] = self._arithmetic_mask(operation, operand,
                                                    handle_mask,
                                                    **kwds2['mask'])
+
+        if handle_flags is None:
+            kwargs['flags'] = None
+        elif handle_flags in ['ff', 'first_found']:
+            if self.flags is None:
+                kwargs['flags'] = deepcopy(operand.flags)
+            else:
+                kwargs['flags'] = deepcopy(self.flags)
+        else:
+            kwargs['flags'] = self._arithmetic_flags(operation, operand,
+                                                     handle_flags,
+                                                     **kwds2['flags'])
 
         if handle_meta is None:
             kwargs['meta'] = None
@@ -521,6 +534,33 @@ class NDArithmeticMixin(object):
         # Just return what handle_meta does with both of the metas.
         return handle_meta(self.meta, operand.meta, **kwds)
 
+    def _arithmetic_flags(self, operation, operand, handle_flags, **kwds):
+        """Calculate the resulting meta.
+
+        Parameters
+        ----------
+        operation : callable
+            see :meth:`NDArithmeticMixin._arithmetic` parameter description.
+            By default, the ``operation`` will be ignored.
+
+        operand : `NDData`-like instance
+            The second operand wrapped in an instance of the same class as
+            self.
+
+        handle_meta : callable
+            see :meth:`NDArithmeticMixin.add`.
+
+        kwds :
+            Additional parameters given to ``handle_flags``.
+
+        Returns
+        -------
+        result_flags : any type
+            The result of ``handle_flags``.
+        """
+        # Just return what handle_meta does with both of the metas.
+        return handle_flags(self.flags, operand.flags, **kwds)
+
     @sharedmethod
     @format_doc(_arit_doc, name='addition', op='+')
     def add(self, operand, operand2=None, **kwargs):
@@ -581,27 +621,6 @@ class NDArithmeticMixin(object):
         """
         # DO NOT OVERRIDE THIS METHOD IN SUBCLASSES.
 
-        # TODO: Remove this in astropy 1.3 or 1.4:
-
-        # Before 1.2 propagate_uncertainties could be given as positional
-        # keyword, this is now deprecated:
-        if (isinstance(operand2, bool) and
-                'propagate_uncertainties' not in kwargs):
-            # No explicit propagate_uncertainties was given but the second
-            # operand was given as boolean. I'll assume that most don't want
-            # to do arithmetics with a boolean operand, print a deprecation
-            # warning. If someone really wanted to do arithmetics with a
-            # boolean he should have set propagate_uncertainties. :-/
-            warnings.warn('propagate_uncertainties should be given as keyword '
-                          'parameter, i.e. "propagate_uncertainties={0}".'
-                          ''.format(operand2), AstropyDeprecationWarning)
-            # Set the kwarg and reset operand2.
-            kwargs['propagate_uncertainties'] = operand2
-            operand2 = None
-
-        # TODO: The following parts must remain here if the above part is
-        # removed.
-
         if isinstance(self_or_cls, NDArithmeticMixin):
             # True means it was called on the instance, so self_or_cls is
             # a reference to self
@@ -610,13 +629,13 @@ class NDArithmeticMixin(object):
             if operand2 is None:
                 # Only one operand was given. Set operand2 to operand and
                 # operand to self so that we call the appropriate method of the
-                # operand.
+                # first operand.
                 operand2 = operand
                 operand = self_or_cls
             else:
                 # Convert the first operand to the class of this method.
                 # This is important so that always the correct _arithmetics is
-                # called later that method.
+                # invoked.
                 operand = cls(operand)
 
         else:
