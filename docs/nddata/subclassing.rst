@@ -17,41 +17,45 @@ Adding another property
 ^^^^^^^^^^^^^^^^^^^^^^^
 
     >>> from nddata.nddata import NDData
+    >>> from copy import deepcopy
 
-    >>> class NDDataWithFlags(NDData):
+    >>> class NDDataWithBlob(NDData):
     ...     def __init__(self, *args, **kwargs):
     ...         # We allowed args and kwargs so find out where the data is.
     ...         data = args[0] if args else kwargs['data']
     ...
-    ...         # There are three ways to get flags:
+    ...         # There are three ways to get blob:
     ...         # 1.) explicitly given if they are given they should be used.
-    ...         flags = kwargs.pop('flags', None)
-    ...         if flags is None:
-    ...             # 2.) another NDData - maybe with flags
+    ...         blob = kwargs.pop('blob', None)
+    ...         if blob is None:
+    ...             # 2.) another NDData - maybe with blob
     ...             if isinstance(data, NDData):
-    ...                 flags = getattr(data, 'flags', None)
-    ...             # 3.) implements the NDData interface, maybe returns flags
+    ...                 blob = getattr(data, 'blob', None)
+    ...             # 3.) implements the NDData interface, maybe returns blob
     ...             elif hasattr(data, '__astropy_nddata__'):
-    ...                 flags = data.__astropy_nddata__().get('flags', None)
+    ...                 blob = data.__astropy_nddata__().get('blob', None)
     ...
+    ...         # make sure the flags are copied if copy is set.
+    ...         if 'copy' in kwargs and kwargs['copy']:
+    ...             blob = deepcopy(blob)
     ...         # afterwards set it and call the parents init
-    ...         self.flags = flags
-    ...         super(NDDataWithFlags, self).__init__(*args, **kwargs)
+    ...         self.blob = blob
+    ...         super(NDDataWithBlob, self).__init__(*args, **kwargs)
     ...
     ...     @property
-    ...     def flags(self):
-    ...         return self._flags
+    ...     def blob(self):
+    ...         return self._blob
     ...
-    ...     @flags.setter
-    ...     def flags(self, value):
-    ...         self._flags = value
+    ...     @blob.setter
+    ...     def blob(self, value):
+    ...         self._blob = value
 
-    >>> ndd = NDDataWithFlags([1,2,3])
-    >>> ndd.flags is None
+    >>> ndd = NDDataWithBlob([1,2,3])
+    >>> ndd.blob is None
     True
 
-    >>> ndd = NDDataWithFlags([1,2,3], flags=[0, 0.2, 0.3])
-    >>> ndd.flags
+    >>> ndd = NDDataWithBlob([1,2,3], blob=[0, 0.2, 0.3])
+    >>> ndd.blob
     [0, 0.2, 0.3]
 
 .. note::
@@ -107,24 +111,6 @@ super property set the attribute afterwards::
     >>> ndd.uncertainty
     UnknownUncertainty([2, 3, 4])
 
-Having a setter for the data
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-    >>> class NDDataWithDataSetter(NDData):
-    ...
-    ...     @property
-    ...     def data(self):
-    ...         return self._data
-    ...
-    ...     @data.setter
-    ...     def data(self, value):
-    ...         self._data = np.asarray(value)
-
-    >>> ndd = NDDataWithDataSetter([1,2,3])
-    >>> ndd.data = [3,2,1]
-    >>> ndd.data
-    array([3, 2, 1])
-
 `~nddata.nddata.NDDataRef`
 ---------------------------
 
@@ -173,37 +159,56 @@ only 1D. This would lead to problems if one were to slice in two dimensions.
 Slicing an additional property
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Building on the added property ``flags`` we want them to be sliceable:
+Building on the added property ``blob`` we want them to be sliceable:
 
-    >>> class NDDataWithFlags(NDDataRef):
+    >>> # The init and property is identical to the one earlier mentioned.
+    >>> class NDDataWithBlob(NDDataRef):
     ...     def __init__(self, *args, **kwargs):
-    ...         # Remove flags attribute if given and pass it to the setter.
-    ...         self.flags = kwargs.pop('flags') if 'flags' in kwargs else None
-    ...         super(NDDataWithFlags, self).__init__(*args, **kwargs)
+    ...         # We allowed args and kwargs so find out where the data is.
+    ...         data = args[0] if args else kwargs['data']
+    ...
+    ...         # There are three ways to get blob:
+    ...         # 1.) explicitly given if they are given they should be used.
+    ...         blob = kwargs.pop('blob', None)
+    ...         if blob is None:
+    ...             # 2.) another NDData - maybe with blob
+    ...             if isinstance(data, NDData):
+    ...                 blob = getattr(data, 'blob', None)
+    ...             # 3.) implements the NDData interface, maybe returns blob
+    ...             elif hasattr(data, '__astropy_nddata__'):
+    ...                 blob = data.__astropy_nddata__().get('blob', None)
+    ...
+    ...         # make sure the flags are copied if copy is set.
+    ...         if 'copy' in kwargs and kwargs['copy']:
+    ...             blob = deepcopy(blob)
+    ...         # afterwards set it and call the parents init
+    ...         self.blob = blob
+    ...         super(NDDataWithBlob, self).__init__(*args, **kwargs)
     ...
     ...     @property
-    ...     def flags(self):
-    ...         return self._flags
+    ...     def blob(self):
+    ...         return self._blob
     ...
-    ...     @flags.setter
-    ...     def flags(self, value):
-    ...         self._flags = value
+    ...     @blob.setter
+    ...     def blob(self, value):
+    ...         self._blob = value
     ...
     ...     def _slice(self, item):
     ...         # slice all normal attributes
-    ...         kwargs = super(NDDataWithFlags, self)._slice(item)
+    ...         kwargs = super(NDDataWithBlob, self)._slice(item)
     ...         # The arguments for creating a new instance are saved in kwargs
-    ...         # so we need to add another keyword "flags" and add the sliced flags
-    ...         kwargs['flags'] = self.flags[item]
+    ...         # so we need to add another keyword "blob" and add the sliced
+    ...         # blob
+    ...         kwargs['blob'] = self.blob[item]
     ...         return kwargs # these must be returned
 
-    >>> ndd = NDDataWithFlags([1,2,3], flags=[0, 0.2, 0.3])
+    >>> ndd = NDDataWithBlob([1,2,3], blob=[0, 0.2, 0.3])
     >>> ndd2 = ndd[1:3]
-    >>> ndd2.flags
+    >>> ndd2.blob
     [0.2, 0.3]
 
-If you wanted to keep just the original ``flags`` instead of the sliced ones
-you could use ``kwargs['flags'] = self.flags`` and omit the ``[item]``.
+If you wanted to keep just the original ``blob`` instead of the sliced ones
+you could use ``kwargs['bob'] = self.blob`` and omit the ``[item]``.
 
 
 Arithmetic on an existing property
@@ -306,46 +311,64 @@ This also requires overriding the ``_arithmetic`` method. Suppose we have a
     >>> from copy import deepcopy
     >>> import numpy as np
 
-    >>> class NDDataWithFlags(NDDataRef):
+    >>> # The init and attribute is identical to the other blob classes
+    >>> class NDDataWithBlob(NDDataRef):
     ...     def __init__(self, *args, **kwargs):
-    ...         # Remove flags attribute if given and pass it to the setter.
-    ...         self.flags = kwargs.pop('flags') if 'flags' in kwargs else None
-    ...         super(NDDataWithFlags, self).__init__(*args, **kwargs)
+    ...         # We allowed args and kwargs so find out where the data is.
+    ...         data = args[0] if args else kwargs['data']
+    ...
+    ...         # There are three ways to get blob:
+    ...         # 1.) explicitly given if they are given they should be used.
+    ...         blob = kwargs.pop('blob', None)
+    ...         if blob is None:
+    ...             # 2.) another NDData - maybe with blob
+    ...             if isinstance(data, NDData):
+    ...                 blob = getattr(data, 'blob', None)
+    ...             # 3.) implements the NDData interface, maybe returns blob
+    ...             elif hasattr(data, '__astropy_nddata__'):
+    ...                 blob = data.__astropy_nddata__().get('blob', None)
+    ...
+    ...         # make sure the flags are copied if copy is set.
+    ...         if 'copy' in kwargs and kwargs['copy']:
+    ...             blob = deepcopy(blob)
+    ...         # afterwards set it and call the parents init
+    ...         self.blob = blob
+    ...         super(NDDataWithBlob, self).__init__(*args, **kwargs)
     ...
     ...     @property
-    ...     def flags(self):
-    ...         return self._flags
+    ...     def blob(self):
+    ...         return self._blob
     ...
-    ...     @flags.setter
-    ...     def flags(self, value):
-    ...         self._flags = value
+    ...     @blob.setter
+    ...     def blob(self, value):
+    ...         self._blob = value
     ...
     ...     def _arithmetic(self, operation, operand, *args, **kwargs):
     ...         # take all args and kwargs to allow arithmetic on the other properties
     ...         # to work like before.
     ...
-    ...         # do the arithmetics on the flags (pop the relevant kwargs, if any!!!)
-    ...         if self.flags is not None and operand.flags is not None:
-    ...             result_flags = np.logical_or(self.flags, operand.flags)
+    ...         # do the arithmetics on the blob (pop the relevant kwargs, if any!!!)
+    ...         if self.blob is not None and operand.blob is not None:
+    ...             result_blob = np.logical_or(self.blob, operand.blob)
     ...             # np.logical_or is just a suggestion you can do what you want
     ...         else:
-    ...             if self.flags is not None:
-    ...                 result_flags = deepcopy(self.flags)
+    ...             if self.blob is not None:
+    ...                 result_blob = deepcopy(self.blob)
     ...             else:
-    ...                 result_flags = deepcopy(operand.flags)
+    ...                 result_blob = deepcopy(operand.blob)
     ...
     ...         # Let the superclass do all the other attributes note that
     ...         # this returns the result and a dictionary containing other attributes
-    ...         result, kwargs = super(NDDataWithFlags, self)._arithmetic(operation, operand, *args, **kwargs)
+    ...         result, kwargs = super(NDDataWithBlob, self)._arithmetic(operation, operand, *args, **kwargs)
     ...         # The arguments for creating a new instance are saved in kwargs
-    ...         # so we need to add another keyword "flags" and add the processed flags
-    ...         kwargs['flags'] = result_flags
+    ...         # so we need to add another keyword "blob" and add the processed blob
+    ...         kwargs['blob'] = result_blob
     ...         return result, kwargs # these must be returned
 
-    >>> ndd1 = NDDataWithFlags([1,2,3], flags=np.array([1,0,1], dtype=bool))
-    >>> ndd2 = NDDataWithFlags([1,2,3], flags=np.array([0,0,1], dtype=bool))
+    >>> ndd1 = NDDataWithBlob([1,2,3], blob=np.array([1,0,1], dtype=bool))
+    >>> ndd2 = NDDataWithBlob([1,2,3], blob=np.array([0,0,1], dtype=bool))
     >>> ndd3 = ndd1.add(ndd2)
-    >>> ndd3.flags
+    >>> ndd3.blob
     array([ True, False,  True], dtype=bool)
 
 Another arithmetic operation
