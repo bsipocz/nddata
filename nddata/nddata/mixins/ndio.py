@@ -227,7 +227,7 @@ def write_nddata_fits(ndd, filename, ext_mask='mask', ext_uncert='uncert',
 
         # Save the unit of the uncertainty if it differs from the nddata
         # TODO: This comparison only works correctly for StdDevUncertainty...
-        if ndd.uncertainty.unit != ndd.unit:
+        if ndd.uncertainty.unit is not None:
             hdr[kw_unit] = ndd.uncertainty.unit.to_string()
 
         hdus.append(fits.ImageHDU(ndd.uncertainty.array, header=hdr,

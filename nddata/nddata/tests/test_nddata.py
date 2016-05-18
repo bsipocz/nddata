@@ -473,24 +473,6 @@ class TestMetaNDData(MetaBaseTest):
 
 
 # Representation tests
-def test_nddata_str():
-    arr1d = NDData(np.array([1, 2, 3]))
-    assert str(arr1d) == '[1 2 3]'
-
-    arr2d = NDData(np.array([[1, 2], [3, 4]]))
-    assert str(arr2d) == textwrap.dedent("""
-        [[1 2]
-         [3 4]]"""[1:])
-
-    arr3d = NDData(np.array([[[1, 2], [3, 4]], [[5, 6], [7, 8]]]))
-    assert str(arr3d) == textwrap.dedent("""
-        [[[1 2]
-          [3 4]]
-
-         [[5 6]
-          [7 8]]]"""[1:])
-
-
 def test_nddata_repr():
     arr1d = NDData(np.array([1, 2, 3]))
     assert repr(arr1d) == 'NDData([1, 2, 3])'
@@ -507,6 +489,18 @@ def test_nddata_repr():
 
                 [[5, 6],
                  [7, 8]]])"""[1:])
+
+
+def test_nddata_str():
+    # We know that the representation works, so just compare it to the repr:
+    arr1d = NDData(np.array([1, 2, 3]))
+    assert str(arr1d) == repr(arr1d)
+
+    arr2d = NDData(np.array([[1, 2], [3, 4]]))
+    assert str(arr2d) == repr(arr2d)
+
+    arr3d = NDData(np.array([[[1, 2], [3, 4]], [[5, 6], [7, 8]]]))
+    assert str(arr3d) == repr(arr3d)
 
 
 def test_nddata_interface():
@@ -556,7 +550,7 @@ def test_nddata_no_data_interface():
     assert isinstance(ndd.uncertainty, UnknownUncertainty)
 
 
-def test_copy_method():
+def test_copy_direct():
     ndd = NDData(np.ones((3, 3)), mask=np.ones((3, 3)), unit='m',
                  meta={'a': 100}, uncertainty=np.ones((3, 3)),
                  wcs=np.ones((3, 3)), flags=np.ones((3, 3)))
@@ -577,6 +571,41 @@ def test_copy_method():
     assert ndd2.uncertainty.array[0, 0] == 1
     assert ndd2.wcs[0, 0] == 1
     assert ndd2.flags[0, 0] == 1
+
+    # Check if the uncertainties link to the right parent.
+    assert ndd2.uncertainty.parent_nddata is ndd2
+    assert ndd.uncertainty.parent_nddata is ndd
+
+
+def test_copy_indirect():
+    from copy import copy, deepcopy
+
+    # Both functions should return a deepcopy.
+    for copyfunc in (copy, deepcopy):
+        ndd = NDData(np.ones((3, 3)), mask=np.ones((3, 3)), unit='m',
+                     meta={'a': 100}, uncertainty=np.ones((3, 3)),
+                     wcs=np.ones((3, 3)), flags=np.ones((3, 3)))
+
+        ndd2 = copyfunc(ndd)
+
+        # Alter elements so we can verify if copied
+        ndd.data[0, 0] = 10
+        ndd.mask[0, 0] = 0
+        ndd.meta['a'] = 10
+        ndd.uncertainty.array[0, 0] = 10
+        ndd.wcs[0, 0] = 10
+        ndd.flags[0, 0] = 10
+
+        assert ndd2.data[0, 0] == 1
+        assert ndd2.mask[0, 0] == 1
+        assert ndd2.meta['a'] == 100
+        assert ndd2.uncertainty.array[0, 0] == 1
+        assert ndd2.wcs[0, 0] == 1
+        assert ndd2.flags[0, 0] == 1
+
+        # Check if the uncertainties link to the right parent.
+        assert ndd2.uncertainty.parent_nddata is ndd2
+        assert ndd.uncertainty.parent_nddata is ndd
 
 
 # Not supported features

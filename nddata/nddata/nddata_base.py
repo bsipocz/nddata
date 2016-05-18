@@ -13,52 +13,55 @@ __all__ = ['NDDataBase']
 
 @six.add_metaclass(ABCMeta)
 class NDDataBase(object):
-    """Base metaclass that defines the interface for N-dimensional datasets with
-    associated meta informations used in ``astropy``.
+    """Base metaclass (`abc.ABCMeta`) that defines the interface for \
+            N-dimensional datasets.
 
-    All properties and ``__init__`` have to be overridden in subclasses. See
-    `NDData` for a subclass that defines this interface on `numpy.ndarray`-like
-    ``data``.
+    See also
+    --------
+    NDData
+    NDDataRef
     """
     @abstractmethod
     def __init__(self):
+        """`abc.abstractmethod` : ``__init__``
+
+        Create an instance by setting the attributes.
+        """
         pass
 
     @abstractproperty
     def data(self):
-        """The stored dataset.
+        """(`abc.abstractproperty`) The stored dataset.
         """
 
     @abstractproperty
     def mask(self):
-        """Mask for the dataset.
-
-        Masks should follow the ``numpy`` convention that **valid** data points
-        are marked by ``False`` and **invalid** ones with ``True``.
+        """(`abc.abstractproperty`) Mask for the dataset.
         """
 
     @abstractproperty
     def unit(self):
-        """Unit for the dataset.
+        """(`abc.abstractproperty`) Unit for the dataset.
         """
 
     @abstractproperty
     def wcs(self):
-        """World coordinate system (WCS) for the dataset.
+        """(`abc.abstractproperty`) World coordinate system (WCS) for the \
+                dataset.
         """
 
     @abstractproperty
     def meta(self):
-        """Additional meta information about the dataset.
-
-        Should be `dict`-like.
+        """(`abc.abstractproperty`) Additional meta information about the \
+                dataset.
         """
 
     @abstractproperty
     def uncertainty(self):
-        """Uncertainty in the dataset.
+        """(`abc.abstractproperty`) Uncertainty in the dataset.
+        """
 
-        Should have an attribute ``uncertainty_type`` that defines what kind of
-        uncertainty is stored, such as ``"std"`` for standard deviation or
-        ``"var"`` for variance.
+    @abstractproperty
+    def flags(self):
+        """(`abc.abstractproperty`) Flags for the dataset.
         """

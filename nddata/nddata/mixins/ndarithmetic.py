@@ -10,7 +10,7 @@ import numpy as np
 from astropy.units import dimensionless_unscaled
 from astropy.utils import sharedmethod
 
-from ..nduncertainty import NDUncertainty
+from ..nduncertainty import NDUncertaintyPropagation
 from ...utils.decorators import format_doc
 
 
@@ -379,13 +379,13 @@ class NDArithmeticMixin(object):
         # Make sure these uncertainties are NDUncertainties so this kind of
         # propagation is possible.
         if (self.uncertainty is not None and
-                not isinstance(self.uncertainty, NDUncertainty)):
+                not isinstance(self.uncertainty, NDUncertaintyPropagation)):
             raise TypeError("Uncertainty propagation is only defined for "
-                            "subclasses of NDUncertainty.")
+                            "subclasses of NDUncertaintyPropagation.")
         if (operand.uncertainty is not None and
-                not isinstance(operand.uncertainty, NDUncertainty)):
+                not isinstance(operand.uncertainty, NDUncertaintyPropagation)):
             raise TypeError("Uncertainty propagation is only defined for "
-                            "subclasses of NDUncertainty.")
+                            "subclasses of NDUncertaintyPropagation.")
 
         # Now do the uncertainty propagation
         # TODO: There is no enforced requirement that actually forbids the

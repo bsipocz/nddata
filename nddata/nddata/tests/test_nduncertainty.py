@@ -46,18 +46,6 @@ class FakeUncertainty(NDUncertainty):
     def uncertainty_type(self):
         return 'fake'
 
-    def _propagate_add(self, data, final_data):
-        pass
-
-    def _propagate_subtract(self, data, final_data):
-        pass
-
-    def _propagate_multiply(self, data, final_data):
-        pass
-
-    def _propagate_divide(self, data, final_data):
-        pass
-
 # Test the fake (added also StdDevUncertainty which should behave identical)
 
 
@@ -180,8 +168,6 @@ def test_uncertainty_type():
 
 
 def test_uncertainty_correlated():
-    fake_uncert = FakeUncertainty([10, 2])
-    assert not fake_uncert.supports_correlated
     std_uncert = StdDevUncertainty([10, 2])
     assert std_uncert.supports_correlated
 

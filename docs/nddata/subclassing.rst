@@ -441,13 +441,14 @@ For example to create a readonly container::
     >>> from nddata.nddata import NDDataBase
 
     >>> class NDDataReadOnlyNoRestrictions(NDDataBase):
-    ...     def __init__(self, data, unit, mask, uncertainty, meta, wcs):
+    ...     def __init__(self, data, unit, mask, uncertainty, meta, wcs, flags):
     ...         self._data = data
     ...         self._unit = unit
     ...         self._mask = mask
     ...         self._uncertainty = uncertainty
     ...         self._meta = meta
     ...         self._wcs = wcs
+    ...         self._flags = flags
     ...
     ...     @property
     ...     def data(self):
@@ -472,9 +473,13 @@ For example to create a readonly container::
     ...     @property
     ...     def wcs(self):
     ...         return self._wcs
+    ...
+    ...     @property
+    ...     def flags(self):
+    ...         return self._flags
 
     >>> # A meaningless test to show that creating this class is possible:
-    >>> NDDataReadOnlyNoRestrictions(1,2,3,4,5,6) is not None
+    >>> NDDataReadOnlyNoRestrictions(1,2,3,4,5,6,7) is not None
     True
 
 .. note::

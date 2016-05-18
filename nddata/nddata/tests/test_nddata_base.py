@@ -35,6 +35,10 @@ class MinimalSubclass(NDDataBase):
     def uncertainty(self):
         return super(MinimalSubclass, self).uncertainty
 
+    @property
+    def flags(self):
+        return super(MinimalSubclass, self).flags
+
 
 def test_nddata_base_subclass():
     a = MinimalSubclass()
@@ -44,3 +48,4 @@ def test_nddata_base_subclass():
     assert a.unit is None
     assert a.wcs is None
     assert a.uncertainty is None
+    assert a.flags is None
