@@ -279,10 +279,11 @@ class NDData(NDDataBase):
 
         Notes
         -----
-        If it is called on a subclass the copy be the same subclass. But if
-        additional properties were added they are only deepcopied if the
-        subclass uses :func:`copy.deepcopy` on the additional attribute during
-        initialization.
+        If it is called on a subclass the returned copy will be the same
+        subclass. But if additional properties were added they are only
+        deepcopied if the subclass uses :func:`copy.deepcopy` on the additional
+        attribute during initialization if the parameter ``copy=True`` is
+        given.
         """
         return self.__class__(self, copy=True)
 
