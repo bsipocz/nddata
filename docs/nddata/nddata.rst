@@ -125,6 +125,15 @@ explicit parameter will be used and an info-message will be issued::
 the unit of the `~astropy.units.Quantity` is being ignored and the unit is set
 to the explicitly passed one.
 
+This can also be used to create an instance and set one of the attributes to
+``None``::
+
+    >>> ndd7 = NDData(np.ones(5), mask=np.array(True))
+    >>> ndd8 = NDData(ndd7, mask=None)
+    INFO: overwriting NDData's current mask with specified mask. [nddata.nddata.nddata]
+    >>> print(ndd8.mask)
+    None
+
 It might be possible to pass other classes as ``data`` parameter as long as
 they have the properties ``shape``, ``dtype``, ``__getitem__`` and
 ``__array__``.

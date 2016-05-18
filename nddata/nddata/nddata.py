@@ -8,13 +8,13 @@ from copy import deepcopy
 import numpy as np
 
 from astropy import log
-from astropy.units import Unit, Quantity
+from astropy.units import Quantity
 # TODO: Could be omitted if astropy/#4921 is merged
 from ..utils import descriptors
 # from astropy.utils.metadata import MetaData
 
 from .nddata_base import NDDataBase
-from .nduncertainty import NDUncertainty, UnknownUncertainty
+from ..utils.sentinels import ParameterNotSpecified
 
 
 __all__ = ['NDData']
@@ -109,8 +109,10 @@ class NDData(NDDataBase):
     NDDataArray
     """
 
-    def __init__(self, data, uncertainty=None, mask=None, wcs=None,
-                 meta=None, unit=None, copy=False):
+    def __init__(self, data, uncertainty=ParameterNotSpecified,
+                 mask=ParameterNotSpecified, wcs=ParameterNotSpecified,
+                 meta=ParameterNotSpecified, unit=ParameterNotSpecified,
+                 copy=False):
 
         # Rather pointless since the NDDataBase does not implement any setting
         # but before the NDDataBase did call the uncertainty
@@ -165,6 +167,16 @@ class NDData(NDDataBase):
         # wasn't already copied during setting (for example lists are already
         # copied)
         self.data = data
+
+        # For debugging purposes:
+        # data_unchanged = self.data is data
+        # data_is_number = isinstance(data, (bool, int, float, complex))
+        # if not data_unchanged and not copy and not data_is_number:
+        #     print a debug message. This isn't interesting to anyone who
+        #     isn't debugging.
+        #     log.debug('the data was altered and probably copied to fulfill '
+        #               'the restrictions of NDData.')
+
         if copy and self.data is data:
             self.data = deepcopy(data)
 
@@ -172,42 +184,60 @@ class NDData(NDDataBase):
         # info if both are provided
         msg = "overwriting {0}'s current {1} with specified {1}."
 
+        # Check which argument to take. Only in one case the implicit one is
+        # used: When the explicit one isn't specified. That's the reason
+        # why I used the ParameterNotSpecified sentinel because otherwise we
+        # couldn't determine if it was simply not set or forced to be None.
+        # with the ParameterNotSpecified these cases can be clearly
+        # distinguished.
+        # In every other case the explicit argument is used.
+
+        # But if the explicit and the implicit one is specified print a
+        # message because that's clearly a conflict.
+
+        # It's not a problem here but another approach might not replace the
+        # ParameterNotSpecified value. Then it would bubble up to the user
+        # who shouldn't be bothered with it. Remember this in case you
+        # change anything in the next lines.
+
         # Units are relativly cheap to compare so only raise the info message
         # if both are set and not equal. No need to compare the other arguments
-        # though, especially since comparing numpy arrays could be expensive.
-        if unit is not None and unit2 is not None and unit != unit2:
-            log.info(msg.format(name, 'unit'))
-        elif unit2 is not None:
+        # though, especially since comparing numpy arrays could be expensive
+        # and errors when using `==` or `!=`.
+        if unit is ParameterNotSpecified:
             unit = unit2
+        elif unit2 is not None and unit != unit2:  # compare unit here
+            # Conflict message
+            log.info(msg.format(name, 'unit'))
 
-        if mask is not None and mask2 is not None:
-            log.info(msg.format(name, 'mask'))
-        elif mask2 is not None:
+        if mask is ParameterNotSpecified:
             mask = mask2
+        elif mask2 is not None:
+            log.info(msg.format(name, 'mask'))
 
-        if meta and meta2:  # check if it's not empty here!
-            log.info(msg.format(name, 'meta'))
-        elif meta2:
+        if meta is ParameterNotSpecified:
             meta = meta2
+        elif meta2 is not None:
+            log.info(msg.format(name, 'meta'))
 
-        if wcs is not None and wcs2 is not None:
-            log.info(msg.format(name, 'wcs'))
-        elif wcs2 is not None:
+        if wcs is ParameterNotSpecified:
             wcs = wcs2
+        elif wcs2 is not None:
+            log.info(msg.format(name, 'wcs'))
 
-        if uncertainty is not None and uncertainty2 is not None:
-            log.info(msg.format(name, 'uncertainty'))
-        elif uncertainty2 is not None:
+        if uncertainty is ParameterNotSpecified:
             uncertainty = uncertainty2
+        elif uncertainty2 is not None:
+            log.info(msg.format(name, 'uncertainty'))
 
-        # Copy if necessary (data is already copied)
+        # Copy if necessary (data was already copied so don't bother with it
+        # here).
         if copy:
-            # always copy these mask, wcs and uncertainty
             mask = deepcopy(mask)
             wcs = deepcopy(wcs)
             uncertainty = deepcopy(uncertainty)
+            meta = deepcopy(meta)
             # no need to copy meta because the meta descriptor will always copy
-            # meta = deepcopy(meta)
             # and units don't need to be copied anyway.
             # unit = deepcopy(unit)
 

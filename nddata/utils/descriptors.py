@@ -423,6 +423,10 @@ class AdvancedDescriptor(BaseDescriptor):
                 self.copy = False
                 super(AdvancedDescriptor, self).__set__(instance, v_value)
                 self.copy = True
+                # For debugging purposes
+                # from astropy import log
+                # log.debug('temporarly disabled copy because data was copied '
+                #           'during process_value.')
             else:
                 super(AdvancedDescriptor, self).__set__(instance, v_value)
 
@@ -619,7 +623,7 @@ class Uncertainty(AdvancedDescriptor):
         their own parent instead of stealing the ``parent``. Then the
         ``parent_nddata`` is set to the instance the setter was called on.
         """
-        from ..nddata.nddata import NDUncertainty, UnknownUncertainty
+        from ..nddata import NDUncertainty, UnknownUncertainty
         # There is one requirements on the uncertainty: That
         # it has an attribute 'uncertainty_type'.
         # If it does not match this requirement convert it to an unknown
