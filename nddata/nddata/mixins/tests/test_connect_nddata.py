@@ -24,12 +24,12 @@ class TestIOFunctions(object):
     def compare_nddata(self, ndd1, ndd2, compare_meta=True):
         # Compare if the data is equal:
         np.testing.assert_array_equal(ndd1.data, ndd2.data)
-        assert ndd1.data.dtype.kind == ndd1.data.dtype.kind
+        assert ndd1.data.dtype.kind == ndd2.data.dtype.kind
 
         # Compare if mask is equal
         if ndd1.mask is not None:
             np.testing.assert_array_equal(ndd1.mask, ndd2.mask)
-            assert ndd1.mask.dtype.kind == ndd1.mask.dtype.kind
+            assert ndd1.mask.dtype.kind == ndd2.mask.dtype.kind
         else:
             assert ndd1.mask == ndd2.mask
 
@@ -45,6 +45,13 @@ class TestIOFunctions(object):
 
         # Units equal?
         assert ndd1.unit == ndd2.unit
+
+        # Compare if mask is equal
+        if ndd1.flags is not None:
+            np.testing.assert_array_equal(ndd1.flags, ndd2.flags)
+            assert ndd1.flags.dtype.kind == ndd2.flags.dtype.kind
+        else:
+            assert ndd1.flags == ndd2.flags
 
         # WCS equal?
         if ndd1.wcs is not None:
@@ -75,6 +82,16 @@ class TestIOFunctions(object):
         ndd2 = read_nddata_fits(filename, dtype=np.int32)
 
         assert ndd2.data.dtype == np.int32
+
+    def test_nddata_write_read_flags(self, tmpdir):
+        ndd1 = NDData(np.ones((3, 3)),
+                      flags=np.array([[1, 0, 1], [0, 1, 0], [1, 0, 1]]))
+
+        filename = str(self.temp(tmpdir))
+        write_nddata_fits(ndd1, filename)
+        ndd2 = read_nddata_fits(filename)
+
+        self.compare_nddata(ndd1, ndd2)
 
     def test_nddata_write_read_mask_boolean(self, tmpdir):
         ndd1 = NDData(np.ones((3, 3)),
@@ -296,7 +313,9 @@ class TestIOFunctions(object):
         unit = 'adu'
         mask = np.random.random((10, 10)) > 0.5
         uncertainty = UnknownUncertainty(np.ones((5, 5)))
-        ndd1 = NDData(data, uncertainty=uncertainty, unit=unit, meta=meta, mask=mask)
+        flags = np.zeros(data.shape)
+        ndd1 = NDData(data, uncertainty=uncertainty, unit=unit, meta=meta,
+                      mask=mask, flags=flags)
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)

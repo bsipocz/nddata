@@ -20,6 +20,8 @@ New Features
 
  - NDData got a copy method. PR #18
 
+ - included ``flags`` attribute in NDData and Mixins. PR #19
+
 
 API changes
 ^^^^^^^^^^^

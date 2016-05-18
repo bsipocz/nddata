@@ -4,13 +4,11 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from copy import deepcopy
-import warnings
 
 import numpy as np
 
 from astropy.units import dimensionless_unscaled
 from astropy.utils import sharedmethod
-from astropy.utils.exceptions import AstropyDeprecationWarning
 
 from ..nduncertainty import NDUncertainty
 from ...utils.decorators import format_doc
@@ -547,7 +545,7 @@ class NDArithmeticMixin(object):
             The second operand wrapped in an instance of the same class as
             self.
 
-        handle_meta : callable
+        handle_flags : callable
             see :meth:`NDArithmeticMixin.add`.
 
         kwds :
