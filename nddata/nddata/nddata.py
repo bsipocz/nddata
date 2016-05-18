@@ -288,7 +288,7 @@ class NDData(NDDataBase):
 
     @descriptors.Data
     def data(self):
-        """`numpy.ndarray`-like : The stored dataset.
+        """(`numpy.ndarray`-like) The stored dataset.
 
         Only numerical arrays can be saved or ``None``.
         """
@@ -297,12 +297,12 @@ class NDData(NDDataBase):
     # Tables. It will check if the meta is dict-like or raise an exception.
     @descriptors.Meta
     def meta(self):
-        """`dict`-like : Additional meta information about the dataset.
+        """(`dict`-like) Additional meta information about the dataset.
         """
 
     @descriptors.Mask
     def mask(self):
-        """any type : Mask for the dataset, if any.
+        """(any type) Mask for the dataset, if any.
 
         Masks should follow the ``numpy`` convention that **valid** data points
         are marked by ``False`` and **invalid** ones with ``True``.
@@ -310,7 +310,7 @@ class NDData(NDDataBase):
 
     @descriptors.Unit
     def unit(self):
-        """`~astropy.units.Unit` : Unit for the dataset, if any.
+        """(`~astropy.units.Unit`) Unit for the dataset, if any.
 
         .. warning::
 
@@ -322,17 +322,17 @@ class NDData(NDDataBase):
 
     @descriptors.WCS
     def wcs(self):
-        """any type : World coordinate system (WCS) for the dataset, if any.
+        """(any type) World coordinate system (WCS) for the dataset, if any.
         """
 
     @descriptors.Flags
     def flags(self):
-        """any type : Flags for the dataset, if any.
+        """(any type) Flags for the dataset, if any.
         """
 
     @descriptors.Uncertainty
     def uncertainty(self):
-        """any type : Uncertainty in the dataset, if any.
+        """(any type) Uncertainty in the dataset, if any.
 
         Should have an attribute ``uncertainty_type`` that defines what kind of
         uncertainty is stored, for example ``"std"`` for standard deviation or
