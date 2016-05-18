@@ -531,3 +531,17 @@ def test_nddata_sentinels():
     assert ndd.wcs is None
     assert len(ndd.meta) == 0
     assert isinstance(ndd.meta, OrderedDict)
+
+
+def test_meta_copied():
+    # This is more a regression test after I switched from the
+    # astropy.utils.metadata.MetaData descriptor to the custom one I created.
+    meta = {1: 1}
+    # also test data=None ... that's new :-)
+    ndd = NDData(None, meta=meta, copy=True)
+    ndd.meta[1] = 2
+    assert meta[1] == 1
+
+    ndd = NDData(None, meta=meta)
+    ndd.meta[1] = 2
+    assert meta[1] == 2

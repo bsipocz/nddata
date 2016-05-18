@@ -167,6 +167,16 @@ class NDData(NDDataBase):
         # wasn't already copied during setting (for example lists are already
         # copied)
         self.data = data
+
+        # For debugging purposes:
+        # data_unchanged = self.data is data
+        # data_is_number = isinstance(data, (bool, int, float, complex))
+        # if not data_unchanged and not copy and not data_is_number:
+        #     print a debug message. This isn't interesting to anyone who
+        #     isn't debugging.
+        #     log.debug('the data was altered and probably copied to fulfill '
+        #               'the restrictions of NDData.')
+
         if copy and self.data is data:
             self.data = deepcopy(data)
 
@@ -175,11 +185,20 @@ class NDData(NDDataBase):
         msg = "overwriting {0}'s current {1} with specified {1}."
 
         # Check which argument to take. Only in one case the implicit one is
-        # used: When the explicit one isn't specified.
+        # used: When the explicit one isn't specified. That's the reason
+        # why I used the ParameterNotSpecified sentinel because otherwise we
+        # couldn't determine if it was simply not set or forced to be None.
+        # with the ParameterNotSpecified these cases can be clearly
+        # distinguished.
         # In every other case the explicit argument is used.
-        # But if the explicit one is specified and the implicit one is also
-        # given then print a message.
-        # The "NotSpecified" value must not be used to set the argument!!!
+
+        # But if the explicit and the implicit one is specified print a
+        # message because that's clearly a conflict.
+
+        # It's not a problem here but another approach might not replace the
+        # ParameterNotSpecified value. Then it would bubble up to the user
+        # who shouldn't be bothered with it. Remember this in case you
+        # change anything in the next lines.
 
         # Units are relativly cheap to compare so only raise the info message
         # if both are set and not equal. No need to compare the other arguments
@@ -211,14 +230,14 @@ class NDData(NDDataBase):
         elif uncertainty2 is not None:
             log.info(msg.format(name, 'uncertainty'))
 
-        # Copy if necessary (data is already copied)
+        # Copy if necessary (data was already copied so don't bother with it
+        # here).
         if copy:
-            # always copy these mask, wcs and uncertainty
             mask = deepcopy(mask)
             wcs = deepcopy(wcs)
             uncertainty = deepcopy(uncertainty)
+            meta = deepcopy(meta)
             # no need to copy meta because the meta descriptor will always copy
-            # meta = deepcopy(meta)
             # and units don't need to be copied anyway.
             # unit = deepcopy(unit)
 

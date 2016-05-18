@@ -423,6 +423,10 @@ class AdvancedDescriptor(BaseDescriptor):
                 self.copy = False
                 super(AdvancedDescriptor, self).__set__(instance, v_value)
                 self.copy = True
+                # For debugging purposes
+                # from astropy import log
+                # log.debug('temporarly disabled copy because data was copied '
+                #           'during process_value.')
             else:
                 super(AdvancedDescriptor, self).__set__(instance, v_value)
 
