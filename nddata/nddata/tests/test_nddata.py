@@ -12,7 +12,8 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 from ..nddata import NDData
-from ..nduncertainty import NDUncertainty, StdDevUncertainty, UnknownUncertainty
+from ..nduncertainty import (NDUncertainty, StdDevUncertainty,
+                             UnknownUncertainty)
 from astropy.tests.helper import pytest
 from astropy import units as u
 from astropy.utils import NumpyRNGContext
@@ -87,18 +88,19 @@ class BadNDDataSubclass(NDData):
 class NDDataInterface(object):
 
     def __init__(self, data, uncertainty=None, mask=None, wcs=None,
-                 meta=None, unit=None):
+                 meta=None, unit=None, flags=None):
         self._data = data
         self._uncertainty = uncertainty
         self._mask = mask
         self._wcs = wcs
         self._unit = unit
         self._meta = meta
+        self._flags = flags
 
     def __astropy_nddata__(self):
         return {'data': self._data, 'uncertainty': self._uncertainty,
                 'mask': self._mask, 'unit': self._unit, 'wcs': self._wcs,
-                'meta': self._meta}
+                'meta': self._meta, 'flags': self._flags}
 
 
 class NDDataPartialInterface(NDDataInterface):
@@ -267,7 +269,7 @@ def test_nddata_init_data_nddata():
 
     # Now let's see what happens if we have all explicitly set
     nd1 = NDData(np.array([1]), mask=False, uncertainty=10, unit=u.s,
-                 meta={'dest': 'mordor'}, wcs=10)
+                 meta={'dest': 'mordor'}, wcs=10, flags=20)
     nd2 = NDData(nd1)
     assert nd2.data is nd1.data
     assert nd2.wcs == nd1.wcs
@@ -275,16 +277,18 @@ def test_nddata_init_data_nddata():
     assert nd2.mask == nd1.mask
     assert nd2.unit == nd1.unit
     assert nd2.meta == nd1.meta
+    assert nd2.flags == nd1.flags
 
     # now what happens if we overwrite them all too
     nd3 = NDData(nd1, mask=True, uncertainty=200, unit=u.km,
-                 meta={'observer': 'ME'}, wcs=4)
+                 meta={'observer': 'ME'}, wcs=4, flags=1)
     assert nd3.data is nd1.data
     assert nd3.wcs != nd1.wcs
     assert nd3.uncertainty.array != nd1.uncertainty.array
     assert nd3.mask != nd1.mask
     assert nd3.unit != nd1.unit
     assert nd3.meta != nd1.meta
+    assert nd3.flags != nd1.flags
 
 
 def test_nddata_init_data_nddata_subclass():
@@ -333,6 +337,27 @@ def test_nddata_init_data_fakes():
     assert isinstance(ndd2.data, FakeNumpyArray)
 
 
+def test_param_default_sentinels():
+    quantity = np.arange(10) * u.m
+    ndd = NDData(quantity, unit=None)
+    assert ndd.unit is None
+
+    masked_array = np.ma.array(np.ones(3), mask=[1, 0, 1])
+    ndd = NDData(masked_array, mask=None)
+    assert ndd.mask is None
+
+    nddata_all = NDData(100, mask=True, uncertainty=5, unit='cm', wcs=10,
+                        meta={1: 10})
+    ndd = NDData(nddata_all, mask=None, uncertainty=None, unit=None, wcs=None,
+                 meta=None)
+    assert ndd.mask is None
+    assert ndd.uncertainty is None
+    assert ndd.unit is None
+    assert ndd.wcs is None
+    assert len(ndd.meta) == 0
+    assert isinstance(ndd.meta, OrderedDict)
+
+
 # Specific parameters
 def test_param_uncertainty():
     u = StdDevUncertainty(array=np.ones((5, 5)))
@@ -372,6 +397,20 @@ def test_param_meta():
     assert nd3.meta['image'] == 'moon'
 
 
+def test_param_meta_copied():
+    # This is more a regression test after I switched from the
+    # astropy.utils.metadata.MetaData descriptor to the custom one I created.
+    meta = {1: 1}
+    # also test data=None ... that's new :-)
+    ndd = NDData(None, meta=meta, copy=True)
+    ndd.meta[1] = 2
+    assert meta[1] == 1
+
+    ndd = NDData(None, meta=meta)
+    ndd.meta[1] = 2
+    assert meta[1] == 2
+
+
 def test_param_mask():
     # Since everything is allowed we only need to test something
     nd = NDData([1], mask=False)
@@ -404,6 +443,22 @@ def test_param_unit():
     # (another NDData as data)
     nd3 = NDData(nd, unit='km')
     assert nd3.unit == u.km
+
+
+def test_param_flags():
+    flags = np.ones((20, 20))
+    ndd = NDData(None, flags=flags)
+    assert ndd.flags is not None
+    assert_array_equal(flags, ndd.flags)
+
+    ndd2 = NDData(ndd, copy=True)
+    assert ndd.flags is not None
+    assert_array_equal(flags, ndd.flags)
+
+    # Test if changes are propagated to uncopied attributes
+    flags[0, 0] = 100
+    assert ndd.flags[0, 0] == 100
+    assert ndd2.flags[0, 0] == 1
 
 
 # Check that the meta descriptor is working as expected. The MetaBaseTest class
@@ -454,21 +509,8 @@ def test_nddata_repr():
                  [7, 8]]])"""[1:])
 
 
-# Not supported features
-def test_slicing_not_supported():
-    ndd = NDData(np.ones((5, 5)))
-    with pytest.raises(TypeError):
-        ndd[0]
-
-
-def test_arithmetic_not_supported():
-    ndd = NDData(np.ones((5, 5)))
-    with pytest.raises(TypeError):
-        ndd + ndd
-
-
 def test_nddata_interface():
-    nddlike = NDDataInterface([1], 2, 3, 4, {1: 1}, 6)
+    nddlike = NDDataInterface([1], 2, 3, 4, {1: 1}, 6, 7)
     ndd = NDData(nddlike)
 
     # TODO: akward test because comparing number to Quantity
@@ -481,6 +523,7 @@ def test_nddata_interface():
     np.testing.assert_array_equal(ndd.uncertainty.array,
                                   np.asarray(nddlike._uncertainty))
     assert isinstance(ndd.uncertainty, UnknownUncertainty)
+    assert ndd.flags == 7
 
 
 def test_nddata_partial_interface():
@@ -512,45 +555,11 @@ def test_nddata_no_data_interface():
                                   np.asarray(nddlike._uncertainty))
     assert isinstance(ndd.uncertainty, UnknownUncertainty)
 
-def test_nddata_sentinels():
-    quantity = np.arange(10) * u.m
-    ndd = NDData(quantity, unit=None)
-    assert ndd.unit is None
-
-    masked_array = np.ma.array(np.ones(3), mask=[1, 0, 1])
-    ndd = NDData(masked_array, mask=None)
-    assert ndd.mask is None
-
-    nddata_all = NDData(100, mask=True, uncertainty=5, unit='cm', wcs=10,
-                        meta={1: 10})
-    ndd = NDData(nddata_all, mask=None, uncertainty=None, unit=None, wcs=None,
-                 meta=None)
-    assert ndd.mask is None
-    assert ndd.uncertainty is None
-    assert ndd.unit is None
-    assert ndd.wcs is None
-    assert len(ndd.meta) == 0
-    assert isinstance(ndd.meta, OrderedDict)
-
-
-def test_meta_copied():
-    # This is more a regression test after I switched from the
-    # astropy.utils.metadata.MetaData descriptor to the custom one I created.
-    meta = {1: 1}
-    # also test data=None ... that's new :-)
-    ndd = NDData(None, meta=meta, copy=True)
-    ndd.meta[1] = 2
-    assert meta[1] == 1
-
-    ndd = NDData(None, meta=meta)
-    ndd.meta[1] = 2
-    assert meta[1] == 2
-
 
 def test_copy_method():
     ndd = NDData(np.ones((3, 3)), mask=np.ones((3, 3)), unit='m',
                  meta={'a': 100}, uncertainty=np.ones((3, 3)),
-                 wcs=np.ones((3, 3)))
+                 wcs=np.ones((3, 3)), flags=np.ones((3, 3)))
 
     ndd2 = ndd.copy()
 
@@ -560,9 +569,24 @@ def test_copy_method():
     ndd.meta['a'] = 10
     ndd.uncertainty.array[0, 0] = 10
     ndd.wcs[0, 0] = 10
+    ndd.flags[0, 0] = 10
 
     assert ndd2.data[0, 0] == 1
     assert ndd2.mask[0, 0] == 1
     assert ndd2.meta['a'] == 100
     assert ndd2.uncertainty.array[0, 0] == 1
     assert ndd2.wcs[0, 0] == 1
+    assert ndd2.flags[0, 0] == 1
+
+
+# Not supported features
+def test_slicing_not_supported():
+    ndd = NDData(np.ones((5, 5)))
+    with pytest.raises(TypeError):
+        ndd[0]
+
+
+def test_arithmetic_not_supported():
+    ndd = NDData(np.ones((5, 5)))
+    with pytest.raises(TypeError):
+        ndd + ndd

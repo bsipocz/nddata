@@ -57,15 +57,16 @@ the element is a scalar and changes will not propagate to the original.
 Slicing NDDataRef including attributes
 --------------------------------------
 
-In case a ``wcs``, ``mask`` or ``uncertainty`` is present this attribute will
-be sliced too::
+In case a ``wcs``, ``mask``, ``flags`` or ``uncertainty`` is present this
+attribute will be sliced too::
 
     >>> from nddata.nddata import StdDevUncertainty
     >>> data = np.array([1, 2, 3, 4])
     >>> mask = data > 2
     >>> uncertainty = StdDevUncertainty(np.sqrt(data))
     >>> wcs = np.ones(4)
-    >>> ndd = NDDataRef(data, mask=mask, uncertainty=uncertainty, wcs=wcs)
+    >>> flags = np.zeros(data.shape, dtype=bool)
+    >>> ndd = NDDataRef(data, mask=mask, uncertainty=uncertainty, wcs=wcs, flags=flags)
     >>> ndd_sliced = ndd[1:3]
 
     >>> ndd_sliced.data
@@ -80,6 +81,9 @@ be sliced too::
     >>> ndd_sliced.wcs
     array([ 1.,  1.])
 
+    >>> ndd_sliced.flags
+    array([False, False], dtype=bool)
+
 but ``unit`` and ``meta`` will be unaffected.
 
 If any of the attributes is set but doesn't implement slicing an info will be
@@ -89,11 +93,13 @@ printed and the property will be kept as is::
     >>> mask = False
     >>> uncertainty = StdDevUncertainty(0)
     >>> wcs = {'a': 5}
-    >>> ndd = NDDataRef(data, mask=mask, uncertainty=uncertainty, wcs=wcs)
+    >>> flags = False
+    >>> ndd = NDDataRef(data, mask=mask, uncertainty=uncertainty, wcs=wcs, flags=flags)
     >>> ndd_sliced = ndd[1:3]
     INFO: uncertainty cannot be sliced. [nddata.nddata.mixins.ndslicing]
     INFO: mask cannot be sliced. [nddata.nddata.mixins.ndslicing]
     INFO: wcs cannot be sliced. [nddata.nddata.mixins.ndslicing]
+    INFO: flags cannot be sliced. [nddata.nddata.mixins.ndslicing]
 
     >>> ndd_sliced.mask
     False

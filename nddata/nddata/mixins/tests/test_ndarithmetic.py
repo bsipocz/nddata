@@ -296,6 +296,22 @@ def test_arithmetics_data_masks_invalid():
         nd1.divide(nd2)
 
 
+def test_uncertainty_fail():
+    class FakeUncertainty(object):
+        def __init__(self):
+            pass
+
+        uncertainty_type = 'std'
+
+    ndd1 = NDDataRef([0, 1, 3], uncertainty=FakeUncertainty())
+    ndd2 = NDDataRef([0, 1, 1])
+    with pytest.raises(TypeError):
+        ndd1.add(ndd2)
+
+    with pytest.raises(TypeError):
+        ndd2.add(ndd1)
+
+
 # Covering:
 # both have uncertainties (data and uncertainty without unit)
 # tested against manually determined resulting uncertainties to verify the
@@ -635,6 +651,8 @@ def test_arithmetics_handle_switches(use_abbreviation):
     meta2 = {'b': 2}
     mask1 = True
     mask2 = False
+    flags1 = 20
+    flags2 = 5
     uncertainty1 = StdDevUncertainty([1, 2, 3])
     uncertainty2 = StdDevUncertainty([1, 2, 3])
     wcs1 = 5
@@ -643,35 +661,38 @@ def test_arithmetics_handle_switches(use_abbreviation):
     data2 = [1, 1, 1]
 
     nd1 = NDDataArithmetic(data1, meta=meta1, mask=mask1, wcs=wcs1,
-                           uncertainty=uncertainty1)
+                           uncertainty=uncertainty1, flags=flags1)
     nd2 = NDDataArithmetic(data2, meta=meta2, mask=mask2, wcs=wcs2,
-                           uncertainty=uncertainty2)
+                           uncertainty=uncertainty2, flags=flags2)
     nd3 = NDDataArithmetic(data1)
 
     # Both have the attributes but option None is chosen
     nd_ = nd1.add(nd2, propagate_uncertainties=None, handle_meta=None,
-                  handle_mask=None, compare_wcs=None)
+                  handle_mask=None, compare_wcs=None, handle_flags=None)
     assert nd_.wcs is None
     assert len(nd_.meta) == 0
     assert nd_.mask is None
     assert nd_.uncertainty is None
+    assert nd_.flags is None
 
-    # Only second has attributes and False is chosen
+    # Only second has attributes and False/firstfound is chosen
     nd_ = nd3.add(nd2, propagate_uncertainties=False,
                   handle_meta=use_abbreviation, handle_mask=use_abbreviation,
-                  compare_wcs=use_abbreviation)
+                  compare_wcs=use_abbreviation, handle_flags=use_abbreviation)
     assert nd_.wcs == wcs2
     assert nd_.meta == meta2
     assert nd_.mask == mask2
+    assert nd_.flags == flags2
     assert_array_equal(nd_.uncertainty.array, uncertainty2.array)
 
     # Only first has attributes and False is chosen
     nd_ = nd1.add(nd3, propagate_uncertainties=False,
                   handle_meta=use_abbreviation, handle_mask=use_abbreviation,
-                  compare_wcs=use_abbreviation)
+                  compare_wcs=use_abbreviation, handle_flags=use_abbreviation)
     assert nd_.wcs == wcs1
     assert nd_.meta == meta1
     assert nd_.mask == mask1
+    assert nd_.flags == flags1
     assert_array_equal(nd_.uncertainty.array, uncertainty1.array)
 
 
@@ -708,6 +729,41 @@ def test_arithmetics_meta_func():
 
     with pytest.raises(KeyError):
         nd1.add(nd2, handle_meta=meta_fun_func, take='second')
+
+
+def test_arithmetics_flags_func():
+    def flags_func(flags1, flags2, bitwise=True):
+        if bitwise:
+            return np.bitwise_or(flags1, flags2)
+        else:
+            return np.logical_or(flags1, flags2)
+
+    meta1 = {'a': 1}
+    meta2 = {'a': 3, 'b': 2}
+    mask1 = True
+    mask2 = False
+    flags1 = np.array([0, 1, 3])
+    flags2 = np.array([0, 2, 1])
+    uncertainty1 = StdDevUncertainty([1, 2, 3])
+    uncertainty2 = StdDevUncertainty([1, 2, 3])
+    wcs1 = 5
+    wcs2 = 100
+    data1 = [1, 1, 1]
+    data2 = [1, 1, 1]
+
+    nd1 = NDDataArithmetic(data1, meta=meta1, mask=mask1, wcs=wcs1,
+                           uncertainty=uncertainty1, flags=flags1)
+    nd2 = NDDataArithmetic(data2, meta=meta2, mask=mask2, wcs=wcs2,
+                           uncertainty=uncertainty2, flags=flags2)
+
+    nd3 = nd1.add(nd2, handle_flags=flags_func)
+    assert_array_equal(nd3.flags, [0, 3, 3])
+
+    nd4 = nd2.add(nd1, handle_flags=flags_func)
+    assert_array_equal(nd4.flags, [0, 3, 3])
+
+    nd5 = nd1.add(nd2, handle_flags=flags_func, flags_bitwise=False)
+    assert_array_equal(nd5.flags, [False, True, True])
 
 
 def test_arithmetics_wcs_func():
@@ -774,6 +830,11 @@ def test_arithmetics_mask_func():
 
     with pytest.raises(KeyError):
         nd1.add(nd2, handle_mask=mask_sad_func, fun=1)
+
+
+def test_classmethod_fail():
+    with pytest.raises(TypeError):
+        NDDataArithmetic.add([1, 2, 3])
 
 
 @pytest.mark.parametrize('meth', ['add', 'subtract', 'divide', 'multiply'])

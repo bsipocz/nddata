@@ -448,6 +448,12 @@ class Mask(BaseDescriptor):
     pass
 
 
+class Flags(BaseDescriptor):
+    """A `BaseDescriptor` without any alterations.
+    """
+    pass
+
+
 class Meta(AdvancedDescriptor):
     """An `AdvancedDescriptor` which defaults to `~collections.OrderedDict` \
             and checks if the value is a `~collections.Mapping`.

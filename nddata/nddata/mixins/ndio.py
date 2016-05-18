@@ -45,18 +45,17 @@ class NDIOMixin(object):
 
 
 def read_nddata_fits(filename, ext_data=0, ext_meta=0, ext_mask='mask',
-                     ext_uncert='uncert', kw_unit='bunit',
+                     ext_uncert='uncert', ext_flags='flags', kw_unit='bunit',
                      dtype=None, **kwargs_for_open):
-    """
-    Read data from a FITS file and wrap the contents in a \
-    `~astropy.nddata.NDData`.
+    """ Read data from a FITS file and wrap the contents in a \
+            `~astropy.nddata.NDData`.
 
     Parameters
     ----------
     filename : str and other types
         see :func:`~astropy.io.fits.open` what possible types are allowed.
 
-    ext_data, ext_meta, ext_mask, ext_uncert : str or int, optional
+    ext_data, ext_meta, ext_mask, ext_uncert, ext_flags : str or int, optional
         Extensions from which to read ``data``, ``meta``, ``mask`` and
         ``uncertainty``.
         Default is ``0`` (data), ``0`` (meta), ``'mask'`` (mask) and
@@ -99,6 +98,11 @@ def read_nddata_fits(filename, ext_data=0, ext_meta=0, ext_mask='mask',
             if kw_hdr_masktype in hdus[ext_mask].header.get('comment', []):
                 mask = mask.astype(bool)
 
+        flags = None
+        if ext_flags in hdus:
+            # Just hope flags are not some special class.... :-)
+            flags = hdus[ext_flags].data
+
         uncertainty = None
         if ext_uncert in hdus:
             uncertainty = hdus[ext_uncert].data
@@ -133,13 +137,12 @@ def read_nddata_fits(filename, ext_data=0, ext_meta=0, ext_mask='mask',
     # Just create an NDData instance: This will be upcast to the appropriate
     # class
     return NDData(data, meta=meta, mask=mask, uncertainty=uncertainty,
-                  wcs=wcs, unit=unit, copy=False)
+                  wcs=wcs, unit=unit, flags=flags, copy=False)
 
 
 def write_nddata_fits(ndd, filename, ext_mask='mask', ext_uncert='uncert',
-                      kw_unit='bunit', **kwargs_for_write):
-    """
-    Take an `~astropy.nddata.NDData`-like object and save it as FITS file.
+                      ext_flags='flags', kw_unit='bunit', **kwargs_for_write):
+    """Take an `~astropy.nddata.NDData`-like object and save it as FITS file.
 
     Parameters
     ----------
@@ -150,7 +153,7 @@ def write_nddata_fits(ndd, filename, ext_mask='mask', ext_uncert='uncert',
     filename : str
         The filename for the newly written file.
 
-    ext_mask, ext_uncert : str or int, optional
+    ext_mask, ext_uncert, ext_flags : str or int, optional
         Extensions to which ``mask`` and ``uncertainty`` are written.
         Default is ``'mask'`` (mask) and ``'uncert'`` (uncertainty).
 
@@ -207,6 +210,10 @@ def write_nddata_fits(ndd, filename, ext_mask='mask', ext_uncert='uncert',
     except AttributeError:
         # Either no mask or mask had no dtype
         pass
+
+    # Same for flags
+    if ndd.flags is not None:
+        hdus.append(fits.ImageHDU(ndd.flags, name=ext_flags))
 
     # And append the uncertainty (if present)
     try:

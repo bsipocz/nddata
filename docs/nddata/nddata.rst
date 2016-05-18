@@ -250,7 +250,13 @@ WCS
 The ``wcs`` should contain a mapping from the gridded data to world
 coordinates. There are no restrictions placed on the property currently but it
 may be restricted to an `~astropy.wcs.WCS` object or a more generalized WCS
-object in the future.
+object in the future::
+
+    >>> ndd = NDData(np.ones((3, 3)), wcs=np.zeros((3,3), dtype=int))
+    >>> ndd.wcs
+    array([[0, 0, 0],
+           [0, 0, 0],
+           [0, 0, 0]])
 
 Meta-data
 ---------
@@ -293,6 +299,18 @@ The ``meta`` object therefore supports adding or updating these values::
 Elements of the meta-data dictionary can be set to any valid Python object::
 
     >>> ndd.meta['history'] = ['calibrated', 'aligned', 'flat-fielded']
+
+
+Flags
+-----
+
+Flags are meant to be array-like meta information on the data which wouldn't
+be suitable for the ``meta`` attribute. For example a bitmask could be a
+potential use-case. However there are no restrictions on the flags::
+
+    >>> ndd = NDData(np.arange(10), flags=np.zeros(10))
+    >>> ndd.flags
+    array([ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.])
 
 Initialization with copy
 ------------------------

@@ -14,8 +14,8 @@ class NDSlicingMixin(object):
     Mixin to provide slicing on objects using the `NDData`
     interface.
 
-    The ``data``, ``mask``, ``uncertainty`` and ``wcs`` will be sliced, if
-    set and sliceable. The ``unit`` and ``meta`` will be untouched.
+    The ``data``, ``mask``, ``uncertainty``, ``flags`` and ``wcs`` will be
+    sliced, if set and sliceable. The ``unit`` and ``meta`` will be untouched.
 
     .. warning::
         The sliced return will be, if possible, a reference and not a copy.
@@ -58,6 +58,7 @@ class NDSlicingMixin(object):
         kwargs['uncertainty'] = self._slice_uncertainty(item)
         kwargs['mask'] = self._slice_mask(item)
         kwargs['wcs'] = self._slice_wcs(item)
+        kwargs['flags'] = self._slice_flags(item)
         # Attributes which are copied and not intended to be sliced
         kwargs['unit'] = self.unit
         kwargs['meta'] = self.meta
@@ -91,3 +92,12 @@ class NDSlicingMixin(object):
         except TypeError:
             log.info("wcs cannot be sliced.")
         return self.wcs
+
+    def _slice_flags(self, item):
+        if self.flags is None:
+            return None
+        try:
+            return self.flags[item]
+        except TypeError:
+            log.info("flags cannot be sliced.")
+        return self.flags

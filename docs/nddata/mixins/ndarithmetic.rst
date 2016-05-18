@@ -188,6 +188,75 @@ resulting mask will be. There are several options.
       >>> ndd1.add(ndd2, handle_mask=take_alternating_values, mask_start=2).mask
       array([False, False,  True,  True], dtype=bool)
 
+flags
+^^^^^
+
+The ``handle_flags`` parameter for the arithmetic operations implements what
+the resulting flags will be. There are several options.
+
+- ``None``, the result will have no ``flags``.::
+
+      >>> ndd1 = NDDataRef(1, flags=True)
+      >>> ndd2 = NDDataRef(1, flags=False)
+      >>> print(ndd1.add(ndd2, handle_flags=None).flags)
+      None
+
+  This is the defaults so no need to specify it::
+
+      >>> print(ndd1.add(ndd2).flags)
+      None
+
+- ``"first_found"`` or ``"ff"``, the result will have the flags of the first
+  operand or if that is None the flags of the second operand::
+
+      >>> ndd1 = NDDataRef(1, flags=True)
+      >>> ndd2 = NDDataRef(1, flags=False)
+      >>> ndd1.add(ndd2, handle_flags="first_found").flags
+      True
+      >>> ndd3 = NDDataRef(1)
+      >>> ndd3.add(ndd2, handle_flags="first_found").flags
+      False
+
+- a function (or an arbitary callable) that takes at least two arguments.
+  For example if the ``flags`` resemble a bitmask one can use
+  `numpy.bitwise_or`::
+
+      >>> ndd1 = NDDataRef(1, flags=np.array([0, 1, 2, 3]))
+      >>> ndd2 = NDDataRef(1, flags=np.array([1, 0, 1, 0]))
+      >>> print(ndd1.add(ndd2, handle_flags=np.bitwise_or).flags)
+      [1 1 3 3]
+
+  This requires that both flags are not ``None`` otherwise it will fail. but
+  a custom functions could be the solution::
+
+      >>> def bitwise_or(flags1, flags2, logical=False):
+      ...     if flags1 is None:
+      ...         return flags2
+      ...     elif flags2 is None:
+      ...         return flags1
+      ...
+      ...     if logical:
+      ...         result = np.logical_or(flags1, flags2)
+      ...     else:
+      ...         result = np.bitwise_or(flags1, flags2)
+      ...
+      ...     return result
+
+  This function is now also works if one operand has no flags::
+
+      >>> ndd1 = NDDataRef(1, flags=np.array([0, 1, 2, 3]))
+      >>> ndd2 = NDDataRef(1)
+      >>> ndd1.add(ndd2, handle_flags=bitwise_or).flags
+      array([0, 1, 2, 3])
+
+  Additional parameters can be passed to this function as well, just prepend
+  a ``flags_`` to the parameter name::
+
+      >>> ndd1 = NDDataRef(1, flags=np.array([0, 1, 2, 3]))
+      >>> ndd2 = NDDataRef(1, flags=np.array([0, 0, 1, 0]))
+      >>> ndd1.add(ndd2, handle_flags=bitwise_or, flags_logical=True).flags
+      array([False,  True,  True,  True], dtype=bool)
+
 meta
 ^^^^
 

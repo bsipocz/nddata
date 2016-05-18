@@ -26,10 +26,11 @@ Reading and writing FITS files
     additional requirements:
 
     - ``mask``, if set, needs to be a `numpy.ndarray` or convertible to one.
+    - ``flags``, if set, needs to be a numerical `numpy.ndarray` (not booleans).
     - ``uncertainty.array``, if set, needs to be a `numpy.ndarray` or convertible to one.
     - ``wcs``, if set, needs to be a ``astropy.wcs.WCS`` object.
 
-    The ``.fits`` reader and writer are new in astropy v.1.2 and may be changed
+    The ``.fits`` reader and writer are new and may be changed significantly
     in subsequent versions if the need arises.
 
 
@@ -42,11 +43,33 @@ calling these methods::
     >>> ndd = NDDataRef([1,2,3,4])
     >>> ndd.write('filename.fits', format='simple_fits')
 
-and reading the file again
+Reading the file again::
 
     >>> ndd2 = NDDataRef.read('filename.fits', format='simple_fits')
     >>> ndd2
     NDDataRef([1, 2, 3, 4])
+
+With more attributes these will be conserved as well::
+
+    >>> import numpy as np
+    >>> from nddata.nddata import NDDataRef, StdDevUncertainty
+
+    >>> data = np.array([0, 1, 3])
+    >>> mask = data > 1
+    >>> flags = np.array([0, 1, 0])
+    >>> uncertainty = StdDevUncertainty([1, 2, 3])
+    >>> ndd1 = NDDataRef(data, mask=mask, flags=flags, uncertainty=uncertainty)
+    >>> ndd1.write('test.fits', format='simple_fits')
+
+    >>> ndd2 = NDDataRef.read('test.fits', format='simple_fits')
+    >>> ndd2.data
+    array([0, 1, 3])
+    >>> ndd2.mask
+    array([False, False,  True], dtype=bool)
+    >>> ndd2.flags
+    array([0, 1, 0])
+    >>> ndd2.uncertainty
+    StdDevUncertainty([1, 2, 3])
 
 
 Reading external FITS files
@@ -124,9 +147,6 @@ the appropriate attribute setter::
 
 Additional parameters
 ^^^^^^^^^^^^^^^^^^^^^
-
-The ``copy`` paramter (default ``False``) will be passed to
-`~nddata.nddata.NDData` during initialization.
 
 You can specify additional keywords that are passed to
 :func:`astropy.io.fits.open`. Probably not all of these listed there might be

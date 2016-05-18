@@ -102,20 +102,24 @@ def test_slicing_all_npndarray_nd():
     mask = data > 3
     uncertainty = np.linspace(10, 20, 1000).reshape(10, 10, 10)
     wcs = np.linspace(1, 1000, 1000).reshape(10, 10, 10)
+    flags = np.zeros(data.shape, dtype=bool)
 
-    nd = NDDataSliceable(data, mask=mask, uncertainty=uncertainty, wcs=wcs)
+    nd = NDDataSliceable(data, mask=mask, uncertainty=uncertainty, wcs=wcs,
+                         flags=flags)
     # Slice only 1D
     nd2 = nd[2:5]
     assert_array_equal(data[2:5], nd2.data)
     assert_array_equal(mask[2:5], nd2.mask)
     assert_array_equal(uncertainty[2:5], nd2.uncertainty.array)
     assert_array_equal(wcs[2:5], nd2.wcs)
+    assert_array_equal(flags[2:5], nd2.flags)
     # Slice 3D
     nd2 = nd[2:5, :, 4:7]
     assert_array_equal(data[2:5, :, 4:7], nd2.data)
     assert_array_equal(mask[2:5, :, 4:7], nd2.mask)
     assert_array_equal(uncertainty[2:5, :, 4:7], nd2.uncertainty.array)
     assert_array_equal(wcs[2:5, :, 4:7], nd2.wcs)
+    assert_array_equal(flags[2:5, :, 4:7], nd2.flags)
 
 
 def test_slicing_all_npndarray_shape_diff():
@@ -123,14 +127,17 @@ def test_slicing_all_npndarray_shape_diff():
     mask = (data > 3)[0:9]
     uncertainty = np.linspace(10, 20, 15)
     wcs = np.linspace(1, 1000, 12)
+    flags = np.zeros(15)
 
-    nd = NDDataSliceable(data, mask=mask, uncertainty=uncertainty, wcs=wcs)
+    nd = NDDataSliceable(data, mask=mask, uncertainty=uncertainty, wcs=wcs,
+                         flags=flags)
     nd2 = nd[2:5]
     assert_array_equal(data[2:5], nd2.data)
     # All are sliced even if the shapes differ (no Info)
     assert_array_equal(mask[2:5], nd2.mask)
     assert_array_equal(uncertainty[2:5], nd2.uncertainty.array)
     assert_array_equal(wcs[2:5], nd2.wcs)
+    assert_array_equal(flags[2:5], nd2.flags)
 
 
 def test_slicing_all_something_wrong():
@@ -138,8 +145,10 @@ def test_slicing_all_something_wrong():
     mask = [False]*10
     uncertainty = {'rdnoise': 2.9, 'gain': 1.4}
     wcs = 145 * u.degree
+    flags = None
 
-    nd = NDDataSliceable(data, mask=mask, uncertainty=uncertainty, wcs=wcs)
+    nd = NDDataSliceable(data, mask=mask, uncertainty=uncertainty, wcs=wcs,
+                         flags=flags)
     nd2 = nd[2:5]
     # Sliced properties:
     assert_array_equal(data[2:5], nd2.data)
@@ -147,6 +156,7 @@ def test_slicing_all_something_wrong():
     # Not sliced attributes (they will raise a Info nevertheless)
     uncertainty is nd2.uncertainty
     assert_array_equal(wcs, nd2.wcs)
+    assert flags is nd2.flags
 
 
 def test_boolean_slicing():
@@ -154,10 +164,13 @@ def test_boolean_slicing():
     mask = data.copy()
     uncertainty = StdDevUncertainty(data.copy())
     wcs = data.copy()
-    nd = NDDataSliceable(data, mask=mask, uncertainty=uncertainty, wcs=wcs)
+    flags = data.astype(bool)
+    nd = NDDataSliceable(data, mask=mask, uncertainty=uncertainty, wcs=wcs,
+                         flags=flags)
 
     nd2 = nd[(nd.data >= 3) & (nd.data < 8)]
     assert_array_equal(data[3:8], nd2.data)
     assert_array_equal(mask[3:8], nd2.mask)
     assert_array_equal(wcs[3:8], nd2.wcs)
     assert_array_equal(uncertainty.array[3:8], nd2.uncertainty.array)
+    assert_array_equal(flags[3:8], nd2.flags)
