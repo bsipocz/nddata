@@ -373,7 +373,7 @@ def test_subclassing_advanced3():
     assert t.data2[0][0] == 20
 
 
-# No need to test wcs or mask descriptor because they are simply the
+# No need to test wcs, flags or mask descriptor because they are simply the
 # base descriptor...
 
 

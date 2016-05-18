@@ -60,6 +60,7 @@ additional ``meta`` attributes:
     >>> from nddata.nddata import StdDevUncertainty
     >>> uncertainty = StdDevUncertainty(np.sqrt(data)) # representing standard deviation
     >>> meta = {'object': 'fictional data.'}
+    >>> flags = None
     >>> from astropy.coordinates import SkyCoord
     >>> wcs = SkyCoord('00h42m44.3s', '+41d16m09s')
     >>> ndd = NDData(data, mask=mask, unit=unit, uncertainty=uncertainty,

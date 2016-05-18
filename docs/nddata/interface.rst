@@ -25,20 +25,21 @@ would probably not be the case for real classes but provides a good example::
     >>> class NDDataInterface(object):
     ...
     ...     def __init__(self, data, uncertainty=None, mask=None, wcs=None,
-    ...                  meta=None, unit=None):
+    ...                  meta=None, unit=None, flags=None):
     ...         self.data = data
     ...         self.uncertainty = uncertainty
     ...         self.mask = mask
     ...         self.wcs = wcs
     ...         self.unit = unit
     ...         self.meta = meta
+    ...         self.flags = flags
     ...
     ...     def __astropy_nddata__(self):
     ...         return {'data': self.data, 'uncertainty': self.uncertainty,
     ...                 'mask': self.mask, 'unit': self.unit, 'wcs': self.wcs,
-    ...                 'meta': self.meta}
+    ...                 'meta': self.meta, 'flags': self.flags}
     ...
-    >>> nddlike = NDDataInterface([1], 2, 3, 4, {1: 1}, 'm')
+    >>> nddlike = NDDataInterface([1], 2, 3, 4, {1: 1}, 'm', True)
     >>> ndd = NDData(nddlike)
     INFO: uncertainty should have attribute uncertainty_type. [nddata.utils.descriptors]
 

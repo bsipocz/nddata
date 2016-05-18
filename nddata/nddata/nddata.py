@@ -65,6 +65,9 @@ class NDData(NDDataBase):
         `~astropy.units.Unit` are allowed.
         Default is ``None``.
 
+    flags : any type, optional
+        Flags for the dataset
+
     copy : `bool`, optional
         Indicates whether to save the arguments as copy. ``True`` copies
         every attribute before saving it while ``False`` tries to save every
@@ -112,7 +115,7 @@ class NDData(NDDataBase):
     def __init__(self, data, uncertainty=ParameterNotSpecified,
                  mask=ParameterNotSpecified, wcs=ParameterNotSpecified,
                  meta=ParameterNotSpecified, unit=ParameterNotSpecified,
-                 copy=False):
+                 flags=ParameterNotSpecified, copy=False):
 
         # Rather pointless since the NDDataBase does not implement any setting
         # but before the NDDataBase did call the uncertainty
@@ -130,6 +133,7 @@ class NDData(NDDataBase):
         mask2 = None
         uncertainty2 = None
         wcs2 = None
+        flags2 = None
 
         # Check if data is any type from which to collect some implicitly
         # passed parameters.
@@ -140,6 +144,7 @@ class NDData(NDDataBase):
             mask2 = data.mask
             uncertainty2 = data.uncertainty
             wcs2 = data.wcs
+            flags2 = data.flags
             data = data.data
         elif hasattr(data, '__astropy_nddata__'):
             # Something that provides an interface to convert to NDData
@@ -151,6 +156,7 @@ class NDData(NDDataBase):
             mask2 = kwargs.get('mask', None)
             uncertainty2 = kwargs.get('uncertainty', None)
             wcs2 = kwargs.get('wcs', None)
+            flags2 = kwargs.get('flags', None)
             data = kwargs.get('data', None)
         else:
             if hasattr(data, 'mask') and hasattr(data, 'data'):
@@ -230,6 +236,11 @@ class NDData(NDDataBase):
         elif uncertainty2 is not None:
             log.info(msg.format(name, 'uncertainty'))
 
+        if flags is ParameterNotSpecified:
+            flags = flags2
+        elif flags2 is not None:
+            log.info(msg.format(name, 'flags'))
+
         # Copy if necessary (data was already copied so don't bother with it
         # here).
         if copy:
@@ -237,6 +248,7 @@ class NDData(NDDataBase):
             wcs = deepcopy(wcs)
             uncertainty = deepcopy(uncertainty)
             meta = deepcopy(meta)
+            flags = deepcopy(flags)
             # no need to copy meta because the meta descriptor will always copy
             # and units don't need to be copied anyway.
             # unit = deepcopy(unit)
@@ -247,6 +259,7 @@ class NDData(NDDataBase):
         self.meta = meta
         self.unit = unit
         self.uncertainty = uncertainty
+        self.flags = flags
 
     def __str__(self):
         return str(self.data)
@@ -310,6 +323,11 @@ class NDData(NDDataBase):
     @descriptors.WCS
     def wcs(self):
         """any type : World coordinate system (WCS) for the dataset, if any.
+        """
+
+    @descriptors.Flags
+    def flags(self):
+        """any type : Flags for the dataset, if any.
         """
 
     @descriptors.Uncertainty
