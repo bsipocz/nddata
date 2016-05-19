@@ -54,8 +54,8 @@ class UnknownUncertainty(NDUncertainty):
 
 
 class StdDevUncertainty(NDUncertaintyGaussian):
-    """Standard deviation uncertainty assuming first order gaussian error
-    propagation.
+    """Standard deviation uncertainty assuming first order gaussian error \
+            propagation.
 
     This class implements uncertainty propagation for ``addition``,
     ``subtraction``, ``multiplication`` and ``division`` with other instances

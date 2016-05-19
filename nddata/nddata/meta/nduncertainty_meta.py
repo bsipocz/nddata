@@ -159,10 +159,10 @@ class NDUncertainty(object):
 
         # It might be a bit restrictive to assume that the converter does all
         # the determination and returns a dictionary containing the new values
-        # and it might in some cases be simpler to just use a function that
+        # - and it might in some cases be simpler to just use a function that
         # does the conversion. That would certainly work for
         # stddev <-> variance but as soon as other data gets important, like
-        # relative uncertainties that need the parents data a simple function
+        # relative uncertainties that need the parents data, a simple function
         # approach would fail. So to allow more freedom in what the converter
         # can do this was designed as is. I don't think special casing
         # converters would clean this up... but if this approach proves to
