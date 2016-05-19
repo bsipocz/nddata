@@ -16,25 +16,13 @@ from astropy.units import Quantity
 
 from ...utils import descriptors
 from ...utils.sentinels import ParameterNotSpecified
+from ..exceptions import (IncompatibleUncertaintiesException,
+                          MissingDataAssociationException)
 
-__all__ = ['MissingDataAssociationException',
-           'IncompatibleUncertaintiesException',
-           'UncertaintyConverter',
+__all__ = ['UncertaintyConverter',
            'NDUncertainty',
            'NDUncertaintyGaussian',
            'NDUncertaintyPropagatable']
-
-
-class IncompatibleUncertaintiesException(Exception):
-    """This exception should be used to indicate cases in which uncertainties
-    with two different classes can not be propagated.
-    """
-
-
-class MissingDataAssociationException(Exception):
-    """This exception should be used to indicate that an uncertainty instance
-    has not been associated with a parent `~.NDDataBase` object.
-    """
 
 
 class UncertaintyConverter(object):

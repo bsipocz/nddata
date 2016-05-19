@@ -8,3 +8,4 @@ from .flag_collection import *
 from . import utils
 from . import mixins
 from . import meta
+from . import exceptions

@@ -11,7 +11,8 @@ from astropy import units as u
 
 from ..nduncertainty import (StdDevUncertainty,
                              UnknownUncertainty)
-from ..meta import NDUncertainty, IncompatibleUncertaintiesException
+from ..meta import NDUncertainty
+from ..exceptions import IncompatibleUncertaintiesException
 from ..nddata import NDDataBase
 
 from ...utils.garbagecollector import assert_memory_leak

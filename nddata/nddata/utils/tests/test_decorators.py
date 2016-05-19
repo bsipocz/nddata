@@ -11,7 +11,7 @@ from astropy.extern import six
 from astropy.tests.helper import catch_warnings, pytest
 from astropy import units as u
 
-from ..nddata import NDDataBase
+from ...nddata_base import NDDataBase
 from ..decorators import support_nddata
 
 
@@ -77,9 +77,6 @@ def test_pass_nddata_and_explicit():
     assert unit_out is unit_in_alt
 
     assert len(w) == 1
-    assert str(w[0].message) == ("Property unit has been passed explicitly and"
-                                 " as an NDData property, using explicitly "
-                                 "specified value")
 
 
 def test_pass_nddata_ignored():
@@ -98,9 +95,6 @@ def test_pass_nddata_ignored():
     assert unit_out is unit_in
 
     assert len(w) == 1
-    assert str(w[0].message) == ("The following attributes were set on the "
-                                 "data object, but will be ignored by the "
-                                 "function: mask")
 
 
 def test_incorrect_first_argument():
@@ -168,10 +162,8 @@ def test_wrap_function_accepts():
 
     assert wrapped_function_5(mydata_in, [1, 2, 3]) is data_in
 
-    with pytest.raises(TypeError) as exc:
+    with pytest.raises(TypeError):
         wrapped_function_5(nddata_in, [1, 2, 3])
-    assert exc.value.args[0] == ("Only NDData sub-classes that inherit from "
-                                 "MyData can be used by this function")
 
 
 def test_wrap_preserve_signature_docstring():

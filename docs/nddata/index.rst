@@ -182,5 +182,8 @@ Reference/API
 .. automodapi:: nddata.nddata.meta
     :no-inheritance-diagram:
 
+.. automodapi:: nddata.nddata.exceptions
+    :no-inheritance-diagram:
+
 .. automodapi:: nddata.nddata.utils
     :no-inheritance-diagram:
