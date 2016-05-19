@@ -3,30 +3,30 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from copy import deepcopy
-
 import numpy as np
 
+from astropy import log
 from astropy.units import Quantity
 
 from .meta import NDUncertainty, NDUncertaintyGaussian
 from .exceptions import IncompatibleUncertaintiesException
+from .exceptions import MissingDataAssociationException
 
 __all__ = ['StdDevUncertainty', 'UnknownUncertainty', 'UncertaintyConverter']
 
 
 class UncertaintyConverter(object):
-    converter = {}
+    _converter = {}
 
     @classmethod
     def register(cls, source, target, forward, backward):
-        cls.converter[(source, target)] = forward
-        cls.converter[(target, source)] = backward
+        cls._converter[(source, target)] = forward
+        cls._converter[(target, source)] = backward
 
     @classmethod
     def get_converter_func(cls, source, target):
         try:
-            return cls.converter[(source, target)]
+            return cls._converter[(source, target)]
         except KeyError:
             msg = "cannot convert {0} to {1}".format(source.__name__,
                                                      target.__name__)
@@ -410,3 +410,20 @@ class StdDevUncertainty(NDUncertaintyGaussian):
                 return np.sqrt(left**2 + right**2 - corr)
             else:
                 return np.sqrt(left**2 + right**2)
+
+
+# Add conversions from different uncertainties
+def _convert_unknown_to_something(val):
+    log.info('Assume the uncertainty values stay the same when converting '
+             'to or from an UnknownUncertainty.')
+    data = val.data
+    unit = val.unit
+    try:
+        parent_nddata = val.parent_nddata
+    except MissingDataAssociationException:
+        parent_nddata = None
+    return {'data': data, 'unit': unit, 'parent_nddata': parent_nddata}
+
+UncertaintyConverter.register(UnknownUncertainty, StdDevUncertainty,
+                              _convert_unknown_to_something,
+                              _convert_unknown_to_something)

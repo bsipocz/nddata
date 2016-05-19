@@ -511,18 +511,6 @@ systematic uncertainties::
     ...     @property
     ...     def uncertainty_type(self):
     ...         return 'systematic'
-    ...
-    ...     def _propagate_add(self, other_uncert, *args, **kwargs):
-    ...         return None
-    ...
-    ...     def _propagate_subtract(self, other_uncert, *args, **kwargs):
-    ...         return None
-    ...
-    ...     def _propagate_multiply(self, other_uncert, *args, **kwargs):
-    ...         return None
-    ...
-    ...     def _propagate_divide(self, other_uncert, *args, **kwargs):
-    ...         return None
 
     >>> SystematicUncertainty([10])
     SystematicUncertainty([10])
@@ -576,7 +564,18 @@ want to allow that VarianceUncertainty also propagates with StdDevUncertainty
 you must register the conversion::
 
     >>> from nddata.nddata import UncertaintyConverter
-    >>> UncertaintyConverter.register(VarianceUncertainty, StdDevUncertainty, np.sqrt, np.square)
+    >>> def var_to_std(uncertainty):
+    ...     data = np.sqrt(uncertainty.data)
+    ...     unit = np.sqrt(1 * uncertainty.unit).value if uncertainty.unit else None
+    ...     parent_nddata = uncertainty.parent_nddata if uncertainty._parent_nddata else None
+    ...     return {'data': data, 'unit': unit, 'parent_nddata': parent_nddata}
+    >>> def std_to_var(uncertainty):
+    ...     data = np.square(uncertainty.data)
+    ...     unit = np.square(1 * uncertainty.unit).value if uncertainty.unit else None
+    ...     parent_nddata = uncertainty.parent_nddata if uncertainty._parent_nddata else None
+    ...     return {'data': data, 'unit': unit, 'parent_nddata': parent_nddata}
+    >>> UncertaintyConverter.register(VarianceUncertainty, StdDevUncertainty,
+    ...                               var_to_std, std_to_var)
 
     >>> ndd1 = NDData([1,2,3], uncertainty=VarianceUncertainty([1,4,9]))
     >>> ndd2 = NDData([1,2,3], uncertainty=StdDevUncertainty([1,2,3]))
@@ -599,3 +598,72 @@ the constructor::
     include proper treatement of the unit of the uncertainty! And of course
     implementing also the ``_propagate_*`` for subtraction, division and
     multiplication.
+
+
+General Tipps about subclassing
+-------------------------------
+
+Unit conversions
+^^^^^^^^^^^^^^^^
+
+`~nddata.nddata.NDData` and it's uncertainty allow for different units. In some
+cases you need to convert the units. The fastest way seems to be::
+
+    >>> import astropy.units as u
+    >>> data = 100
+    >>> unit = u.m
+    >>> target_unit = u.cm
+    >>> unit.to(target_unit, data)
+    10000.0
+
+which is faster than creating a Quantity and converting the unit then::
+
+    >>> (data * unit).to(target_unit).value
+    10000.0
+
+the difference can be quite high::
+
+    >>> %timeit unit.to(target_unit, data) # doctest: +SKIP
+    10000 loops, best of 3: 28.4 µs per loop
+    >>> %timeit (data * unit).to(target_unit).value # doctest: +SKIP
+    10000 loops, best of 3: 160 µs per loop
+
+Special casing uncertainty propagation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+There are cases in which one uncertainty is `None`. **Don't** set it to ``0``
+and do the general propagation. The calculation is much faster if you special
+case them::
+
+    >>> ndd1 = NDData(np.random.random((1000, 1000)),
+    ...               StdDevUncertainty(np.random.random((1000, 1000)))) # doctest: +SKIP
+    >>> ndd2_zero = NDData(np.random.random((1000, 1000)),
+    ...                    StdDevUncertainty(0)) # doctest: +SKIP
+    >>> ndd2_none = NDData(np.random.random((1000, 1000)),
+    ...                    StdDevUncertainty(None)) # doctest: +SKIP
+    >>> %timeit ndd1.multiply(ndd2_zero) # doctest: +SKIP
+    10 loops, best of 3: 74.7 ms per loop
+    >>> %timeit ndd1.multiply(ndd2_none) # doctest: +SKIP
+    10 loops, best of 3: 28.8 ms per loop
+
+while both give the right result. But the not-special case takes 3 times as
+long. The difference get's even bigger if more unit conversions are involved.
+
+Uncertainty propagation formulas
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Always make sure that you don't use a formula that may produce unnecessary
+``Inf`` or ``NaN``. Check if another representation of the formula avoids these
+problems. Even if it means it gets less efficient. Fast but incorrect results
+don't help anybody.
+
+Instead of::
+
+    np.abs(AB)*np.sqrt((dA/A)**2+(dB/B)**2+2*dA/A*dB/B*cor)
+
+you could use::
+
+    np.sqrt((dA*B)**2 + (dB*A)**2 + (2 * cor * ABdAdB))
+
+which yields the same result but avoids division where one element could be
+``0``.

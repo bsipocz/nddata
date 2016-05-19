@@ -157,29 +157,17 @@ class NDUncertainty(object):
         cls2 = uncertainty.__class__
         func = UncertaintyConverter.get_converter_func(cls2, cls)
 
-        # Temporary variables for creating the new instance.
-        data = None
-        unit = None
-        parent_nddata = None
-
-        if uncertainty.data is not None:
-            # Apply the function on the array and save the return.
-            data = func(uncertainty.data)
-        if uncertainty.unit is not None:
-            # Units probably cannot handle the function that was applied to the
-            # array but quantities can, so convert it to a quantity and take
-            # the unit of the result. Unfortunatly this can be very slow...
-            unit = func(1 * uncertainty.unit).unit
-
-        # To get the current parent we need a try except otherwise we would
-        # let the exception raise in case the other had no parent.
-        try:
-            parent_nddata = uncertainty.parent_nddata
-        except MissingDataAssociationException:
-            pass
-
-        # Call the init of the class.
-        return cls(data, unit, parent_nddata, copy=False)
+        # It might be a bit restrictive to assume that the converter does all
+        # the determination and returns a dictionary containing the new values
+        # and it might in some cases be simpler to just use a function that
+        # does the conversion. That would certainly work for
+        # stddev <-> variance but as soon as other data gets important, like
+        # relative uncertainties that need the parents data a simple function
+        # approach would fail. So to allow more freedom in what the converter
+        # can do this was designed as is. I don't think special casing
+        # converters would clean this up... but if this approach proves to
+        # complicated one could easily extend this.
+        return cls(copy=False, **func(uncertainty))
 
     # Copy and deepcopy magic and a public copy method
     def __copy__(self):
