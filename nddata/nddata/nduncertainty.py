@@ -188,12 +188,12 @@ class StdDevUncertainty(NDUncertaintyGaussian):
                         result_data.unit != other_uncert.effective_unit):
                 # If the other uncertainty has a unit and this unit differs
                 # from the unit of the result convert it to the results unit
-                return (other_uncert.data * other_uncert.unit).to(
-                            result_data.unit).value
+                return other_uncert.unit.to(result_data.unit,
+                                            other_uncert.data)
             else:
                 # Copy the result because _propagate will not copy it but for
                 # arithmetic operations users will expect copys.
-                return deepcopy(other_uncert.data)
+                return other_uncert.data.copy()
 
         elif other_uncert.data is None:
             # Formula: sigma = dA
@@ -202,11 +202,11 @@ class StdDevUncertainty(NDUncertaintyGaussian):
                     self.effective_unit != self.parent_nddata.unit):
                 # If the uncertainty has a different unit than the result we
                 # need to convert it to the results unit.
-                return (self.data * self.unit).to(result_data.unit).value
+                return self.unit.to(result_data.unit, self.data)
             else:
                 # Copy the result because _propagate will not copy it but for
                 # arithmetic operations users will expect copys.
-                return deepcopy(self.data)
+                return self.data.copy()
 
         else:
             # Formula: sigma = sqrt(dA**2 + dB**2 + 2*cor*dA*dB)
@@ -251,17 +251,16 @@ class StdDevUncertainty(NDUncertaintyGaussian):
         if self.data is None:
             if other_uncert.effective_unit is not None and (
                         result_data.unit != other_uncert.effective_unit):
-                return (other_uncert.data * other_uncert.effective_unit).to(
-                            result_data.unit).value
+                return other_uncert.unit.to(result_data.unit,
+                                            other_uncert.data)
             else:
-                return deepcopy(other_uncert.data)
+                return other_uncert.data.copy()
         elif other_uncert.data is None:
             if (self.effective_unit is not None and
                     self.effective_unit != self.parent_nddata.unit):
-                return (self.data * self.effective_unit).to(
-                        result_data.unit).value
+                return self.unit.to(result_data.unit, self.data)
             else:
-                return deepcopy(self.data)
+                return self.data.copy()
         else:
             # Formula: sigma = sqrt(dA**2 + dB**2 - 2*cor*dA*dB)
             if self.effective_unit != other_uncert.effective_unit:
@@ -294,12 +293,12 @@ class StdDevUncertainty(NDUncertaintyGaussian):
         if self.data is None:
             # Formula: sigma = |A| * dB
 
-            # We want the result to have the same unit as the result so we
-            # only need to convert the unit of the other uncertainty if it is
-            # different from it's datas unit.
+            # We want the resulting uncertainty to have the same unit as the
+            # result so we only need to convert the unit of the other
+            # uncertainty if it is different from it's datas unit.
             if other_uncert.effective_unit != other_uncert.parent_nddata.unit:
-                other = (other_uncert.data * other_uncert.effective_unit).to(
-                            other_uncert.parent_nddata.unit).value
+                other = other_uncert.unit.to(other_uncert.parent_nddata.unit,
+                                             other_uncert.data)
             else:
                 other = other_uncert.data
             return np.abs(self.parent_nddata.data * other)
@@ -309,8 +308,7 @@ class StdDevUncertainty(NDUncertaintyGaussian):
 
             # Just the reversed case
             if self.effective_unit != self.parent_nddata.unit:
-                this = (self.data * self.effective_unit).to(
-                                            self.parent_nddata.unit).value
+                this = self.unit.to(self.parent_nddata.unit, self.data)
             else:
                 this = self.data
             return np.abs(other_uncert.parent_nddata.data * this)
@@ -327,19 +325,19 @@ class StdDevUncertainty(NDUncertaintyGaussian):
             if self.effective_unit != self.parent_nddata.unit:
                 # To get the unit right we need to convert the unit of
                 # each uncertainty to the same unit as it's parent
-                left = ((self.data * self.effective_unit).to(
-                        self.parent_nddata.unit).value *
-                        other_uncert.parent_nddata.data)
+                left = self.unit.to(self.parent_nddata.unit, self.data)
             else:
-                left = self.data * other_uncert.parent_nddata.data
+                left = self.data
+
+            left = left * other_uncert.parent_nddata.data
 
             # Calculate: dB * A (right)
             if other_uncert.effective_unit != other_uncert.parent_nddata.unit:
-                right = ((other_uncert.data * other_uncert.effective_unit).to(
-                        other_uncert.parent_nddata.unit).value *
-                        self.parent_nddata.data)
+                right = other_uncert.unit.to(other_uncert.parent_nddata.unit,
+                                             other_uncert.data)
             else:
-                right = other_uncert.data * self.parent_nddata.data
+                right = other_uncert.data
+            right = right * self.parent_nddata.data
 
             if isinstance(correlation, np.ndarray) or correlation != 0:
                 corr = (2 * correlation * left * right)
@@ -360,12 +358,11 @@ class StdDevUncertainty(NDUncertaintyGaussian):
             if other_uncert.effective_unit != other_uncert.parent_nddata.unit:
                 # We need (dB / B) to be dimensionless so we convert
                 # (if necessary) dB to the same unit as B
-                right = ((other_uncert.data * other_uncert.effective_unit).to(
-                    other_uncert.parent_nddata.unit).value /
-                    other_uncert.parent_nddata.data)
+                dB = other_uncert.unit.to(other_uncert.parent_nddata.unit,
+                                          other_uncert.data)
             else:
-                right = (other_uncert.data / other_uncert.parent_nddata.data)
-            return np.abs(result_data * right)
+                dB = other_uncert.data
+            return np.abs(result_data * dB / other_uncert.parent_nddata.data)
 
         elif other_uncert.data is None:
             # Formula: sigma = dA / |B|.
@@ -374,12 +371,11 @@ class StdDevUncertainty(NDUncertaintyGaussian):
             if self.effective_unit != self.parent_nddata.unit:
                 # We need to convert dA to the unit of A to have a result that
                 # matches the resulting data's unit.
-                left = (self.data * self.effective_unit).to(
-                        self.parent_nddata.unit).value
+                dA = self.unit.to(self.parent_nddata.unit, self.data)
             else:
-                left = self.data
+                dA = self.data
 
-            return np.abs(left / other_uncert.parent_nddata.data)
+            return np.abs(dA / other_uncert.parent_nddata.data)
 
         else:
             # Formula: sigma = |A/B|*sqrt((dA/A)**2+(dB/B)**2-2*dA/A*dB/B*cor)
@@ -394,20 +390,18 @@ class StdDevUncertainty(NDUncertaintyGaussian):
 
             # Calculate: dA/B (left)
             if self.effective_unit != self.parent_nddata.unit:
-                left = ((self.data * self.effective_unit).to(
-                        self.parent_nddata.unit).value /
-                        other_uncert.parent_nddata.data)
+                left = self.unit.to(self.parent_nddata.unit, self.data)
             else:
-                left = self.data / other_uncert.parent_nddata.data
+                left = self.data
+            left = left / other_uncert.parent_nddata.data
 
             # Calculate: dB/B (right)
             if other_uncert.effective_unit != other_uncert.parent_nddata.unit:
-                right = ((other_uncert.data * other_uncert.effective_unit).to(
-                    other_uncert.parent_nddata.unit).value /
-                    other_uncert.parent_nddata.data) * result_data
+                right = other_uncert.unit.to(other_uncert.parent_nddata.unit,
+                                             other_uncert.data)
             else:
-                right = (result_data * other_uncert.data /
-                         other_uncert.parent_nddata.data)
+                right = other_uncert.data
+            right = result_data * right / other_uncert.parent_nddata.data
 
             if isinstance(correlation, np.ndarray) or correlation != 0:
                 corr = 2 * correlation * left * right
