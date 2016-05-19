@@ -52,12 +52,12 @@ class FakeUncertainty(NDUncertainty):
                                            UnknownUncertainty])
 def test_init_fake_with_list(UncertClass):
     fake_uncert = UncertClass([1, 2, 3])
-    assert_array_equal(fake_uncert.array, np.array([1, 2, 3]))
+    assert_array_equal(fake_uncert.data, np.array([1, 2, 3]))
     # Copy makes no difference since casting a list to an np.ndarray always
     # makes a copy.
     # But let's give the uncertainty a unit too
     fake_uncert = UncertClass([1, 2, 3], unit=u.adu)
-    assert_array_equal(fake_uncert.array, np.array([1, 2, 3]))
+    assert_array_equal(fake_uncert.data, np.array([1, 2, 3]))
     assert fake_uncert.unit is u.adu
 
 
@@ -67,15 +67,15 @@ def test_init_fake_with_ndarray(UncertClass):
     uncert = np.arange(100).reshape(10, 10)
     fake_uncert = UncertClass(uncert, copy=True)
     # Numpy Arrays are copied by default
-    assert_array_equal(fake_uncert.array, uncert)
-    assert fake_uncert.array is not uncert
+    assert_array_equal(fake_uncert.data, uncert)
+    assert fake_uncert.data is not uncert
     # Now try it without copy
     fake_uncert = UncertClass(uncert, copy=False)
-    assert fake_uncert.array is uncert
+    assert fake_uncert.data is uncert
     # let's provide a unit
     fake_uncert = UncertClass(uncert, unit=u.adu, copy=True)
-    assert_array_equal(fake_uncert.array, uncert)
-    assert fake_uncert.array is not uncert
+    assert_array_equal(fake_uncert.data, uncert)
+    assert fake_uncert.data is not uncert
     assert fake_uncert.unit is u.adu
 
 
@@ -85,17 +85,17 @@ def test_init_fake_with_quantity(UncertClass):
     uncert = np.arange(10).reshape(2, 5) * u.adu
     # with copy
     fake_uncert = UncertClass(uncert, copy=True)
-    assert_array_equal(fake_uncert.array, uncert.value)
-    assert fake_uncert.array is not uncert.value
+    assert_array_equal(fake_uncert.data, uncert.value)
+    assert fake_uncert.data is not uncert.value
     assert fake_uncert.unit is u.adu
     # Try without copy (should not work, quantity.value always returns a copy)
     fake_uncert = UncertClass(uncert, copy=False)
-    assert fake_uncert.array is not uncert.value
+    assert fake_uncert.data is not uncert.value
     assert fake_uncert.unit is u.adu
     # Now try with an explicit unit parameter too
     fake_uncert = UncertClass(uncert, unit=u.m, copy=True)
-    assert_array_equal(fake_uncert.array, uncert.value)  # No conversion done
-    assert fake_uncert.array is not uncert.value
+    assert_array_equal(fake_uncert.data, uncert.value)  # No conversion done
+    assert fake_uncert.data is not uncert.value
     assert fake_uncert.unit is u.m  # It took the explicit one
 
 
@@ -105,42 +105,44 @@ def test_init_fake_with_fake(UncertClass):
     uncert = np.arange(5).reshape(5, 1)
     fake_uncert1 = UncertClass(uncert, copy=True)
     fake_uncert2 = UncertClass(fake_uncert1, copy=True)
-    assert_array_equal(fake_uncert2.array, uncert)
-    assert fake_uncert2.array is not uncert
+    assert_array_equal(fake_uncert2.data, uncert)
+    assert fake_uncert2.data is not uncert
     # Without making copies
     fake_uncert1 = UncertClass(uncert, copy=False)
     fake_uncert2 = UncertClass(fake_uncert1, copy=False)
-    assert_array_equal(fake_uncert2.array, fake_uncert1.array)
-    assert fake_uncert2.array is fake_uncert1.array
+    assert_array_equal(fake_uncert2.data, fake_uncert1.data)
+    assert fake_uncert2.data is fake_uncert1.data
     # With a unit
     uncert = np.arange(5).reshape(5, 1) * u.adu
     fake_uncert1 = UncertClass(uncert, copy=True)
     fake_uncert2 = UncertClass(fake_uncert1, copy=True)
-    assert_array_equal(fake_uncert2.array, uncert.value)
-    assert fake_uncert2.array is not uncert.value
+    assert_array_equal(fake_uncert2.data, uncert.value)
+    assert fake_uncert2.data is not uncert.value
     assert fake_uncert2.unit is u.adu
     # With a unit and an explicit unit-parameter
     fake_uncert2 = UncertClass(fake_uncert1, unit=u.cm, copy=True)
-    assert_array_equal(fake_uncert2.array, uncert.value)
-    assert fake_uncert2.array is not uncert.value
+    assert_array_equal(fake_uncert2.data, uncert.value)
+    assert fake_uncert2.data is not uncert.value
     assert fake_uncert2.unit is u.cm
 
 
-@pytest.mark.parametrize(('UncertClass'), [FakeUncertainty, StdDevUncertainty,
+# This test explicitly NOT works with StdDevUncertainty since it would always
+# convert to a numpy array.
+@pytest.mark.parametrize(('UncertClass'), [FakeUncertainty,
                                            UnknownUncertainty])
 def test_init_fake_with_somethingElse(UncertClass):
     # What about a dict?
     uncert = {'rdnoise': 2.9, 'gain': 0.6}
     fake_uncert = UncertClass(uncert)
-    assert fake_uncert.array == uncert
+    assert fake_uncert.data == uncert
     # We can pass a unit too but since we cannot do uncertainty propagation
     # the interpretation is up to the user
     fake_uncert = UncertClass(uncert, unit=u.s)
-    assert fake_uncert.array == uncert
+    assert fake_uncert.data == uncert
     assert fake_uncert.unit is u.s
     # So, now check what happens if copy is False
     fake_uncert = UncertClass(uncert, copy=False)
-    assert fake_uncert.array == uncert
+    assert fake_uncert.data == uncert
     assert id(fake_uncert) != id(uncert)
     # dicts cannot be referenced without copy
     # TODO : Find something that can be referenced without copy :-)

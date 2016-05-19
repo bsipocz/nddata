@@ -92,7 +92,8 @@ printed and the property will be kept as is::
 
     >>> data = np.array([1, 2, 3, 4])
     >>> mask = False
-    >>> uncertainty = StdDevUncertainty(0)
+    >>> from nddata.nddata import UnknownUncertainty
+    >>> uncertainty = UnknownUncertainty(0)
     >>> wcs = {'a': 5}
     >>> flags = False
     >>> ndd = NDData(data, mask=mask, uncertainty=uncertainty, wcs=wcs, flags=flags)

@@ -324,17 +324,17 @@ def test_arithmetics_stddevuncertainty_basic():
     nd3 = nd1.add(nd2)
     nd4 = nd2.add(nd1)
     # Inverse operation should result in the same uncertainty
-    assert_array_equal(nd3.uncertainty.array, nd4.uncertainty.array)
+    assert_array_equal(nd3.uncertainty.data, nd4.uncertainty.data)
     # Compare it to the theoretical uncertainty
     ref_uncertainty = np.sqrt(np.array([1, 1, 3])**2 + np.array([2, 2, 2])**2)
-    assert_array_equal(nd3.uncertainty.array, ref_uncertainty)
+    assert_array_equal(nd3.uncertainty.data, ref_uncertainty)
 
     nd3 = nd1.subtract(nd2)
     nd4 = nd2.subtract(nd1)
     # Inverse operation should result in the same uncertainty
-    assert_array_equal(nd3.uncertainty.array, nd4.uncertainty.array)
+    assert_array_equal(nd3.uncertainty.data, nd4.uncertainty.data)
     # Compare it to the theoretical uncertainty (same as for add)
-    assert_array_equal(nd3.uncertainty.array, ref_uncertainty)
+    assert_array_equal(nd3.uncertainty.data, ref_uncertainty)
 
     # Multiplication and Division only work with almost equal array comparisons
     # since the formula implemented and the formula used as reference are
@@ -342,12 +342,12 @@ def test_arithmetics_stddevuncertainty_basic():
     nd3 = nd1.multiply(nd2)
     nd4 = nd2.multiply(nd1)
     # Inverse operation should result in the same uncertainty
-    assert_array_almost_equal(nd3.uncertainty.array, nd4.uncertainty.array)
+    assert_array_almost_equal(nd3.uncertainty.data, nd4.uncertainty.data)
     # Compare it to the theoretical uncertainty
     ref_uncertainty = np.abs(np.array([2, 4, 6])) * np.sqrt(
         (np.array([1, 1, 3]) / np.array([1, 2, 3]))**2 +
         (np.array([2, 2, 2]) / np.array([2, 2, 2]))**2)
-    assert_array_almost_equal(nd3.uncertainty.array, ref_uncertainty)
+    assert_array_almost_equal(nd3.uncertainty.data, ref_uncertainty)
 
     nd3 = nd1.divide(nd2)
     nd4 = nd2.divide(nd1)
@@ -356,11 +356,11 @@ def test_arithmetics_stddevuncertainty_basic():
     ref_uncertainty_1 = np.abs(np.array([1/2, 2/2, 3/2])) * np.sqrt(
         (np.array([1, 1, 3]) / np.array([1, 2, 3]))**2 +
         (np.array([2, 2, 2]) / np.array([2, 2, 2]))**2)
-    assert_array_almost_equal(nd3.uncertainty.array, ref_uncertainty_1)
+    assert_array_almost_equal(nd3.uncertainty.data, ref_uncertainty_1)
     ref_uncertainty_2 = np.abs(np.array([2, 1, 2/3])) * np.sqrt(
         (np.array([1, 1, 3]) / np.array([1, 2, 3]))**2 +
         (np.array([2, 2, 2]) / np.array([2, 2, 2]))**2)
-    assert_array_almost_equal(nd4.uncertainty.array, ref_uncertainty_2)
+    assert_array_almost_equal(nd4.uncertainty.data, ref_uncertainty_2)
 
 
 # Tests for correlation, covering
@@ -410,20 +410,20 @@ def test_arithmetics_stddevuncertainty_basic_with_correlation(
     nd3 = nd1.add(nd2, uncertainty_correlation=cor)
     nd4 = nd2.add(nd1, uncertainty_correlation=cor)
     # Inverse operation should result in the same uncertainty
-    assert_array_equal(nd3.uncertainty.array, nd4.uncertainty.array)
+    assert_array_equal(nd3.uncertainty.data, nd4.uncertainty.data)
     # Compare it to the theoretical uncertainty
     ref_uncertainty = np.sqrt(uncert1**2 + uncert2**2 +
                               2 * cor * uncert1 * uncert2)
-    assert_array_equal(nd3.uncertainty.array, ref_uncertainty)
+    assert_array_equal(nd3.uncertainty.data, ref_uncertainty)
 
     nd3 = nd1.subtract(nd2, uncertainty_correlation=cor)
     nd4 = nd2.subtract(nd1, uncertainty_correlation=cor)
     # Inverse operation should result in the same uncertainty
-    assert_array_equal(nd3.uncertainty.array, nd4.uncertainty.array)
+    assert_array_equal(nd3.uncertainty.data, nd4.uncertainty.data)
     # Compare it to the theoretical uncertainty
     ref_uncertainty = np.sqrt(uncert1**2 + uncert2**2 -
                               2 * cor * uncert1 * uncert2)
-    assert_array_equal(nd3.uncertainty.array, ref_uncertainty)
+    assert_array_equal(nd3.uncertainty.data, ref_uncertainty)
 
     # Multiplication and Division only work with almost equal array comparisons
     # since the formula implemented and the formula used as reference are
@@ -431,12 +431,12 @@ def test_arithmetics_stddevuncertainty_basic_with_correlation(
     nd3 = nd1.multiply(nd2, uncertainty_correlation=cor)
     nd4 = nd2.multiply(nd1, uncertainty_correlation=cor)
     # Inverse operation should result in the same uncertainty
-    assert_array_almost_equal(nd3.uncertainty.array, nd4.uncertainty.array)
+    assert_array_almost_equal(nd3.uncertainty.data, nd4.uncertainty.data)
     # Compare it to the theoretical uncertainty
     ref_uncertainty = (np.abs(data1 * data2)) * np.sqrt(
         (uncert1 / data1)**2 + (uncert2 / data2)**2 +
         (2 * cor * uncert1 * uncert2 / (data1 * data2)))
-    assert_array_almost_equal(nd3.uncertainty.array, ref_uncertainty)
+    assert_array_almost_equal(nd3.uncertainty.data, ref_uncertainty)
 
     nd3 = nd1.divide(nd2, uncertainty_correlation=cor)
     nd4 = nd2.divide(nd1, uncertainty_correlation=cor)
@@ -445,11 +445,11 @@ def test_arithmetics_stddevuncertainty_basic_with_correlation(
     ref_uncertainty_1 = (np.abs(data1 / data2)) * np.sqrt(
         (uncert1 / data1)**2 + (uncert2 / data2)**2 -
         (2 * cor * uncert1 * uncert2 / (data1 * data2)))
-    assert_array_almost_equal(nd3.uncertainty.array, ref_uncertainty_1)
+    assert_array_almost_equal(nd3.uncertainty.data, ref_uncertainty_1)
     ref_uncertainty_2 = (np.abs(data2 / data1)) * np.sqrt(
         (uncert1 / data1)**2 + (uncert2 / data2)**2 -
         (2 * cor * uncert1 * uncert2 / (data1 * data2)))
-    assert_array_almost_equal(nd4.uncertainty.array, ref_uncertainty_2)
+    assert_array_almost_equal(nd4.uncertainty.data, ref_uncertainty_2)
 
 
 # Covering:
@@ -500,46 +500,46 @@ def test_arithmetics_stddevuncertainty_one_missing():
     # Addition
     nd3 = nd1.add(nd2)
     nd3_ref = nd1_ref.add(nd2)
-    assert_array_equal(nd3.uncertainty.array, nd3_ref.uncertainty.array)
-    assert_array_equal(np.abs(nd3.uncertainty.array), nd3.uncertainty.array)
+    assert_array_equal(nd3.uncertainty.data, nd3_ref.uncertainty.data)
+    assert_array_equal(np.abs(nd3.uncertainty.data), nd3.uncertainty.data)
 
     nd3 = nd2.add(nd1)
     nd3_ref = nd2.add(nd1_ref)
-    assert_array_equal(nd3.uncertainty.array, nd3_ref.uncertainty.array)
-    assert_array_equal(np.abs(nd3.uncertainty.array), nd3.uncertainty.array)
+    assert_array_equal(nd3.uncertainty.data, nd3_ref.uncertainty.data)
+    assert_array_equal(np.abs(nd3.uncertainty.data), nd3.uncertainty.data)
 
     # Subtraction
     nd3 = nd1.subtract(nd2)
     nd3_ref = nd1_ref.subtract(nd2)
-    assert_array_equal(nd3.uncertainty.array, nd3_ref.uncertainty.array)
-    assert_array_equal(np.abs(nd3.uncertainty.array), nd3.uncertainty.array)
+    assert_array_equal(nd3.uncertainty.data, nd3_ref.uncertainty.data)
+    assert_array_equal(np.abs(nd3.uncertainty.data), nd3.uncertainty.data)
 
     nd3 = nd2.subtract(nd1)
     nd3_ref = nd2.subtract(nd1_ref)
-    assert_array_equal(nd3.uncertainty.array, nd3_ref.uncertainty.array)
-    assert_array_equal(np.abs(nd3.uncertainty.array), nd3.uncertainty.array)
+    assert_array_equal(nd3.uncertainty.data, nd3_ref.uncertainty.data)
+    assert_array_equal(np.abs(nd3.uncertainty.data), nd3.uncertainty.data)
 
     # Multiplication
     nd3 = nd1.multiply(nd2)
     nd3_ref = nd1_ref.multiply(nd2)
-    assert_array_equal(nd3.uncertainty.array, nd3_ref.uncertainty.array)
-    assert_array_equal(np.abs(nd3.uncertainty.array), nd3.uncertainty.array)
+    assert_array_equal(nd3.uncertainty.data, nd3_ref.uncertainty.data)
+    assert_array_equal(np.abs(nd3.uncertainty.data), nd3.uncertainty.data)
 
     nd3 = nd2.multiply(nd1)
     nd3_ref = nd2.multiply(nd1_ref)
-    assert_array_equal(nd3.uncertainty.array, nd3_ref.uncertainty.array)
-    assert_array_equal(np.abs(nd3.uncertainty.array), nd3.uncertainty.array)
+    assert_array_equal(nd3.uncertainty.data, nd3_ref.uncertainty.data)
+    assert_array_equal(np.abs(nd3.uncertainty.data), nd3.uncertainty.data)
 
     # Division
     nd3 = nd1.divide(nd2)
     nd3_ref = nd1_ref.divide(nd2)
-    assert_array_equal(nd3.uncertainty.array, nd3_ref.uncertainty.array)
-    assert_array_equal(np.abs(nd3.uncertainty.array), nd3.uncertainty.array)
+    assert_array_equal(nd3.uncertainty.data, nd3_ref.uncertainty.data)
+    assert_array_equal(np.abs(nd3.uncertainty.data), nd3.uncertainty.data)
 
     nd3 = nd2.divide(nd1)
     nd3_ref = nd2.divide(nd1_ref)
-    assert_array_equal(nd3.uncertainty.array, nd3_ref.uncertainty.array)
-    assert_array_equal(np.abs(nd3.uncertainty.array), nd3.uncertainty.array)
+    assert_array_equal(nd3.uncertainty.data, nd3_ref.uncertainty.data)
+    assert_array_equal(np.abs(nd3.uncertainty.data), nd3.uncertainty.data)
 
 
 # Covering:
@@ -597,52 +597,52 @@ def test_arithmetics_stddevuncertainty_with_units(uncert1, uncert2):
     nd3_ref = nd1_ref.add(nd2_ref)
     assert nd3.unit == nd3_ref.unit
     assert nd3.uncertainty.unit == nd3_ref.uncertainty.unit
-    assert_array_equal(nd3.uncertainty.array, nd3.uncertainty.array)
+    assert_array_equal(nd3.uncertainty.data, nd3.uncertainty.data)
 
     nd3 = nd2.add(nd1)
     nd3_ref = nd2_ref.add(nd1_ref)
     assert nd3.unit == nd3_ref.unit
     assert nd3.uncertainty.unit == nd3_ref.uncertainty.unit
-    assert_array_equal(nd3.uncertainty.array, nd3.uncertainty.array)
+    assert_array_equal(nd3.uncertainty.data, nd3.uncertainty.data)
 
     # Subtraction
     nd3 = nd1.subtract(nd2)
     nd3_ref = nd1_ref.subtract(nd2_ref)
     assert nd3.unit == nd3_ref.unit
     assert nd3.uncertainty.unit == nd3_ref.uncertainty.unit
-    assert_array_equal(nd3.uncertainty.array, nd3.uncertainty.array)
+    assert_array_equal(nd3.uncertainty.data, nd3.uncertainty.data)
 
     nd3 = nd2.subtract(nd1)
     nd3_ref = nd2_ref.subtract(nd1_ref)
     assert nd3.unit == nd3_ref.unit
     assert nd3.uncertainty.unit == nd3_ref.uncertainty.unit
-    assert_array_equal(nd3.uncertainty.array, nd3.uncertainty.array)
+    assert_array_equal(nd3.uncertainty.data, nd3.uncertainty.data)
 
     # Multiplication
     nd3 = nd1.multiply(nd2)
     nd3_ref = nd1_ref.multiply(nd2_ref)
     assert nd3.unit == nd3_ref.unit
     assert nd3.uncertainty.unit == nd3_ref.uncertainty.unit
-    assert_array_equal(nd3.uncertainty.array, nd3.uncertainty.array)
+    assert_array_equal(nd3.uncertainty.data, nd3.uncertainty.data)
 
     nd3 = nd2.multiply(nd1)
     nd3_ref = nd2_ref.multiply(nd1_ref)
     assert nd3.unit == nd3_ref.unit
     assert nd3.uncertainty.unit == nd3_ref.uncertainty.unit
-    assert_array_equal(nd3.uncertainty.array, nd3.uncertainty.array)
+    assert_array_equal(nd3.uncertainty.data, nd3.uncertainty.data)
 
     # Division
     nd3 = nd1.divide(nd2)
     nd3_ref = nd1_ref.divide(nd2_ref)
     assert nd3.unit == nd3_ref.unit
     assert nd3.uncertainty.unit == nd3_ref.uncertainty.unit
-    assert_array_equal(nd3.uncertainty.array, nd3.uncertainty.array)
+    assert_array_equal(nd3.uncertainty.data, nd3.uncertainty.data)
 
     nd3 = nd2.divide(nd1)
     nd3_ref = nd2_ref.divide(nd1_ref)
     assert nd3.unit == nd3_ref.unit
     assert nd3.uncertainty.unit == nd3_ref.uncertainty.unit
-    assert_array_equal(nd3.uncertainty.array, nd3.uncertainty.array)
+    assert_array_equal(nd3.uncertainty.data, nd3.uncertainty.data)
 
 
 # Test abbreviation and long name for taking the first found meta, mask, wcs
@@ -684,7 +684,7 @@ def test_arithmetics_handle_switches(use_abbreviation):
     assert nd_.meta == meta2
     assert nd_.mask == mask2
     assert nd_.flags == flags2
-    assert_array_equal(nd_.uncertainty.array, uncertainty2.array)
+    assert_array_equal(nd_.uncertainty.data, uncertainty2.data)
 
     # Only first has attributes and False is chosen
     nd_ = nd1.add(nd3, propagate_uncertainties=False,
@@ -694,7 +694,7 @@ def test_arithmetics_handle_switches(use_abbreviation):
     assert nd_.meta == meta1
     assert nd_.mask == mask1
     assert nd_.flags == flags1
-    assert_array_equal(nd_.uncertainty.array, uncertainty1.array)
+    assert_array_equal(nd_.uncertainty.data, uncertainty1.data)
 
 
 def test_arithmetics_meta_func():
@@ -887,8 +887,7 @@ def test_arithmetics_unknown_uncertainties():
         ndd1.add(ndd2)
     # But it should be possible without propagation
     ndd3 = ndd1.add(ndd2, propagate_uncertainties=False)
-    np.testing.assert_array_equal(ndd1.uncertainty.array,
-                                  ndd3.uncertainty.array)
+    np.testing.assert_array_equal(ndd1.uncertainty.data, ndd3.uncertainty.data)
 
     ndd4 = ndd1.add(ndd2, propagate_uncertainties=None)
     assert ndd4.uncertainty is None

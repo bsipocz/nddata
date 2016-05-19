@@ -237,7 +237,7 @@ def write_nddata_fits(ndd, filename, ext_mask='mask', ext_uncert='uncert',
         if ndd.uncertainty.unit is not None:
             hdr[kw_unit] = ndd.uncertainty.unit.to_string()
 
-        hdus.append(fits.ImageHDU(ndd.uncertainty.array, header=hdr,
+        hdus.append(fits.ImageHDU(ndd.uncertainty.data, header=hdr,
                                   name=ext_uncert))
     except AttributeError:
         # Either no uncertainty or no uncertainty array, unit or

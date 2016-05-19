@@ -548,8 +548,8 @@ uncertainty using these propagations:
     ...
     ...     def _propagate_add(self, other_uncert, *args, **kwargs):
     ...         # Neglect the unit assume that both are Variance uncertainties
-    ...         this = StdDevUncertainty(np.sqrt(self.array))
-    ...         other = StdDevUncertainty(np.sqrt(other_uncert.array))
+    ...         this = StdDevUncertainty(np.sqrt(self.data))
+    ...         other = StdDevUncertainty(np.sqrt(other_uncert.data))
     ...
     ...         # We need to set the parent_nddata attribute otherwise it will
     ...         # fail for multiplication and division where the data
@@ -575,7 +575,7 @@ this approach certainly works if both are variance uncertainties, but if you
 want to allow that VarianceUncertainty also propagates with StdDevUncertainty
 you must register the conversion::
 
-    >>> from nddata.nddata.meta import UncertaintyConverter
+    >>> from nddata.nddata import UncertaintyConverter
     >>> UncertaintyConverter.register(VarianceUncertainty, StdDevUncertainty, np.sqrt, np.square)
 
     >>> ndd1 = NDData([1,2,3], uncertainty=VarianceUncertainty([1,4,9]))

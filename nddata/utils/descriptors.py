@@ -11,13 +11,13 @@ import numpy as np
 from astropy import log
 from astropy.extern.six import string_types
 import astropy.units as u
-from astropy.utils.misc import InheritDocstrings
 
 from .numpyutils import is_numeric_array
 
 
 __all__ = ['BaseDescriptor', 'AdvancedDescriptor',
-           'Meta', 'Data', 'Unit', 'Mask', 'WCS', 'Uncertainty']
+           'Meta', 'ArrayData', 'Unit', 'Mask', 'WCS', 'Uncertainty', 'Flags',
+           'UncertaintyData']
 
 
 class BaseDescriptor(object):
@@ -454,6 +454,12 @@ class Flags(BaseDescriptor):
     pass
 
 
+class UncertaintyData(BaseDescriptor):
+    """A `BaseDescriptor` without any alterations.
+    """
+    pass
+
+
 class Meta(AdvancedDescriptor):
     """An `AdvancedDescriptor` which defaults to `~collections.OrderedDict` \
             and checks if the value is a `~collections.Mapping`.
@@ -492,7 +498,7 @@ class Meta(AdvancedDescriptor):
         return value
 
 
-class Data(AdvancedDescriptor):
+class ArrayData(AdvancedDescriptor):
     """An `AdvancedDescriptor` which checks if the value looks like \
             numerical `numpy.ndarray` or converts it to one.
 

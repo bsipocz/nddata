@@ -19,6 +19,19 @@ The ``nddata`` package provides a uniform interface to N-dimensional datasets
   classes, including a decorator to facilitate writing functions for such
   classes.
 
+Further reading
+===============
+
+.. toctree::
+   :maxdepth: 1
+
+   nddata.rst
+   mixins/index.rst
+   subclassing.rst
+   interface.rst
+   utils.rst
+   decorator.rst
+
 Getting started
 ===============
 
@@ -157,19 +170,6 @@ deviation and can propagate these using the arithmetic methods of
     The "amount" of correlation must be given, so ``1`` means correlated, ``-1``
     anti-correlated and ``0`` (default) uncorrelated. See also
     :ref:`nddata_arithmetic` for more information about correlation handling.
-
-Using ``nddata``
-================
-
-.. toctree::
-   :maxdepth: 2
-
-   nddata.rst
-   mixins/index.rst
-   subclassing.rst
-   interface.rst
-   utils.rst
-   decorator.rst
 
 Reference/API
 =============

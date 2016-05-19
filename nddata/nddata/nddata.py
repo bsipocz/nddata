@@ -43,18 +43,18 @@ class NDData(NDArithmeticMixin, NDIOMixin, NDSlicingMixin, NDDataBase):
         array([[ 2.,  2.,  2.],
                [ 2.,  2.,  2.],
                [ 2.,  2.,  2.]])
-        >>> ndd3.uncertainty.array
-        array([[ 1.41421356,  1.41421356,  1.41421356],
-               [ 1.41421356,  1.41421356,  1.41421356],
-               [ 1.41421356,  1.41421356,  1.41421356]])
+        >>> ndd3.uncertainty
+        StdDevUncertainty([[ 1.41421356,  1.41421356,  1.41421356],
+                           [ 1.41421356,  1.41421356,  1.41421356],
+                           [ 1.41421356,  1.41421356,  1.41421356]])
 
     But also slicing (indexing) is possible::
 
         >>> ndd4 = ndd3[1,:]
         >>> ndd4.data
         array([ 2.,  2.,  2.])
-        >>> ndd4.uncertainty.array
-        array([ 1.41421356,  1.41421356,  1.41421356])
+        >>> ndd4.uncertainty
+        StdDevUncertainty([ 1.41421356,  1.41421356,  1.41421356])
 
     See `~mixins.NDSlicingMixin` for a description how slicing works (which
     attributes) are sliced.

@@ -36,9 +36,10 @@ class TestIOFunctions(object):
         # Compare if uncertainty is equal
         if ndd1.uncertainty is not None:
             assert ndd1.uncertainty.__class__ == ndd2.uncertainty.__class__
-            np.testing.assert_array_equal(ndd1.uncertainty.array,
-                                          ndd2.uncertainty.array)
-            assert ndd1.uncertainty.array.dtype.kind == ndd2.uncertainty.array.dtype.kind
+            np.testing.assert_array_equal(ndd1.uncertainty.data,
+                                          ndd2.uncertainty.data)
+            assert (ndd1.uncertainty.data.dtype.kind ==
+                    ndd2.uncertainty.data.dtype.kind)
             assert ndd1.uncertainty.unit == ndd2.uncertainty.unit
         else:
             assert ndd1.uncertainty == ndd2.uncertainty

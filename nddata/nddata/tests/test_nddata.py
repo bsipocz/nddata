@@ -133,7 +133,7 @@ def test_uncertainty_setter():
     assert isinstance(nd.uncertainty, FakeUncertainty)
     nd.uncertainty = 10
     assert not isinstance(nd.uncertainty, FakeUncertainty)
-    assert nd.uncertainty.array == 10
+    assert nd.uncertainty.data == 10
 
 
 def test_mask_setter():
@@ -273,7 +273,7 @@ def test_nddata_init_data_nddata():
     nd2 = NDDataBase(nd1)
     assert nd2.data is nd1.data
     assert nd2.wcs == nd1.wcs
-    assert nd2.uncertainty.array == nd1.uncertainty.array
+    assert nd2.uncertainty.data == nd1.uncertainty.data
     assert nd2.mask == nd1.mask
     assert nd2.unit == nd1.unit
     assert nd2.meta == nd1.meta
@@ -284,7 +284,7 @@ def test_nddata_init_data_nddata():
                      meta={'observer': 'ME'}, wcs=4, flags=1)
     assert nd3.data is nd1.data
     assert nd3.wcs != nd1.wcs
-    assert nd3.uncertainty.array != nd1.uncertainty.array
+    assert nd3.uncertainty.data != nd1.uncertainty.data
     assert nd3.mask != nd1.mask
     assert nd3.unit != nd1.unit
     assert nd3.meta != nd1.meta
@@ -304,7 +304,7 @@ def test_nddata_init_data_nddata_subclass():
     nd = NDDataBase(bnd_good)
     assert nd.unit == bnd_good.unit
     assert nd.meta == bnd_good.meta
-    assert nd.uncertainty.array == bnd_good.uncertainty
+    assert nd.uncertainty.data == bnd_good.uncertainty
     assert nd.mask == bnd_good.mask
     assert nd.wcs == bnd_good.wcs
     assert nd.data is bnd_good.data
@@ -514,7 +514,7 @@ def test_nddata_interface():
     assert ndd.meta == nddlike._meta
     assert type(ndd.meta) == type(nddlike._meta) # make sure it's really a dict
     np.testing.assert_array_equal(ndd.data, np.asarray(nddlike._data))
-    np.testing.assert_array_equal(ndd.uncertainty.array,
+    np.testing.assert_array_equal(ndd.uncertainty.data,
                                   np.asarray(nddlike._uncertainty))
     assert isinstance(ndd.uncertainty, UnknownUncertainty)
     assert ndd.flags == 7
@@ -545,7 +545,7 @@ def test_nddata_no_data_interface():
     assert ndd.meta == nddlike._meta
     assert type(ndd.meta) == type(nddlike._meta) # make sure it's really a dict
     assert ndd.data is None
-    np.testing.assert_array_equal(ndd.uncertainty.array,
+    np.testing.assert_array_equal(ndd.uncertainty.data,
                                   np.asarray(nddlike._uncertainty))
     assert isinstance(ndd.uncertainty, UnknownUncertainty)
 
@@ -561,14 +561,14 @@ def test_copy_direct():
     ndd.data[0, 0] = 10
     ndd.mask[0, 0] = 0
     ndd.meta['a'] = 10
-    ndd.uncertainty.array[0, 0] = 10
+    ndd.uncertainty.data[0, 0] = 10
     ndd.wcs[0, 0] = 10
     ndd.flags[0, 0] = 10
 
     assert ndd2.data[0, 0] == 1
     assert ndd2.mask[0, 0] == 1
     assert ndd2.meta['a'] == 100
-    assert ndd2.uncertainty.array[0, 0] == 1
+    assert ndd2.uncertainty.data[0, 0] == 1
     assert ndd2.wcs[0, 0] == 1
     assert ndd2.flags[0, 0] == 1
 
@@ -592,14 +592,14 @@ def test_copy_indirect():
         ndd.data[0, 0] = 10
         ndd.mask[0, 0] = 0
         ndd.meta['a'] = 10
-        ndd.uncertainty.array[0, 0] = 10
+        ndd.uncertainty.data[0, 0] = 10
         ndd.wcs[0, 0] = 10
         ndd.flags[0, 0] = 10
 
         assert ndd2.data[0, 0] == 1
         assert ndd2.mask[0, 0] == 1
         assert ndd2.meta['a'] == 100
-        assert ndd2.uncertainty.array[0, 0] == 1
+        assert ndd2.uncertainty.data[0, 0] == 1
         assert ndd2.wcs[0, 0] == 1
         assert ndd2.flags[0, 0] == 1
 

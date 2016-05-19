@@ -416,11 +416,11 @@ def test_meta_descriptor():
         t.meta2 = 10
 
 
-def test_data_descriptor():
+def test_arraydata_descriptor():
 
     class DataDescriptorTest(object):
-        data1 = descriptors.Data('data1', copy=False)
-        data2 = descriptors.Data('data2', copy=True)
+        data1 = descriptors.ArrayData('data1', copy=False)
+        data2 = descriptors.ArrayData('data2', copy=True)
 
     t = DataDescriptorTest()
 
@@ -506,8 +506,8 @@ def test_uncertainty_descriptor():
 
     # Test if it copies it
     data[0, 0] = 2
-    assert t.uncert1.array[0, 0] == 2
-    assert t.uncert2.array[0, 0] == 1
+    assert t.uncert1.data[0, 0] == 2
+    assert t.uncert2.data[0, 0] == 1
 
     # Test unknownuncertainty
     data = np.ones((3, 3))
@@ -522,8 +522,8 @@ def test_uncertainty_descriptor():
     # Test if it copies it - that was the reason I didn't copy while creating
     # the UnknownUncertainty
     data[0, 0] = 2
-    assert t.uncert1.array[0, 0] == 2
-    assert t.uncert2.array[0, 0] == 1
+    assert t.uncert1.data[0, 0] == 2
+    assert t.uncert2.data[0, 0] == 1
 
     # Test stddevuncertainty
     data = np.ones((3, 3))
@@ -538,8 +538,8 @@ def test_uncertainty_descriptor():
     # Test if it copies it - that was the reason I didn't copy while creating
     # the StdDevUncertainty
     data[0, 0] = 2
-    assert t.uncert1.array[0, 0] == 2
-    assert t.uncert2.array[0, 0] == 1
+    assert t.uncert1.data[0, 0] == 2
+    assert t.uncert2.data[0, 0] == 1
 
     # Check that a new instance is created when assigning the uncertainty from
     # another instance
@@ -558,7 +558,7 @@ def test_uncertainty_descriptor():
     assert t.uncert2.__class__ == another.uncert2.__class__
 
     # Change the originals in order to check if the array is shared:
-    t.uncert1.array[1, 1] = 100
-    t.uncert2.array[1, 1] = 100
-    assert another.uncert1.array[1, 1] == 100
-    assert another.uncert2.array[1, 1] == 1
+    t.uncert1.data[1, 1] = 100
+    t.uncert2.data[1, 1] = 100
+    assert another.uncert1.data[1, 1] == 100
+    assert another.uncert2.data[1, 1] == 1

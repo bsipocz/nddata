@@ -10,8 +10,27 @@ import numpy as np
 from astropy.units import Quantity
 
 from .meta import NDUncertainty, NDUncertaintyGaussian
+from .exceptions import IncompatibleUncertaintiesException
 
-__all__ = ['StdDevUncertainty', 'UnknownUncertainty']
+__all__ = ['StdDevUncertainty', 'UnknownUncertainty', 'UncertaintyConverter']
+
+
+class UncertaintyConverter(object):
+    converter = {}
+
+    @classmethod
+    def register(cls, source, target, forward, backward):
+        cls.converter[(source, target)] = forward
+        cls.converter[(target, source)] = backward
+
+    @classmethod
+    def get_converter_func(cls, source, target):
+        try:
+            return cls.converter[(source, target)]
+        except KeyError:
+            msg = "cannot convert {0} to {1}".format(source.__name__,
+                                                     target.__name__)
+            raise IncompatibleUncertaintiesException(msg)
 
 
 class UnknownUncertainty(NDUncertainty):
@@ -68,9 +87,9 @@ class StdDevUncertainty(NDUncertaintyGaussian):
         >>> ndd.uncertainty
         StdDevUncertainty([ 0.2])
 
-    the uncertainty ``array`` can also be set directly::
+    the uncertainty ``data`` can also be set directly::
 
-        >>> ndd.uncertainty.array = 2
+        >>> ndd.uncertainty.data = 2
         >>> ndd.uncertainty
         StdDevUncertainty(2)
     """
@@ -162,31 +181,32 @@ class StdDevUncertainty(NDUncertaintyGaussian):
 
     def _propagate_add(self, other_uncert, result_data, correlation):
 
-        if self.array is None:
+        if self.data is None:
             # Formula: sigma = dB
 
             if other_uncert.effective_unit is not None and (
                         result_data.unit != other_uncert.effective_unit):
                 # If the other uncertainty has a unit and this unit differs
                 # from the unit of the result convert it to the results unit
-                return (other_uncert.array * other_uncert.unit).to(
+                return (other_uncert.data * other_uncert.unit).to(
                             result_data.unit).value
             else:
                 # Copy the result because _propagate will not copy it but for
                 # arithmetic operations users will expect copys.
-                return deepcopy(other_uncert.array)
+                return deepcopy(other_uncert.data)
 
-        elif other_uncert.array is None:
+        elif other_uncert.data is None:
             # Formula: sigma = dA
 
-            if self.effective_unit is not None and self.effective_unit != self.parent_nddata.unit:
+            if (self.effective_unit is not None and
+                    self.effective_unit != self.parent_nddata.unit):
                 # If the uncertainty has a different unit than the result we
                 # need to convert it to the results unit.
-                return (self.array * self.unit).to(result_data.unit).value
+                return (self.data * self.unit).to(result_data.unit).value
             else:
                 # Copy the result because _propagate will not copy it but for
                 # arithmetic operations users will expect copys.
-                return deepcopy(self.array)
+                return deepcopy(self.data)
 
         else:
             # Formula: sigma = sqrt(dA**2 + dB**2 + 2*cor*dA*dB)
@@ -198,13 +218,13 @@ class StdDevUncertainty(NDUncertaintyGaussian):
                 # has a unit and the other doesn't is not possible with
                 # addition and would have raised an exception in the data
                 # computation
-                this = self.array * self.effective_unit
-                other = other_uncert.array * other_uncert.effective_unit
+                this = self.data * self.effective_unit
+                other = other_uncert.data * other_uncert.effective_unit
             else:
                 # Since both units are the same or None we can just use
                 # numpy operations
-                this = self.array
-                other = other_uncert.array
+                this = self.data
+                other = other_uncert.data
 
             # Determine the result depending on the correlation
             if isinstance(correlation, np.ndarray) or correlation != 0:
@@ -228,26 +248,28 @@ class StdDevUncertainty(NDUncertaintyGaussian):
         # Since the formulas are equivalent to addition you should look at the
         # explanations provided in _propagate_add
 
-        if self.array is None:
+        if self.data is None:
             if other_uncert.effective_unit is not None and (
                         result_data.unit != other_uncert.effective_unit):
-                return (other_uncert.array * other_uncert.effective_unit).to(
+                return (other_uncert.data * other_uncert.effective_unit).to(
                             result_data.unit).value
             else:
-                return deepcopy(other_uncert.array)
-        elif other_uncert.array is None:
-            if self.effective_unit is not None and self.effective_unit != self.parent_nddata.unit:
-                return (self.array * self.effective_unit).to(result_data.unit).value
+                return deepcopy(other_uncert.data)
+        elif other_uncert.data is None:
+            if (self.effective_unit is not None and
+                    self.effective_unit != self.parent_nddata.unit):
+                return (self.data * self.effective_unit).to(
+                        result_data.unit).value
             else:
-                return deepcopy(self.array)
+                return deepcopy(self.data)
         else:
             # Formula: sigma = sqrt(dA**2 + dB**2 - 2*cor*dA*dB)
             if self.effective_unit != other_uncert.effective_unit:
-                this = self.array * self.effective_unit
-                other = other_uncert.array * other_uncert.effective_unit
+                this = self.data * self.effective_unit
+                other = other_uncert.data * other_uncert.effective_unit
             else:
-                this = self.array
-                other = other_uncert.array
+                this = self.data
+                other = other_uncert.data
             if isinstance(correlation, np.ndarray) or correlation != 0:
                 corr = 2 * correlation * this * other
                 # The only difference to addition is that the correlation is
@@ -269,28 +291,28 @@ class StdDevUncertainty(NDUncertaintyGaussian):
         if isinstance(result_data, Quantity):
             result_data = result_data.value
 
-        if self.array is None:
+        if self.data is None:
             # Formula: sigma = |A| * dB
 
             # We want the result to have the same unit as the result so we
             # only need to convert the unit of the other uncertainty if it is
             # different from it's datas unit.
             if other_uncert.effective_unit != other_uncert.parent_nddata.unit:
-                other = (other_uncert.array * other_uncert.effective_unit).to(
+                other = (other_uncert.data * other_uncert.effective_unit).to(
                             other_uncert.parent_nddata.unit).value
             else:
-                other = other_uncert.array
+                other = other_uncert.data
             return np.abs(self.parent_nddata.data * other)
 
-        elif other_uncert.array is None:
+        elif other_uncert.data is None:
             # Formula: sigma = dA * |B|
 
             # Just the reversed case
             if self.effective_unit != self.parent_nddata.unit:
-                this = (self.array * self.effective_unit).to(
+                this = (self.data * self.effective_unit).to(
                                             self.parent_nddata.unit).value
             else:
-                this = self.array
+                this = self.data
             return np.abs(other_uncert.parent_nddata.data * this)
 
         else:
@@ -305,19 +327,19 @@ class StdDevUncertainty(NDUncertaintyGaussian):
             if self.effective_unit != self.parent_nddata.unit:
                 # To get the unit right we need to convert the unit of
                 # each uncertainty to the same unit as it's parent
-                left = ((self.array * self.effective_unit).to(
+                left = ((self.data * self.effective_unit).to(
                         self.parent_nddata.unit).value *
                         other_uncert.parent_nddata.data)
             else:
-                left = self.array * other_uncert.parent_nddata.data
+                left = self.data * other_uncert.parent_nddata.data
 
             # Calculate: dB * A (right)
             if other_uncert.effective_unit != other_uncert.parent_nddata.unit:
-                right = ((other_uncert.array * other_uncert.effective_unit).to(
+                right = ((other_uncert.data * other_uncert.effective_unit).to(
                         other_uncert.parent_nddata.unit).value *
                         self.parent_nddata.data)
             else:
-                right = other_uncert.array * self.parent_nddata.data
+                right = other_uncert.data * self.parent_nddata.data
 
             if isinstance(correlation, np.ndarray) or correlation != 0:
                 corr = (2 * correlation * left * right)
@@ -331,31 +353,31 @@ class StdDevUncertainty(NDUncertaintyGaussian):
         if isinstance(result_data, Quantity):
             result_data = result_data.value
 
-        if self.array is None:
+        if self.data is None:
             # Formula: sigma = |(A / B) * (dB / B)|
 
             # Calculate: dB / B (right)
             if other_uncert.effective_unit != other_uncert.parent_nddata.unit:
                 # We need (dB / B) to be dimensionless so we convert
                 # (if necessary) dB to the same unit as B
-                right = ((other_uncert.array * other_uncert.effective_unit).to(
+                right = ((other_uncert.data * other_uncert.effective_unit).to(
                     other_uncert.parent_nddata.unit).value /
                     other_uncert.parent_nddata.data)
             else:
-                right = (other_uncert.array / other_uncert.parent_nddata.data)
+                right = (other_uncert.data / other_uncert.parent_nddata.data)
             return np.abs(result_data * right)
 
-        elif other_uncert.array is None:
+        elif other_uncert.data is None:
             # Formula: sigma = dA / |B|.
 
             # Calculate: dA
             if self.effective_unit != self.parent_nddata.unit:
                 # We need to convert dA to the unit of A to have a result that
                 # matches the resulting data's unit.
-                left = (self.array * self.effective_unit).to(
+                left = (self.data * self.effective_unit).to(
                         self.parent_nddata.unit).value
             else:
-                left = self.array
+                left = self.data
 
             return np.abs(left / other_uncert.parent_nddata.data)
 
@@ -372,19 +394,19 @@ class StdDevUncertainty(NDUncertaintyGaussian):
 
             # Calculate: dA/B (left)
             if self.effective_unit != self.parent_nddata.unit:
-                left = ((self.array * self.effective_unit).to(
+                left = ((self.data * self.effective_unit).to(
                         self.parent_nddata.unit).value /
                         other_uncert.parent_nddata.data)
             else:
-                left = self.array / other_uncert.parent_nddata.data
+                left = self.data / other_uncert.parent_nddata.data
 
             # Calculate: dB/B (right)
             if other_uncert.effective_unit != other_uncert.parent_nddata.unit:
-                right = ((other_uncert.array * other_uncert.effective_unit).to(
+                right = ((other_uncert.data * other_uncert.effective_unit).to(
                     other_uncert.parent_nddata.unit).value /
                     other_uncert.parent_nddata.data) * result_data
             else:
-                right = (result_data * other_uncert.array /
+                right = (result_data * other_uncert.data /
                          other_uncert.parent_nddata.data)
 
             if isinstance(correlation, np.ndarray) or correlation != 0:

@@ -16,31 +16,11 @@ from astropy.units import Quantity
 
 from ...utils import descriptors
 from ...utils.sentinels import ParameterNotSpecified
-from ..exceptions import (IncompatibleUncertaintiesException,
-                          MissingDataAssociationException)
+from ..exceptions import MissingDataAssociationException
 
-__all__ = ['UncertaintyConverter',
-           'NDUncertainty',
+__all__ = ['NDUncertainty',
            'NDUncertaintyGaussian',
            'NDUncertaintyPropagatable']
-
-
-class UncertaintyConverter(object):
-    converter = {}
-
-    @classmethod
-    def register(cls, source, target, forward, backward):
-        cls.converter[(source, target)] = forward
-        cls.converter[(target, source)] = backward
-
-    @classmethod
-    def get_converter_func(cls, source, target):
-        try:
-            return cls.converter[(source, target)]
-        except KeyError:
-            msg = "cannot convert {0} to {1}".format(source.__name__,
-                                                     target.__name__)
-            raise IncompatibleUncertaintiesException(msg)
 
 
 @six.add_metaclass(ABCMeta)
@@ -53,22 +33,18 @@ class NDUncertainty(object):
 
     Parameters
     ----------
-    array : any type, optional
-        The array or value (the parameter name is due to historical reasons) of
-        the uncertainty. `numpy.ndarray`, `~astropy.units.Quantity` or
-        `NDUncertainty` subclasses are recommended.
-
-        If the `array` is `list`-like or `numpy.ndarray`-like it will be cast
-        to a plain `numpy.ndarray`.
+    data : any type, optional
+        The array or value of the uncertainty. `numpy.ndarray`,
+        `~astropy.units.Quantity` or `NDUncertainty`-like data is recommended.
         Default is ``None``.
 
     unit : `~astropy.units.Unit` or str, optional
-        Unit for the uncertainty ``array``. Strings that can be converted to a
+        Unit for the uncertainty ``data``. Strings that can be converted to a
         `~astropy.units.Unit` are allowed.
         Default is ``None``.
 
     copy : `bool`, optional
-        Indicates whether to save the `array` as a copy. ``True`` copies it
+        Indicates whether to save the ``data`` as a copy. ``True`` copies it
         before saving, while ``False`` tries to save every parameter as
         reference. Note however that it is not always possible to save the
         input as reference.
@@ -77,7 +53,7 @@ class NDUncertainty(object):
     Raises
     ------
     IncompatibleUncertaintiesException
-        If given another `NDUncertainty`-like class as ``array`` if their
+        If given another `NDUncertainty`-like class as ``data`` if their
         ``uncertainty_type`` is different.
     """
 
@@ -109,7 +85,7 @@ class NDUncertainty(object):
                 parent_nddata2 = None
             # Unit and data are straightforward.
             unit2 = data.unit
-            data = data.array
+            data = data.data
 
         elif isinstance(data, Quantity):
             # The data is a Quantity, so we extract the unit and value
@@ -139,15 +115,41 @@ class NDUncertainty(object):
             # and copying parent_nddata would be bad since this would copy the
             # associated NDData instance!!!
 
-        self.array = data
+        self.data = data
         self.unit = unit
         self.parent_nddata = parent_nddata
 
     @classmethod
     def from_uncertainty(cls, uncertainty):
+        """Converts an `~nddata.nddata.meta.NDUncertainty` instance to this \
+                class.
+
+        Parameters
+        ----------
+        uncertainty : `~nddata.nddata.meta.NDUncertainty`-like
+            The uncertainty that should be converted.
+
+        Returns
+        -------
+        converted_uncertainty : cls
+            The converted uncertainty
+
+        Raises
+        ------
+        IncompatibleUncertaintiesException
+            In case the uncertainty cannot be converted to this class.
+
+        Notes
+        -----
+        If the ``uncertainty`` has the same class then it is simply returned.
+        Otherwise the `~.UncertaintyConverter` is used. If there are no
+        registered functions to convert the uncertainties this will fail.
+        """
         # If it's already the same class just return the uncertainty again.
         if uncertainty.__class__ is cls:
             return uncertainty
+
+        from ..nduncertainty import UncertaintyConverter
 
         # Get the appropriate function to convert between these classes. The
         # converter will raise an appropriate Exception if there is no
@@ -160,9 +162,9 @@ class NDUncertainty(object):
         unit = None
         parent_nddata = None
 
-        if uncertainty.array is not None:
+        if uncertainty.data is not None:
             # Apply the function on the array and save the return.
-            data = func(uncertainty.array)
+            data = func(uncertainty.data)
         if uncertainty.unit is not None:
             # Units probably cannot handle the function that was applied to the
             # array but quantities can, so convert it to a quantity and take
@@ -179,6 +181,53 @@ class NDUncertainty(object):
         # Call the init of the class.
         return cls(data, unit, parent_nddata, copy=False)
 
+    # Copy and deepcopy magic and a public copy method
+    def __copy__(self):
+        return self.copy()
+
+    def __deepcopy__(self, memo=None):
+        return self.copy()
+
+    def copy(self):
+        """Returns a deepcopy of the class.
+
+        Returns
+        -------
+        copy : `~nddata.nddata.meta.NDUncertainty`-like
+            A deepcopy of the current instance of the same class.
+
+        Notes
+        -----
+        This will just call the ``__init__`` with this instance being the
+        "data" and "copy=True".
+        """
+        # Since the __init__ is capable of doing a complete copy in case the
+        # data is a NDUncertainty instance just call it.
+        return self.__class__(self, copy=True)
+
+    # Representation and casting to string
+    def __repr__(self):
+        prefix = self.__class__.__name__ + '('
+        try:
+            body = np.array2string(self.data, separator=', ', prefix=prefix)
+        except AttributeError:
+            # In case it wasn't possible to use array2string because some
+            # attribute wasn't numpy-ndarray like
+            body = str(self.data)
+        return ''.join([prefix, body, ')'])
+
+    def __str__(self):
+        return self.__repr__()
+
+    # NumPy like slicing
+    def __getitem__(self, item):
+        # Slice the array but keep the current unit and discard the parent.
+        # Discarding the parent has two reasons: If no parent was set we would
+        # get an exceptions. Also if the parent was sliced the parent nddata
+        # is going through it's init and there the parent is set.
+        # We don't need sliced uncertainties linking to unsliced data.
+        return self.__class__(self.data[item], unit=self.unit, copy=False)
+
     @abstractproperty
     def uncertainty_type(self):
         """(`str`) Short description of the type of uncertainty.
@@ -186,17 +235,10 @@ class NDUncertainty(object):
         Defined as abstract property so subclasses *have* to override this.
         """
 
-    @property
-    def array(self):
-        """(`numpy.ndarray`) Uncertainty value.
+    @descriptors.UncertaintyData
+    def data(self):
+        """(any type) Uncertainty value.
         """
-        return self._array
-
-    @array.setter
-    def array(self, value):
-        if isinstance(value, (list, np.ndarray)):
-            value = np.array(value, subok=False, copy=False)
-        self._array = value
 
     @descriptors.Unit
     def unit(self):
@@ -245,19 +287,6 @@ class NDUncertainty(object):
             value = weakref.ref(value)
         self._parent_nddata = value
 
-    def __repr__(self):
-        prefix = self.__class__.__name__ + '('
-        try:
-            body = np.array2string(self.array, separator=', ', prefix=prefix)
-        except AttributeError:
-            # In case it wasn't possible to use array2string because some
-            # attribute wasn't numpy-ndarray like
-            body = str(self.array)
-        return ''.join([prefix, body, ')'])
-
-    def __getitem__(self, item):
-        return self.__class__(self.array[item], unit=self.unit, copy=False)
-
 
 @six.add_metaclass(ABCMeta)
 class NDUncertaintyPropagatable(NDUncertainty):
@@ -277,6 +306,14 @@ class NDUncertaintyPropagatable(NDUncertainty):
 
 @six.add_metaclass(ABCMeta)
 class NDUncertaintyGaussian(NDUncertaintyPropagatable):
+
+    @descriptors.ArrayData
+    def data(self):
+        """(`numpy.ndarray`) Uncertainty value.
+
+        Gaussian uncertainties need the value to be numeric so it is cast to
+        a `numpy.ndarray`. Always.
+        """
 
     @property
     def effective_unit(self):

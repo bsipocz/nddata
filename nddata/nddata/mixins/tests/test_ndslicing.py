@@ -90,7 +90,7 @@ def test_slicing_all_npndarray_1d():
     nd2 = nd[2:5]
     assert_array_equal(data[2:5], nd2.data)
     assert_array_equal(mask[2:5], nd2.mask)
-    assert_array_equal(uncertainty[2:5], nd2.uncertainty.array)
+    assert_array_equal(uncertainty[2:5], nd2.uncertainty.data)
     assert_array_equal(wcs[2:5], nd2.wcs)
     assert unit is nd2.unit
     assert meta == nd.meta
@@ -110,14 +110,14 @@ def test_slicing_all_npndarray_nd():
     nd2 = nd[2:5]
     assert_array_equal(data[2:5], nd2.data)
     assert_array_equal(mask[2:5], nd2.mask)
-    assert_array_equal(uncertainty[2:5], nd2.uncertainty.array)
+    assert_array_equal(uncertainty[2:5], nd2.uncertainty.data)
     assert_array_equal(wcs[2:5], nd2.wcs)
     assert_array_equal(flags[2:5], nd2.flags)
     # Slice 3D
     nd2 = nd[2:5, :, 4:7]
     assert_array_equal(data[2:5, :, 4:7], nd2.data)
     assert_array_equal(mask[2:5, :, 4:7], nd2.mask)
-    assert_array_equal(uncertainty[2:5, :, 4:7], nd2.uncertainty.array)
+    assert_array_equal(uncertainty[2:5, :, 4:7], nd2.uncertainty.data)
     assert_array_equal(wcs[2:5, :, 4:7], nd2.wcs)
     assert_array_equal(flags[2:5, :, 4:7], nd2.flags)
 
@@ -135,7 +135,7 @@ def test_slicing_all_npndarray_shape_diff():
     assert_array_equal(data[2:5], nd2.data)
     # All are sliced even if the shapes differ (no Info)
     assert_array_equal(mask[2:5], nd2.mask)
-    assert_array_equal(uncertainty[2:5], nd2.uncertainty.array)
+    assert_array_equal(uncertainty[2:5], nd2.uncertainty.data)
     assert_array_equal(wcs[2:5], nd2.wcs)
     assert_array_equal(flags[2:5], nd2.flags)
 
@@ -172,5 +172,5 @@ def test_boolean_slicing():
     assert_array_equal(data[3:8], nd2.data)
     assert_array_equal(mask[3:8], nd2.mask)
     assert_array_equal(wcs[3:8], nd2.wcs)
-    assert_array_equal(uncertainty.array[3:8], nd2.uncertainty.array)
+    assert_array_equal(uncertainty.data[3:8], nd2.uncertainty.data)
     assert_array_equal(flags[3:8], nd2.flags)

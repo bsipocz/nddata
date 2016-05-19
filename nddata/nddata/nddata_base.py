@@ -333,7 +333,7 @@ class NDDataBase(NDDataMeta):
     # Define the attributes. The body of each of these attributes is empty
     # because the complete logic is inside the descriptors (used as decorators
     # here).
-    @descriptors.Data
+    @descriptors.ArrayData
     def data(self):
         """(`numpy.ndarray`-like) The stored dataset.
 
