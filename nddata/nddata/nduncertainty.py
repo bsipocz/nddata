@@ -7,6 +7,7 @@ import numpy as np
 
 from astropy import log
 from astropy.units import Quantity
+import astropy.units as u
 
 from .meta import NDUncertainty, NDUncertaintyGaussian
 from .exceptions import IncompatibleUncertaintiesException
@@ -194,6 +195,16 @@ class StdDevUncertainty(NDUncertaintyGaussian):
         >>> ndd.uncertainty
         StdDevUncertainty(2)
     """
+    # propagation methods for one operand operations
+    # TODO: Currently no one operand operations are implemented... :-(
+    _propagate_1 = {}
+    # propagation methods for two operand operations
+    _propagate_2 = {np.add: '_propagate_add',
+                    np.subtract: '_propagate_subtract',
+                    np.multiply: '_propagate_multiply',
+                    np.divide: '_propagate_divide',
+                    np.true_divide: '_propagate_divide',
+                    np.power: '_propagate_power'}
 
     @property
     def supports_correlated(self):
@@ -255,26 +266,25 @@ class StdDevUncertainty(NDUncertaintyGaussian):
         """
         # Check if the subclass supports correlation
         if not self.supports_correlated:
+            # If the correlation is not zero or even a numpy array the user
+            # specified correlated propagation but the class doesn't support it
+            # raise an Exception here
             if isinstance(correlation, np.ndarray) or correlation != 0:
                 raise ValueError("{0} does not support uncertainty propagation"
                                  " with correlation."
                                  "".format(self.__class__.__name__))
 
-        # Get the other uncertainty (and convert it to a matching one)
+        # Get the other uncertainty (and convert it to a matching one) using
+        # the converter-registry through "from_uncertainty"
         other_uncert = self.from_uncertainty(other_nddata.uncertainty)
 
-        if operation.__name__ == 'add':
-            result = self._propagate_add(other_uncert, result_data,
-                                         correlation)
-        elif operation.__name__ == 'subtract':
-            result = self._propagate_subtract(other_uncert, result_data,
-                                              correlation)
-        elif operation.__name__ == 'multiply':
-            result = self._propagate_multiply(other_uncert, result_data,
-                                              correlation)
-        elif operation.__name__ in ['true_divide', 'divide']:
-            result = self._propagate_divide(other_uncert, result_data,
-                                            correlation)
+        # search if the operation was registered in the propagation dictionary
+        # for 2 operand propagation.
+        method_name = self._propagate_2.get(operation, None)
+        if method_name is not None:
+            # The operation was registered so we can simply call it.
+            result = getattr(self, method_name)(other_uncert, result_data,
+                                                correlation)
         else:
             raise ValueError('unsupported operation')
 
@@ -509,6 +519,119 @@ class StdDevUncertainty(NDUncertaintyGaussian):
                 # This differs from multiplication because the correlation
                 # term needs to be subtracted
                 return np.sqrt(left**2 + right**2 - corr)
+            else:
+                return np.sqrt(left**2 + right**2)
+
+    def _propagate_power(self, other_uncert, result_data, correlation):
+        # Power is a bit tricky with units. But it boils down to:
+        # Exponent is always dimensionless
+        # Base can only hava a unit if the exponent is a scalar.
+
+        # But for starters power doesn't need the unit of the result:
+        if isinstance(result_data, Quantity):
+            result_unit = result_data.unit
+            result_data = result_data.value
+        else:
+            result_unit = None
+
+        if self.data is None:
+            # Formula: sigma = |A**B * ln(A) * dB|
+
+            # First dB must be dimensionless because B was dimensionless so
+            # convert it to dimensionless if any unit is present. This will
+            # raise an exception if not possible. Or just take the data if
+            # it has no unit.
+            if other_uncert.effective_unit is not None:
+                dB = other_uncert.effective_unit.to(u.dimensionless_unscaled,
+                                                    other_uncert.data)
+            else:
+                dB = other_uncert.data
+
+            # We need to take the natural logarithm of A. This will fail if
+            # A has a unit or A has negative elements. So we ignore the unit
+            # and take the absolute before we do the logarithm
+            # TODO: Check if this is valid!!!
+            lnA = np.log(np.abs(self.parent_nddata.data))
+
+            return np.abs(result_data * lnA * dB)
+
+        elif other_uncert.data is None:
+            # Formula: sigma = | B * A ** (B-1) * dA |
+
+            # To get the dimensions right we need to convert B to dimensionless
+            if other_uncert.parent_nddata.unit is not None:
+                B = other_uncert.parent_nddata.unit.to(
+                        u.dimensionless_unscaled,
+                        other_uncert.parent_nddata.data)
+            else:
+                B = other_uncert.parent_nddata.data
+
+            # and dA must have the same unit as A so convert it if necessary
+            if self.effective_unit != self.parent_nddata.unit:
+                if self.parent_nddata.unit is None:
+                    dA = self.unit.to(u.dimensionless_unscaled, self.data)
+                else:
+                    dA = self.unit.to(self.parent_nddata.unit, self.data)
+            else:
+                dA = self.data
+
+            # A doesn't need it's unit
+            A = self.parent_nddata.data
+
+            return np.abs(B * dA * A ** (B - 1))
+
+        else:
+            # Formula:
+            # sigma = |A**B|*sqrt((BdA/A)**2+(ln(A)dB)**2+2Bln(A)dAdB*rho/A)
+
+            # to allow for results where an element of A is zero we can
+            # also write:
+            # sigma = sqrt((BdAA**(B-1))**2 + (ln(A)dBA**B)**2 +
+            #              2ln(A)BdAdBA**(2B-1)*rho)
+
+            # to ensure we have the right dimension we convert some units:
+
+            # A doesn't need it's unit
+            A = self.parent_nddata.data
+
+            # B must be dimensionless:
+            if other_uncert.parent_nddata.unit is not None:
+                B = other_uncert.parent_nddata.unit.to(
+                        u.dimensionless_unscaled,
+                        other_uncert.parent_nddata.data)
+            else:
+                B = other_uncert.parent_nddata.data
+
+            # dA must have the same unit as A so convert it if necessary
+            if self.effective_unit != self.parent_nddata.unit:
+                if self.parent_nddata.unit is None:
+                    dA = self.unit.to(u.dimensionless_unscaled, self.data)
+                else:
+                    dA = self.unit.to(self.parent_nddata.unit, self.data)
+            else:
+                dA = self.data
+
+            # dB must be dimensionless
+            if other_uncert.effective_unit is not None:
+                dB = other_uncert.effective_unit.to(u.dimensionless_unscaled,
+                                                    other_uncert.data)
+            else:
+                dB = other_uncert.data
+
+            # Like in the first case we assume ln(A) to just work without
+            # taking the unit into consideration and after taking the absolute.
+            lnA = np.log(np.abs(self.parent_nddata.data))
+
+            # Calculate some intermediate results:
+            lnAdB = lnA * dB
+            BdA = B * dA
+
+            left = BdA * A ** (B - 1)
+            right = result_data * lnAdB
+
+            if isinstance(correlation, np.ndarray) or correlation != 0:
+                corr = 2 * correlation * lnAdB * BdA * A ** (2*B - 1)
+                return np.sqrt(left**2 + right**2 + corr)
             else:
                 return np.sqrt(left**2 + right**2)
 
