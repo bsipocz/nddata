@@ -11,13 +11,13 @@ import numpy as np
 from astropy import log
 from astropy.extern.six import string_types
 import astropy.units as u
-from astropy.utils.misc import InheritDocstrings
 
 from .numpyutils import is_numeric_array
 
 
 __all__ = ['BaseDescriptor', 'AdvancedDescriptor',
-           'Meta', 'Data', 'Unit', 'Mask', 'WCS', 'Uncertainty']
+           'Meta', 'ArrayData', 'Unit', 'Mask', 'WCS', 'Uncertainty', 'Flags',
+           'UncertaintyData']
 
 
 class BaseDescriptor(object):
@@ -454,6 +454,12 @@ class Flags(BaseDescriptor):
     pass
 
 
+class UncertaintyData(BaseDescriptor):
+    """A `BaseDescriptor` without any alterations.
+    """
+    pass
+
+
 class Meta(AdvancedDescriptor):
     """An `AdvancedDescriptor` which defaults to `~collections.OrderedDict` \
             and checks if the value is a `~collections.Mapping`.
@@ -492,7 +498,7 @@ class Meta(AdvancedDescriptor):
         return value
 
 
-class Data(AdvancedDescriptor):
+class ArrayData(AdvancedDescriptor):
     """An `AdvancedDescriptor` which checks if the value looks like \
             numerical `numpy.ndarray` or converts it to one.
 
@@ -593,7 +599,8 @@ class Unit(AdvancedDescriptor):
 
 class Uncertainty(AdvancedDescriptor):
     """An `AdvancedDescriptor` which ensures that \
-            `~nddata.nddata.NDUncertainty` is setup correctly as uncertainty.
+            `~nddata.nddata.meta.NDUncertainty` is setup correctly as \
+            uncertainty.
 
     Parameters
     ----------
@@ -614,7 +621,7 @@ class Uncertainty(AdvancedDescriptor):
 
         Returns
         -------
-        value : `~nddata.nddata.NDUncertainty`-like
+        value : `~nddata.nddata.meta.NDUncertainty`-like
             The value that is being set as private attribute.
 
         Notes
@@ -623,18 +630,19 @@ class Uncertainty(AdvancedDescriptor):
         attribute. If it hasn't the value is wrapped as
         `~nddata.nddata.UnknownUncertainty`.
 
-        Then if it's a subclass of `~nddata.nddata.NDUncertainty` which already
-        has a ``parent`` then it's wrapped as **reference** in another class
-        (same class as before) so we have two uncertainties each linking to
-        their own parent instead of stealing the ``parent``. Then the
+        Then if it's a subclass of `~nddata.nddata.meta.NDUncertainty` which
+        already has a ``parent`` then it's wrapped as **reference** in another
+        class (same class as before) so we have two uncertainties each linking
+        to their own parent instead of stealing the ``parent``. Then the
         ``parent_nddata`` is set to the instance the setter was called on.
         """
-        from ..nddata import NDUncertainty, UnknownUncertainty
+        from ..nddata.meta import NDUncertainty
         # There is one requirements on the uncertainty: That
         # it has an attribute 'uncertainty_type'.
         # If it does not match this requirement convert it to an unknown
         # uncertainty.
         if not hasattr(value, 'uncertainty_type'):
+            from ..nddata import UnknownUncertainty
             log.info('uncertainty should have attribute uncertainty_type.')
             # This wrapping would make the parents think that the value
             # was already copied so we must make sure it's copied here!

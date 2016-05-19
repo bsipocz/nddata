@@ -6,40 +6,40 @@ NDData Arithmetic
 Introduction
 ------------
 
-`~nddata.nddata.NDDataRef` implements the following arithmetic operations:
+`~nddata.nddata.NDData` implements the following arithmetic operations:
 
-- addition: :meth:`~nddata.nddata.NDArithmeticMixin.add`
-- subtraction: :meth:`~nddata.nddata.NDArithmeticMixin.subtract`
-- multiplication: :meth:`~nddata.nddata.NDArithmeticMixin.multiply`
-- division: :meth:`~nddata.nddata.NDArithmeticMixin.divide`
+- addition: :meth:`~nddata.nddata.mixins.NDArithmeticMixin.add`
+- subtraction: :meth:`~nddata.nddata.mixins.NDArithmeticMixin.subtract`
+- multiplication: :meth:`~nddata.nddata.mixins.NDArithmeticMixin.multiply`
+- division: :meth:`~nddata.nddata.mixins.NDArithmeticMixin.divide`
 
 Using basic arithmetic methods
 ------------------------------
 
 Using the standard arithmetic methods requires that the first operand
-is an `~nddata.nddata.NDDataRef` instance
+is an `~nddata.nddata.NDData` instance
 
-    >>> from nddata.nddata import NDDataRef
+    >>> from nddata.nddata import NDData
     >>> import numpy as np
-    >>> ndd1 = NDDataRef([1, 2, 3, 4])
+    >>> ndd1 = NDData([1, 2, 3, 4])
 
 while the requirement for the second operand is simply: It must be convertible
 to the first operand. It can be a number::
 
     >>> ndd1.add(3)
-    NDDataRef([4, 5, 6, 7])
+    NDData([4, 5, 6, 7])
 
 or a `list`::
 
     >>> ndd1.subtract([1,1,1,1])
-    NDDataRef([0, 1, 2, 3])
+    NDData([0, 1, 2, 3])
 
 a `numpy.ndarray`::
 
     >>> ndd1.multiply(np.arange(4, 8))
-    NDDataRef([ 4, 10, 18, 28])
+    NDData([ 4, 10, 18, 28])
     >>> ndd1.divide(np.arange(1,13).reshape(3,4))  # a 3 x 4 numpy array
-    NDDataRef([[ 1.        ,  1.        ,  1.        ,  1.        ],
+    NDData([[ 1.        ,  1.        ,  1.        ,  1.        ],
                [ 0.2       ,  0.33333333,  0.42857143,  0.5       ],
                [ 0.11111111,  0.2       ,  0.27272727,  0.33333333]])
 
@@ -49,24 +49,24 @@ classes are possible.
 Using arithmetic classmethods
 -----------------------------
 
-Here both operands don't need to be `~nddata.nddata.NDDataRef`-like::
+Here both operands don't need to be `~nddata.nddata.NDData`-like::
 
-    >>> NDDataRef.add(1, 3)
-    NDDataRef(4)
+    >>> NDData.add(1, 3)
+    NDData(4)
 
 or to wrap the result of an arithmetic operation between two Quantities::
 
     >>> import astropy.units as u
-    >>> ndd = NDDataRef.multiply([1,2] * u.m, [10, 20] * u.cm)
+    >>> ndd = NDData.multiply([1,2] * u.m, [10, 20] * u.cm)
     >>> ndd
-    NDDataRef([ 10.,  40.])
+    NDData([ 10.,  40.])
     >>> ndd.unit
     Unit("cm m")
 
-or taking the inverse of a `~nddata.nddata.NDDataRef` object::
+or taking the inverse of a `~nddata.nddata.NDData` object::
 
-    >>> NDDataRef.divide(1, ndd1)
-    NDDataRef([ 1.        ,  0.5       ,  0.33333333,  0.25      ])
+    >>> NDData.divide(1, ndd1)
+    NDData([ 1.        ,  0.5       ,  0.33333333,  0.25      ])
 
 
 Possible operands
@@ -96,8 +96,8 @@ or fail and abort the operation.
 
 Adding two NDData objects with the same unit works::
 
-    >>> ndd1 = NDDataRef([1,2,3,4,5], unit='m')
-    >>> ndd2 = NDDataRef([100,150,200,50,500], unit='m')
+    >>> ndd1 = NDData([1,2,3,4,5], unit='m')
+    >>> ndd2 = NDData([100,150,200,50,500], unit='m')
 
     >>> ndd = ndd1.add(ndd2)
     >>> ndd.data
@@ -134,34 +134,34 @@ resulting mask will be. There are several options.
 
 - ``None``, the result will have no ``mask``::
 
-      >>> ndd1 = NDDataRef(1, mask=True)
-      >>> ndd2 = NDDataRef(1, mask=False)
+      >>> ndd1 = NDData(1, mask=True)
+      >>> ndd2 = NDData(1, mask=False)
       >>> ndd1.add(ndd2, handle_mask=None).mask is None
       True
 
 - ``"first_found"`` or ``"ff"``, the result will have the mask of the first
   operand or if that is None the mask of the second operand::
 
-      >>> ndd1 = NDDataRef(1, mask=True)
-      >>> ndd2 = NDDataRef(1, mask=False)
+      >>> ndd1 = NDData(1, mask=True)
+      >>> ndd2 = NDData(1, mask=False)
       >>> ndd1.add(ndd2, handle_mask="first_found").mask
       True
-      >>> ndd3 = NDDataRef(1)
+      >>> ndd3 = NDData(1)
       >>> ndd3.add(ndd2, handle_mask="first_found").mask
       False
 
 - a function (or an arbitary callable) that takes at least two arguments.
   For example `numpy.logical_or` is the default::
 
-      >>> ndd1 = NDDataRef(1, mask=np.array([True, False, True, False]))
-      >>> ndd2 = NDDataRef(1, mask=np.array([True, False, False, True]))
+      >>> ndd1 = NDData(1, mask=np.array([True, False, True, False]))
+      >>> ndd2 = NDData(1, mask=np.array([True, False, False, True]))
       >>> ndd1.add(ndd2).mask
       array([ True, False,  True,  True], dtype=bool)
 
   This defaults to ``"first_found"`` in case only one ``mask`` is not None::
 
-      >>> ndd1 = NDDataRef(1)
-      >>> ndd2 = NDDataRef(1, mask=np.array([True, False, False, True]))
+      >>> ndd1 = NDData(1)
+      >>> ndd2 = NDData(1, mask=np.array([True, False, False, True]))
       >>> ndd1.add(ndd2).mask
       array([ True, False, False,  True], dtype=bool)
 
@@ -175,8 +175,8 @@ resulting mask will be. There are several options.
 
   This function is obviously non-sense but let's see how it performs::
 
-      >>> ndd1 = NDDataRef(1, mask=np.array([True, False, True, False]))
-      >>> ndd2 = NDDataRef(1, mask=np.array([True, False, False, True]))
+      >>> ndd1 = NDData(1, mask=np.array([True, False, True, False]))
+      >>> ndd2 = NDData(1, mask=np.array([True, False, False, True]))
       >>> ndd1.add(ndd2, handle_mask=take_alternating_values).mask
       array([ True, False,  True,  True], dtype=bool)
 
@@ -196,8 +196,8 @@ the resulting flags will be. There are several options.
 
 - ``None``, the result will have no ``flags``.::
 
-      >>> ndd1 = NDDataRef(1, flags=True)
-      >>> ndd2 = NDDataRef(1, flags=False)
+      >>> ndd1 = NDData(1, flags=True)
+      >>> ndd2 = NDData(1, flags=False)
       >>> print(ndd1.add(ndd2, handle_flags=None).flags)
       None
 
@@ -209,11 +209,11 @@ the resulting flags will be. There are several options.
 - ``"first_found"`` or ``"ff"``, the result will have the flags of the first
   operand or if that is None the flags of the second operand::
 
-      >>> ndd1 = NDDataRef(1, flags=True)
-      >>> ndd2 = NDDataRef(1, flags=False)
+      >>> ndd1 = NDData(1, flags=True)
+      >>> ndd2 = NDData(1, flags=False)
       >>> ndd1.add(ndd2, handle_flags="first_found").flags
       True
-      >>> ndd3 = NDDataRef(1)
+      >>> ndd3 = NDData(1)
       >>> ndd3.add(ndd2, handle_flags="first_found").flags
       False
 
@@ -221,8 +221,8 @@ the resulting flags will be. There are several options.
   For example if the ``flags`` resemble a bitmask one can use
   `numpy.bitwise_or`::
 
-      >>> ndd1 = NDDataRef(1, flags=np.array([0, 1, 2, 3]))
-      >>> ndd2 = NDDataRef(1, flags=np.array([1, 0, 1, 0]))
+      >>> ndd1 = NDData(1, flags=np.array([0, 1, 2, 3]))
+      >>> ndd2 = NDData(1, flags=np.array([1, 0, 1, 0]))
       >>> print(ndd1.add(ndd2, handle_flags=np.bitwise_or).flags)
       [1 1 3 3]
 
@@ -244,16 +244,16 @@ the resulting flags will be. There are several options.
 
   This function is now also works if one operand has no flags::
 
-      >>> ndd1 = NDDataRef(1, flags=np.array([0, 1, 2, 3]))
-      >>> ndd2 = NDDataRef(1)
+      >>> ndd1 = NDData(1, flags=np.array([0, 1, 2, 3]))
+      >>> ndd2 = NDData(1)
       >>> ndd1.add(ndd2, handle_flags=bitwise_or).flags
       array([0, 1, 2, 3])
 
   Additional parameters can be passed to this function as well, just prepend
   a ``flags_`` to the parameter name::
 
-      >>> ndd1 = NDDataRef(1, flags=np.array([0, 1, 2, 3]))
-      >>> ndd2 = NDDataRef(1, flags=np.array([0, 0, 1, 0]))
+      >>> ndd1 = NDData(1, flags=np.array([0, 1, 2, 3]))
+      >>> ndd2 = NDData(1, flags=np.array([0, 0, 1, 0]))
       >>> ndd1.add(ndd2, handle_flags=bitwise_or, flags_logical=True).flags
       array([False,  True,  True,  True], dtype=bool)
 
@@ -265,8 +265,8 @@ resulting meta will be. The options are the same as for the ``mask``:
 
 - If ``None`` the resulting ``meta`` will be an empty `collections.OrderedDict`.
 
-      >>> ndd1 = NDDataRef(1, meta={'object': 'sun'})
-      >>> ndd2 = NDDataRef(1, meta={'object': 'moon'})
+      >>> ndd1 = NDData(1, meta={'object': 'sun'})
+      >>> ndd2 = NDData(1, meta={'object': 'moon'})
       >>> ndd1.add(ndd2, handle_meta=None).meta
       OrderedDict()
 
@@ -279,8 +279,8 @@ resulting meta will be. The options are the same as for the ``mask``:
   first operand or if that contains no keys the meta of the second operand is
   taken.
 
-      >>> ndd1 = NDDataRef(1, meta={'object': 'sun'})
-      >>> ndd2 = NDDataRef(1, meta={'object': 'moon'})
+      >>> ndd1 = NDData(1, meta={'object': 'sun'})
+      >>> ndd2 = NDData(1, meta={'object': 'moon'})
       >>> ndd1.add(ndd2, handle_meta='ff').meta
       {'object': 'sun'}
 
@@ -303,8 +303,8 @@ resulting meta will be. The options are the same as for the ``mask``:
       ...         meta_final.update(meta2)
       ...         return meta_final
 
-      >>> ndd1 = NDDataRef(1, meta={'time': 'today'})
-      >>> ndd2 = NDDataRef(1, meta={'object': 'moon'})
+      >>> ndd1 = NDData(1, meta={'time': 'today'})
+      >>> ndd2 = NDData(1, meta={'object': 'moon'})
       >>> ndd1.subtract(ndd2, handle_meta=combine_meta).meta # doctest: +SKIP
       {'object': 'moon', 'time': 'today'}
 
@@ -321,8 +321,8 @@ or if the operation should be forbidden. The possible values are identical to
 
 - If ``None`` the resulting ``wcs`` will be an empty ``None``.
 
-      >>> ndd1 = NDDataRef(1, wcs=0)
-      >>> ndd2 = NDDataRef(1, wcs=1)
+      >>> ndd1 = NDData(1, wcs=0)
+      >>> ndd2 = NDData(1, wcs=1)
       >>> ndd1.add(ndd2, compare_wcs=None).wcs is None
       True
 
@@ -330,8 +330,8 @@ or if the operation should be forbidden. The possible values are identical to
   first operand or if that is None the meta of the second operand is
   taken.
 
-      >>> ndd1 = NDDataRef(1, wcs=1)
-      >>> ndd2 = NDDataRef(1, wcs=0)
+      >>> ndd1 = NDData(1, wcs=1)
+      >>> ndd2 = NDData(1, wcs=0)
       >>> ndd1.add(ndd2, compare_wcs='ff').wcs
       1
 
@@ -350,16 +350,16 @@ or if the operation should be forbidden. The possible values are identical to
       ...     else:
       ...         return abs(wcs1 - wcs2) < allowed_deviation
 
-      >>> ndd1 = NDDataRef(1, wcs=1)
-      >>> ndd2 = NDDataRef(1, wcs=1)
+      >>> ndd1 = NDData(1, wcs=1)
+      >>> ndd2 = NDData(1, wcs=1)
       >>> ndd1.subtract(ndd2, compare_wcs=compare_wcs_scalar).wcs
       1
 
   Additional arguments can be passed in prefixing them with ``wcs_`` (this
   prefix will be stripped away before passing it to the function)::
 
-      >>> ndd1 = NDDataRef(1, wcs=1)
-      >>> ndd2 = NDDataRef(1, wcs=2)
+      >>> ndd1 = NDData(1, wcs=1)
+      >>> ndd2 = NDData(1, wcs=2)
       >>> ndd1.subtract(ndd2, compare_wcs=compare_wcs_scalar, wcs_allowed_deviation=2).wcs
       1
 
@@ -381,8 +381,8 @@ of uncertainties on or off.
 - If ``None`` the result will have no uncertainty::
 
       >>> from nddata.nddata import StdDevUncertainty
-      >>> ndd1 = NDDataRef(1, uncertainty=StdDevUncertainty(0))
-      >>> ndd2 = NDDataRef(1, uncertainty=StdDevUncertainty(1))
+      >>> ndd1 = NDData(1, uncertainty=StdDevUncertainty(0))
+      >>> ndd2 = NDData(1, uncertainty=StdDevUncertainty(1))
       >>> ndd1.add(ndd2, propagate_uncertainties=None).uncertainty is None
       True
 
@@ -396,8 +396,8 @@ of uncertainties on or off.
   implement propagation. This is possible for
   `~nddata.nddata.StdDevUncertainty`::
 
-      >>> ndd1 = NDDataRef(1, uncertainty=StdDevUncertainty([10]))
-      >>> ndd2 = NDDataRef(1, uncertainty=StdDevUncertainty([10]))
+      >>> ndd1 = NDData(1, uncertainty=StdDevUncertainty([10]))
+      >>> ndd2 = NDData(1, uncertainty=StdDevUncertainty([10]))
       >>> ndd1.add(ndd2, propagate_uncertainties=True).uncertainty
       StdDevUncertainty([ 14.14213562])
 
@@ -413,17 +413,17 @@ The default (``0``) represents uncorrelated while ``1`` means correlated and
 ``-1`` anti-correlated. If given a `numpy.ndarray` it should represent the
 element-wise correlation coefficient.
 
-For example without correlation subtracting a `~nddata.nddata.NDDataRef`
+For example without correlation subtracting a `~nddata.nddata.NDData`
 instance from itself results in a non-zero uncertainty::
 
-    >>> ndd1 = NDDataRef(1, uncertainty=StdDevUncertainty([10]))
+    >>> ndd1 = NDData(1, uncertainty=StdDevUncertainty([10]))
     >>> ndd1.subtract(ndd1, propagate_uncertainties=True).uncertainty
     StdDevUncertainty([ 14.14213562])
 
 Given a correlation of ``1`` because they clearly correlate gives the
 correct uncertainty of ``0``::
 
-    >>> ndd1 = NDDataRef(1, uncertainty=StdDevUncertainty([10]))
+    >>> ndd1 = NDData(1, uncertainty=StdDevUncertainty([10]))
     >>> ndd1.subtract(ndd1, propagate_uncertainties=True,
     ...               uncertainty_correlation=1).uncertainty
     StdDevUncertainty([ 0.])
@@ -441,8 +441,8 @@ which would be consistent with the equivalent operation ``ndd1 * 0``::
 
 You can also give element-wise correlations::
 
-    >>> ndd1 = NDDataRef([1,1,1,1], uncertainty=StdDevUncertainty([1,1,1,1]))
-    >>> ndd2 = NDDataRef([2,2,2,2], uncertainty=StdDevUncertainty([2,2,2,2]))
+    >>> ndd1 = NDData([1,1,1,1], uncertainty=StdDevUncertainty([1,1,1,1]))
+    >>> ndd2 = NDData([2,2,2,2], uncertainty=StdDevUncertainty([2,2,2,2]))
     >>> ndd1.add(ndd2,uncertainty_correlation=np.array([1,0.5,0,-1])).uncertainty
     StdDevUncertainty([ 3.        ,  2.64575131,  2.23606798,  1.        ])
 
@@ -456,8 +456,8 @@ uncertainty with unit
 `~nddata.nddata.StdDevUncertainty` implements correct error propagation even
 if the unit of the data differs from the unit of the uncertainty::
 
-    >>> ndd1 = NDDataRef([10], unit='m', uncertainty=StdDevUncertainty([10], unit='cm'))
-    >>> ndd2 = NDDataRef([20], unit='m', uncertainty=StdDevUncertainty([10]))
+    >>> ndd1 = NDData([10], unit='m', uncertainty=StdDevUncertainty([10], unit='cm'))
+    >>> ndd2 = NDData([20], unit='m', uncertainty=StdDevUncertainty([10]))
     >>> ndd1.subtract(ndd2, propagate_uncertainties=True).uncertainty
     StdDevUncertainty([ 10.00049999])
 

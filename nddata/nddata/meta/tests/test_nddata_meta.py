@@ -4,10 +4,10 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from ..nddata_base import NDDataBase
+from ..nddata_meta import NDDataMeta
 
 
-class MinimalSubclass(NDDataBase):
+class MinimalSubclass(NDDataMeta):
     def __init__(self):
         super(MinimalSubclass, self).__init__()
 
@@ -35,6 +35,10 @@ class MinimalSubclass(NDDataBase):
     def uncertainty(self):
         return super(MinimalSubclass, self).uncertainty
 
+    @property
+    def flags(self):
+        return super(MinimalSubclass, self).flags
+
 
 def test_nddata_base_subclass():
     a = MinimalSubclass()
@@ -44,3 +48,4 @@ def test_nddata_base_subclass():
     assert a.unit is None
     assert a.wcs is None
     assert a.uncertainty is None
+    assert a.flags is None

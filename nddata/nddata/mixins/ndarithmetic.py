@@ -10,18 +10,18 @@ import numpy as np
 from astropy.units import dimensionless_unscaled
 from astropy.utils import sharedmethod
 
-from ..nduncertainty import NDUncertainty
+from ..meta.nduncertainty_meta import NDUncertaintyPropagatable
 from ...utils.decorators import format_doc
 
 
 __all__ = ['NDArithmeticMixin']
 
 # Docstring templates for add, subtract, multiply, divide methods.
-_arit_doc = """Performs {name} based on `~nddata.nddata.NDData`.
+_arit_doc = """Performs {name} based on `~nddata.nddata.NDDataBase`.
 
     Parameters
     ----------
-    operand, operand2 : `NDData`-like instance or convertible to one.
+    operand, operand2 : `~.NDDataBase`-like instance or convertible to one.
         If operand2 is None or not given it will perform the operation
         ``self {op} operand``.
         If operand2 is given it will perform ``operand {op} operand2``.
@@ -38,7 +38,8 @@ _arit_doc = """Performs {name} based on `~nddata.nddata.NDData`.
             result will have a copied version of the first operand that has an
             uncertainty. If ``True`` the result will have a correctly
             propagated uncertainty from the uncertainties of the operands but
-            this assumes that the uncertainties are `NDUncertainty`-like.
+            this assumes that the uncertainties are
+            `~.meta.NDUncertainty`-like.
             Default is ``True``.
 
         - **handle_mask** : callable, ``'first_found'`` or ``None``, optional
@@ -89,7 +90,7 @@ _arit_doc = """Performs {name} based on `~nddata.nddata.NDData`.
 
     Returns
     -------
-    result : `~nddata.nddata.NDData`-like
+    result : `~.NDDataBase`-like
         The resulting dataset.
 
     Notes
@@ -106,19 +107,15 @@ _arit_doc = """Performs {name} based on `~nddata.nddata.NDData`.
 
 
 class NDArithmeticMixin(object):
-    """Mixin class to add arithmetic to an `NDData` object.
-
-    When subclassing, be sure to list the superclasses in the correct order
-    so that the subclass sees NDData as the main superclass. See
-    `~nddata.nddata.NDDataArray` for an example.
+    """Mixin class to add arithmetic to an `~.NDDataBase` object.
 
     Notes
     -----
     This class only aims at covering the most common cases so there are certain
     restrictions on the saved attributes::
 
-        - ``uncertainty`` : has to be something that has a `NDUncertainty`-like
-          interface for uncertainty propagation
+        - ``uncertainty`` : has to be something that has a
+          `~.NDUncertainty`-like interface for uncertainty propagation
         - ``mask`` : has to be something that can be used by a bitwise ``or``
           operation.
         - ``wcs`` : has to implement a way of comparing with ``=`` to allow
@@ -129,7 +126,7 @@ class NDArithmeticMixin(object):
     copy the existing attribute (and neglecting the other).
     For example for uncertainties not representing an `NDUncertainty`-like
     interface you can alter the ``propagate_uncertainties`` parameter in
-    :meth:`NDArithmeticMixin.add`. ``None`` means that the result will have no
+    :meth:`add`. ``None`` means that the result will have no
     uncertainty, ``False`` means it takes the uncertainty of the first operand
     (if this does not exist from the second operand) as the result's
     uncertainty. This behaviour is also explained in the docstring for the
@@ -144,28 +141,26 @@ class NDArithmeticMixin(object):
 
     Examples
     --------
-    Using this Mixin with `~nddata.nddata.NDData`:
+    This mixin is implemented in `~.NDData`::
 
-        >>> from nddata.nddata import NDData, NDArithmeticMixin
-        >>> class NDDataWithMath(NDArithmeticMixin, NDData):
-        ...     pass
+        >>> from nddata.nddata import NDData
 
     Using it with one operand on an instance::
 
-        >>> ndd = NDDataWithMath(100)
+        >>> ndd = NDData(100)
         >>> ndd.add(20)
-        NDDataWithMath(120)
+        NDData(120)
 
     Using it with two operand on an instance::
 
-        >>> ndd = NDDataWithMath(5)
+        >>> ndd = NDData(5)
         >>> ndd.divide(1, ndd)
-        NDDataWithMath(0.2)
+        NDData(0.2)
 
     Using it as classmethod requires two operands::
 
-        >>> NDDataWithMath.subtract(5, 4)
-        NDDataWithMath(1)
+        >>> NDData.subtract(5, 4)
+        NDData(1)
 
     """
 
@@ -184,35 +179,34 @@ class NDArithmeticMixin(object):
         Parameters
         ----------
         operation : callable
-            The operation that is performed on the `NDData`. Supported are
-            `numpy.add`, `numpy.subtract`, `numpy.multiply` and
+            The operation that is performed on the `~.NDDataBase`. Supported
+            are `numpy.add`, `numpy.subtract`, `numpy.multiply` and
             `numpy.true_divide`.
 
         operand : same type (class) as self
-            see :meth:`NDArithmeticMixin.add`
+            see :meth:`add`
 
         propagate_uncertainties : `bool` or ``None``, optional
-            see :meth:`NDArithmeticMixin.add`.
+            see :meth:`add`.
 
         handle_mask : callable, ``'first_found'`` or ``None``, optional
-            see :meth:`NDArithmeticMixin.add`.
+            see :meth:`add`.
 
         handle_meta : callable, ``'first_found'`` or ``None``, optional
-            see :meth:`NDArithmeticMixin.add`.
+            see :meth:`add`.
 
         handle_flags : callable, ``'first_found'`` or ``None``, optional
-            see :meth:`NDArithmeticMixin.add`.
+            see :meth:`add`.
 
         compare_wcs : callable, ``'first_found'`` or ``None``, optional
-            see :meth:`NDArithmeticMixin.add`.
+            see :meth:`add`.
 
         uncertainty_correlation : ``Number`` or `numpy.ndarray`, optional
-            see :meth:`NDArithmeticMixin.add`.
+            see :meth:`add`.
 
         kwargs :
             Any other parameter that should be passed to the
-            different :meth:`NDArithmeticMixin._arithmetic_mask` (or wcs, ...)
-            methods.
+            different ``_arithmetic_mask`` (or wcs, ...) methods.
 
         Returns
         -------
@@ -224,7 +218,7 @@ class NDArithmeticMixin(object):
             The kwargs should contain all the other attributes (besides data
             and unit) needed to create a new instance for the result. Creating
             the new instance is up to the calling method, for example
-            :meth:`NDArithmeticMixin.add`.
+            :meth:`add`.
 
         """
         # Find the appropriate keywords for the appropriate method (not sure
@@ -314,9 +308,9 @@ class NDArithmeticMixin(object):
         Parameters
         ----------
         operation : callable
-            see `NDArithmeticMixin._arithmetic` parameter description.
+            see ``_arithmetic`` parameter description.
 
-        operand : `NDData`-like instance
+        operand : `~.NDDataBase`-like instance
             The second operand wrapped in an instance of the same class as
             self.
 
@@ -353,39 +347,40 @@ class NDArithmeticMixin(object):
         Parameters
         ----------
         operation : callable
-            see :meth:`NDArithmeticMixin._arithmetic` parameter description.
+            see ``_arithmetic` parameter description.
 
-        operand : `NDData`-like instance
+        operand : `~.NDDataBase`-like instance
             The second operand wrapped in an instance of the same class as
             self.
 
         result : `~astropy.units.Quantity` or `numpy.ndarray`
-            The result of :meth:`NDArithmeticMixin._arithmetic_data`.
+            The result of ``_arithmetic_data``.
 
         correlation : number or `numpy.ndarray`
-            see :meth:`NDArithmeticMixin.add` parameter description.
+            see `add` parameter description.
 
         kwds :
             Additional parameters.
 
         Returns
         -------
-        result_uncertainty : `NDUncertainty` subclass instance or None
-            The resulting uncertainty already saved in the same `NDUncertainty`
-            subclass that ``self`` had (or ``operand`` if self had no
-            uncertainty). ``None`` only if both had no uncertainty.
+        result_uncertainty : `~.meta.NDUncertainty` subclass instance or None
+            The resulting uncertainty already saved in the same
+            `~.meta.NDUncertainty` subclass that ``self`` had (or ``operand``
+            if self had no uncertainty). ``None`` only if both had no
+            uncertainty.
         """
 
         # Make sure these uncertainties are NDUncertainties so this kind of
         # propagation is possible.
         if (self.uncertainty is not None and
-                not isinstance(self.uncertainty, NDUncertainty)):
+                not isinstance(self.uncertainty, NDUncertaintyPropagatable)):
             raise TypeError("Uncertainty propagation is only defined for "
-                            "subclasses of NDUncertainty.")
+                            "subclasses of NDUncertaintyPropagation.")
         if (operand.uncertainty is not None and
-                not isinstance(operand.uncertainty, NDUncertainty)):
+                not isinstance(operand.uncertainty, NDUncertaintyPropagatable)):
             raise TypeError("Uncertainty propagation is only defined for "
-                            "subclasses of NDUncertainty.")
+                            "subclasses of NDUncertaintyPropagation.")
 
         # Now do the uncertainty propagation
         # TODO: There is no enforced requirement that actually forbids the
@@ -426,15 +421,15 @@ class NDArithmeticMixin(object):
         Parameters
         ----------
         operation : callable
-            see :meth:`NDArithmeticMixin._arithmetic` parameter description.
+            see ``_arithmetic` parameter description.
             By default, the ``operation`` will be ignored.
 
-        operand : `NDData`-like instance
+        operand : `~.NDDataBase`-like instance
             The second operand wrapped in an instance of the same class as
             self.
 
         handle_mask : callable
-            see :meth:`NDArithmeticMixin.add`.
+            see :meth:`add`.
 
         kwds :
             Additional parameters given to ``handle_mask``.
@@ -470,15 +465,15 @@ class NDArithmeticMixin(object):
         Parameters
         ----------
         operation : callable
-            see :meth:`NDArithmeticMixin._arithmetic` parameter description.
+            see ``_arithmetic` parameter description.
             By default, the ``operation`` will be ignored.
 
-        operand : `NDData` instance or subclass
+        operand : `~.NDDataBase` instance or subclass
             The second operand wrapped in an instance of the same class as
             self.
 
         compare_wcs : callable
-            see :meth:`NDArithmeticMixin.add` parameter description.
+            see :meth:`add` parameter description.
 
         kwds :
             Additional parameters given to ``compare_wcs``.
@@ -511,15 +506,15 @@ class NDArithmeticMixin(object):
         Parameters
         ----------
         operation : callable
-            see :meth:`NDArithmeticMixin._arithmetic` parameter description.
+            see ``_arithmetic` parameter description.
             By default, the ``operation`` will be ignored.
 
-        operand : `NDData`-like instance
+        operand : `~.NDDataBase`-like instance
             The second operand wrapped in an instance of the same class as
             self.
 
         handle_meta : callable
-            see :meth:`NDArithmeticMixin.add`.
+            see :meth:`add`.
 
         kwds :
             Additional parameters given to ``handle_meta``.
@@ -538,15 +533,15 @@ class NDArithmeticMixin(object):
         Parameters
         ----------
         operation : callable
-            see :meth:`NDArithmeticMixin._arithmetic` parameter description.
+            see ``_arithmetic` parameter description.
             By default, the ``operation`` will be ignored.
 
-        operand : `NDData`-like instance
+        operand : `~.NDDataBase`-like instance
             The second operand wrapped in an instance of the same class as
             self.
 
         handle_flags : callable
-            see :meth:`NDArithmeticMixin.add`.
+            see :meth:`add`.
 
         kwds :
             Additional parameters given to ``handle_flags``.
@@ -612,7 +607,7 @@ class NDArithmeticMixin(object):
 
         Result
         ------
-        result : `~astropy.nddata.NDData`-like
+        result : `~.NDDataBase`-like
             Depending how this method was called either ``self_or_cls``
             (called on class) or ``self_or_cls.__class__`` (called on instance)
             is the NDData-subclass that is used as wrapper for the result.

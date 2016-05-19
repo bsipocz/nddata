@@ -9,30 +9,31 @@ from astropy.utils import wraps
 from astropy.utils.compat.funcsigs import signature
 from astropy.utils.exceptions import AstropyUserWarning
 
-from .nddata import NDData
+from ..nddata import NDDataBase
 
 
 __all__ = ['support_nddata']
 
 
-def support_nddata(_func=None, accepts=NDData, repack=False, returns=None):
-    """
-    Decorator to split NDData properties into function arguments.
+def support_nddata(_func=None, accepts=NDDataBase, repack=False, returns=None):
+    """Decorator to split `~nddata.nddata.NDDataBase` properties into function \
+            arguments.
 
-    This is a decorator to allow functions to take NDData objects as their
-    first arguments and split up the properties into kwargs as required by the
-    function. For example, if you consider the following function::
+    This is a decorator to allow functions to take `~nddata.nddata.NDDataBase`
+    objects as their first arguments and split up the properties into kwargs as
+    required by the function. For example, if you consider the following
+    function::
 
         def downsample(data, wcs=None):
             # downsample data and optionally WCS here
             pass
 
-    This function takes a Numpy array for the data, and some WCS information
-    with the ``data`` keyword argument. However, you might have an NDData
-    instance that has the ``wcs`` property set and you would like to be able to
-    call the function with ``downsample(my_nddata)`` and have the WCS
-    information, if present, automatically be passed to the ``wcs`` keyword
-    argument.
+    This function takes a `numpy.ndarray` for the data, and some WCS
+    information with the ``data`` keyword argument. However, you might have an
+    `~nddata.nddata.NDDataBase` instance that has the ``wcs`` property set and
+    you would like to be able to call the function with
+    ``downsample(my_nddata)`` and have the WCS information, if present,
+    automatically be passed to the ``wcs`` keyword argument.
 
     This decorator can be used to make this possible::
 
@@ -42,30 +43,33 @@ def support_nddata(_func=None, accepts=NDData, repack=False, returns=None):
             pass
 
     This function can now either be called as before, specifying the data and
-    WCS separately, or an NDData instance can be passed to the ``data``
-    argument.
+    WCS separately, or an `~nddata.nddata.NDDataBase` instance can be passed
+    to the ``data`` argument.
 
     The restrictions on functions to use this function are:
 
-    * The first positional argument should be ``data`` and take a Numpy array.
+    * The first positional argument should be ``data`` and take a
+      `numpy.ndarray`.
 
     * The following arguments can optionally be specified in the function
       signature, but if they are specified they should be keyword arguments:
       ``uncertainty``, ``mask``, ``meta``, ``unit``, and ``wcs``. If
       you are making use of this decorator, you should be prepared for these
-      keyword arguments to be set to the properties of the NDData object (if
-      present).
+      keyword arguments to be set to the properties of the
+      `~nddata.nddata.NDDataBase` object (if present).
 
-    The behavior of the decorator is to check through the NDData properties and
-    if they are set, it checks if the function accepts them as keyword
-    arguments. If an NDData property is set but cannot be passed to a keyword
-    argument, a warning is emitted to tell the user that the NDData property in
-    question will not be used by the function (to ensure that they know when
-    e.g. uncertainties cannot be used).
+    The behavior of the decorator is to check through the
+    `~nddata.nddata.NDDataBase` properties and if they are set, it checks if
+    the function accepts them as keyword arguments. If an
+    `~nddata.nddata.NDDataBase` property is set but cannot be passed to a
+    keyword argument, a warning is emitted to tell the user that the
+    `~nddata.nddata.NDDataBase` property in question will not be used by the
+    function (to ensure that they know when e.g. uncertainties cannot be used).
 
-    If the user passes an NDData object *and* explicitly sets a keyword
-    argument that is one of the valid NDData properties, a warning is emitted
-    to inform the user that the explicitly specified value will take priority.
+    If the user passes an `~nddata.nddata.NDDataBase` object *and* explicitly
+    sets a keyword argument that is one of the valid
+    `~nddata.nddata.NDDataBase` properties, a warning is emitted to inform the
+    user that the explicitly specified value will take priority.
     """
 
     if returns is not None and not repack:
@@ -90,9 +94,11 @@ def support_nddata(_func=None, accepts=NDData, repack=False, returns=None):
 
         # First argument should be data
         if len(func_args) == 0 or func_args[0] != 'data':
-            raise ValueError("Can only wrap functions whose first positional argument is `data`")
+            raise ValueError("Can only wrap functions whose first positional "
+                             "argument is `data`")
 
-        supported_properties = ['uncertainty', 'mask', 'meta', 'unit', 'wcs']
+        supported_properties = ['uncertainty', 'mask', 'meta', 'unit', 'wcs',
+                                'flags']
 
         @wraps(func)
         def wrapper(data, *args, **kwargs):
@@ -100,28 +106,32 @@ def support_nddata(_func=None, accepts=NDData, repack=False, returns=None):
             unpack = isinstance(data, accepts)
             input_data = data
 
-            if not unpack and isinstance(data, NDData):
-                raise TypeError("Only NDData sub-classes that inherit from {0}"
-                                " can be used by this function".format(accepts.__name__))
+            if not unpack and isinstance(data, NDDataBase):
+                raise TypeError("Only NDDataBase sub-classes that inherit from"
+                                " {0} can be used by this function".format(
+                                    accepts.__name__))
 
-            # If data is an NDData instance, we can try and find properties that
-            # can be passed as kwargs.
+            # If data is an NDData instance, we can try and find properties
+            # that can be passed as kwargs.
             if unpack:
 
                 ignored = []
 
                 # We loop over a list of pre-defined properties
                 for prop in supported_properties:
+                    msg = ("Property {0} has been passed explicitly and as an "
+                           "NDData property, using explicitly specified "
+                           "value.")
 
-                    # We only need to do something if the property exists on the
-                    # NDData object
+                    # We only need to do something if the property exists on
+                    # the NDData object
                     if hasattr(data, prop):
                         value = getattr(data, prop)
-                        if (prop == 'meta' and len(value) > 0) or (prop != 'meta' and value is not None):
+                        if ((prop == 'meta' and len(value) > 0) or
+                                (prop != 'meta' and value is not None)):
                             if prop in func_kwargs:
                                 if prop in kwargs and kwargs[prop] is not None:
-                                    warnings.warn("Property {0} has been passed explicitly and as an "
-                                                  "NDData property, using explicitly specified value".format(prop),
+                                    warnings.warn(msg.format(prop),
                                                   AstropyUserWarning)
                                 else:
                                     kwargs[prop] = value
@@ -129,8 +139,9 @@ def support_nddata(_func=None, accepts=NDData, repack=False, returns=None):
                                 ignored.append(prop)
 
                 if ignored:
-                    warnings.warn("The following attributes were set on the data object, "
-                                  "but will be ignored by the function: " + ", ".join(ignored),
+                    warnings.warn("The following attributes were set on the "
+                                  "data object, but will be ignored by the "
+                                  "function: " + ", ".join(ignored),
                                   AstropyUserWarning)
 
                 # Finally, replace data by the data itself
@@ -142,7 +153,8 @@ def support_nddata(_func=None, accepts=NDData, repack=False, returns=None):
 
                 if repack:
                     if len(returns) > 1 and len(returns) != len(result):
-                        raise ValueError("Function did not return the expected number of arguments")
+                        raise ValueError("Function did not return the expected"
+                                         " number of arguments")
                     elif len(returns) == 1:
                         result = [result]
                     return input_data.__class__(**dict(zip(returns, result)))
@@ -156,7 +168,7 @@ def support_nddata(_func=None, accepts=NDData, repack=False, returns=None):
         return wrapper
 
     # If _func is set, this means that the decorator was used without
-    # parameters so we have to return the result of the support_nddata_decorator
+    # parameters so we have to return the result of the support_nddata
     # decorator rather than the decorator itself
     if _func is not None:
         return support_nddata_decorator(_func)

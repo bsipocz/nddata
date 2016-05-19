@@ -7,39 +7,40 @@ Introduction
 ------------
 
 This page only deals with peculiarities applying to
-`~nddata.nddata.NDData`-like classes. For a tutorial about slicing/indexing see the
+`~nddata.nddata.NDDataBase`-like classes. For a tutorial about slicing/indexing
+see the
 `python documentation <https://docs.python.org/tutorial/introduction.html#lists>`_
 and `numpy documentation <http://docs.scipy.org/doc/numpy/reference/arrays.indexing.html>`_.
 
 .. warning::
-    `~nddata.nddata.NDData` and `~nddata.nddata.NDDataRef` enforce almost no
+    `~nddata.nddata.NDDataBase` and `~nddata.nddata.NDData` enforce almost no
     restrictions on the properties so it might happen that some **valid but
     unusual** combination of properties always results in an IndexError or
     incorrect results. In this case see :ref:`nddata_subclassing` on how to
     customize slicing for a particular property.
 
 
-Slicing NDDataRef
+Slicing NDData
 -----------------
 
-Unlike `~nddata.nddata.NDData` the class `~nddata.nddata.NDDataRef`
+Unlike `~nddata.nddata.NDDataBase` the class `~nddata.nddata.NDData`
 implements slicing or indexing. The result will be wrapped inside the same
 class as the sliced object.
 
 Getting one element::
 
     >>> import numpy as np
-    >>> from nddata.nddata import NDDataRef
+    >>> from nddata.nddata import NDData
 
     >>> data = np.array([1, 2, 3, 4])
-    >>> ndd = NDDataRef(data)
+    >>> ndd = NDData(data)
     >>> ndd[1]
-    NDDataRef(2)
+    NDData(2)
 
 Getting a sliced portion of the original::
 
     >>> ndd[1:3]  # Get element 1 (inclusive) to 3 (exclusive)
-    NDDataRef([2, 3])
+    NDData([2, 3])
 
 This will return a reference (and as such **not a copy**) of the original
 properties so changing a slice will affect the original::
@@ -47,14 +48,14 @@ properties so changing a slice will affect the original::
     >>> ndd_sliced = ndd[1:3]
     >>> ndd_sliced.data[0] = 5
     >>> ndd_sliced
-    NDDataRef([5, 3])
+    NDData([5, 3])
     >>> ndd
-    NDDataRef([1, 5, 3, 4])
+    NDData([1, 5, 3, 4])
 
 except you indexed only one element (for example ``ndd_sliced = ndd[1]``). Then
 the element is a scalar and changes will not propagate to the original.
 
-Slicing NDDataRef including attributes
+Slicing NDData including attributes
 --------------------------------------
 
 In case a ``wcs``, ``mask``, ``flags`` or ``uncertainty`` is present this
@@ -66,7 +67,7 @@ attribute will be sliced too::
     >>> uncertainty = StdDevUncertainty(np.sqrt(data))
     >>> wcs = np.ones(4)
     >>> flags = np.zeros(data.shape, dtype=bool)
-    >>> ndd = NDDataRef(data, mask=mask, uncertainty=uncertainty, wcs=wcs, flags=flags)
+    >>> ndd = NDData(data, mask=mask, uncertainty=uncertainty, wcs=wcs, flags=flags)
     >>> ndd_sliced = ndd[1:3]
 
     >>> ndd_sliced.data
@@ -91,10 +92,11 @@ printed and the property will be kept as is::
 
     >>> data = np.array([1, 2, 3, 4])
     >>> mask = False
-    >>> uncertainty = StdDevUncertainty(0)
+    >>> from nddata.nddata import UnknownUncertainty
+    >>> uncertainty = UnknownUncertainty(0)
     >>> wcs = {'a': 5}
     >>> flags = False
-    >>> ndd = NDDataRef(data, mask=mask, uncertainty=uncertainty, wcs=wcs, flags=flags)
+    >>> ndd = NDData(data, mask=mask, uncertainty=uncertainty, wcs=wcs, flags=flags)
     >>> ndd_sliced = ndd[1:3]
     INFO: uncertainty cannot be sliced. [nddata.nddata.mixins.ndslicing]
     INFO: mask cannot be sliced. [nddata.nddata.mixins.ndslicing]
@@ -118,11 +120,11 @@ So we are able to get all valid data points by slicing with the mask::
     >>> data = np.array([[1,2,3],[4,5,6],[7,8,9]])
     >>> mask = np.array([[0,1,0],[1,1,1],[0,0,1]], dtype=bool)
     >>> uncertainty = StdDevUncertainty(np.sqrt(data))
-    >>> ndd = NDDataRef(data, mask=mask, uncertainty=uncertainty)
+    >>> ndd = NDData(data, mask=mask, uncertainty=uncertainty)
     >>> # don't forget that ~ or you'll get the invalid points
     >>> ndd_sliced = ndd[~ndd.mask]
     >>> ndd_sliced
-    NDDataRef([1, 3, 7, 8])
+    NDData([1, 3, 7, 8])
 
     >>> ndd_sliced.mask
     array([False, False, False, False], dtype=bool)
@@ -134,7 +136,7 @@ or all invalid points::
 
     >>> ndd_sliced = ndd[ndd.mask] # without the ~ now!
     >>> ndd_sliced
-    NDDataRef([2, 4, 5, 6, 9])
+    NDData([2, 4, 5, 6, 9])
 
     >>> ndd_sliced.mask
     array([ True,  True,  True,  True,  True], dtype=bool)

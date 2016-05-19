@@ -6,10 +6,10 @@ NDData File I/O
 Introduction
 ------------
 
-`~nddata.nddata.NDDataRef` has two methods for reading and writing:
+`~nddata.nddata.NDData` has two methods for reading and writing:
 
-- :meth:`~nddata.nddata.NDIOMixin.read`
-- :meth:`~nddata.nddata.NDIOMixin.write`
+- :meth:`~nddata.nddata.mixins.NDIOMixin.read`
+- :meth:`~nddata.nddata.mixins.NDIOMixin.write`
 
 These use the astropy :ref:`io_registry`.
 
@@ -20,8 +20,8 @@ Reading and writing FITS files
 
 .. warning::
     By default everything that was written by
-    :meth:`~nddata.nddata.NDIOMixin.write` should be readable using
-    :meth:`~nddata.nddata.NDIOMixin.read`.
+    :meth:`~nddata.nddata.mixins.NDIOMixin.write` should be readable using
+    :meth:`~nddata.nddata.mixins.NDIOMixin.read`.
 
     additional requirements:
 
@@ -38,30 +38,30 @@ To use these you have to include a ``format='simple_fits'`` parameter when
 calling these methods::
 
     >>> import numpy as np
-    >>> from nddata.nddata import NDDataRef
+    >>> from nddata.nddata import NDData
 
-    >>> ndd = NDDataRef([1,2,3,4])
+    >>> ndd = NDData([1,2,3,4])
     >>> ndd.write('filename.fits', format='simple_fits')
 
 Reading the file again::
 
-    >>> ndd2 = NDDataRef.read('filename.fits', format='simple_fits')
+    >>> ndd2 = NDData.read('filename.fits', format='simple_fits')
     >>> ndd2
-    NDDataRef([1, 2, 3, 4])
+    NDData([1, 2, 3, 4])
 
 With more attributes these will be conserved as well::
 
     >>> import numpy as np
-    >>> from nddata.nddata import NDDataRef, StdDevUncertainty
+    >>> from nddata.nddata import NDData, StdDevUncertainty
 
     >>> data = np.array([0, 1, 3])
     >>> mask = data > 1
     >>> flags = np.array([0, 1, 0])
     >>> uncertainty = StdDevUncertainty([1, 2, 3])
-    >>> ndd1 = NDDataRef(data, mask=mask, flags=flags, uncertainty=uncertainty)
+    >>> ndd1 = NDData(data, mask=mask, flags=flags, uncertainty=uncertainty)
     >>> ndd1.write('test.fits', format='simple_fits')
 
-    >>> ndd2 = NDDataRef.read('test.fits', format='simple_fits')
+    >>> ndd2 = NDData.read('test.fits', format='simple_fits')
     >>> ndd2.data
     array([0, 1, 3])
     >>> ndd2.mask
@@ -76,13 +76,13 @@ Reading external FITS files
 ---------------------------
 
 External files probably don't follow the conventions used by
-:meth:`~nddata.nddata.NDIOMixin.write` so it may be needed to use additional
-parameters while reading such a file.
+:meth:`~nddata.nddata.mixins.NDIOMixin.write` so it may be needed to use
+additional parameters while reading such a file.
 
 Specify different extensions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-By default :meth:`~nddata.nddata.NDIOMixin.read` assumes:
+By default :meth:`~nddata.nddata.mixins.NDIOMixin.read` assumes:
 
 - ``data`` is saved in the primary HDU: extension ``0``.
 - ``meta`` is saved in the primary HDU: extension ``0``.
@@ -105,7 +105,7 @@ To overwrite any of these defaults use:
 
 For example the ``data`` is saved in an extension called ``"SCI"``::
 
-    >>> ndd = NDDataRef.read('filename.fits', format='simple_fits', ext_data='sci') # doctest: +SKIP
+    >>> ndd = NDData.read('filename.fits', format='simple_fits', ext_data='sci') # doctest: +SKIP
 
 .. warning::
     Reading a compressed not-array-like ``mask`` is not possible.
@@ -116,7 +116,7 @@ Special cases
 Since uncertainties have to be wrapped in an appropriate class you might need
 to do  an additional step afterwards::
 
-    >>> ndd = NDDataRef.read('filename.fits', format='simple_fits') # doctest: +SKIP
+    >>> ndd = NDData.read('filename.fits', format='simple_fits') # doctest: +SKIP
     >>> # For example if it's a standard deviation uncertainty:
     >>> ndd.uncertainty = StdDevUncertainty(ndd.uncertainty.array) # doctest: +SKIP
 
@@ -124,7 +124,7 @@ Also there might be units that cannot be interpreted by `~astropy.units.Unit`.
 In these cases you should set the parameter to ``None`` and manually add the
 unit, if required, later::
 
-    >>> ndd = NDDataRef.read('filename.fits', format='simple_fits', kw_unit=None) # doctest: +SKIP
+    >>> ndd = NDData.read('filename.fits', format='simple_fits', kw_unit=None) # doctest: +SKIP
     >>> ndd.meta # if you want to inspect the header # doctest: +SKIP
     >>> ndd.unit = 'adu' # doctest: +SKIP
 
@@ -132,13 +132,13 @@ In case you want to change the datatype of your data (maybe because the data
 was saved in unsigned integer but you want floats) you can specify a ``dtype``
 parameter::
 
-    >>> ndd = NDDataRef.read('filename.fits', format='simple_fits', dtype=float) # doctest: +SKIP
+    >>> ndd = NDData.read('filename.fits', format='simple_fits', dtype=float) # doctest: +SKIP
 
 this ``dtype`` will affect **only** the data. Other attributes like mask and
 uncertainty will be unaffected. You can always manually alter their dtype using
 the appropriate attribute setter::
 
-    >>> ndd = NDDataRef([1,2,0], uncertainty=[1,2,3]) # doctest: +SKIP
+    >>> ndd = NDData([1,2,0], uncertainty=[1,2,3]) # doctest: +SKIP
     INFO: uncertainty should have attribute uncertainty_type. [nddata.nddata.nddata]
 
     >>> # Change the data type of the uncertainty to float:
@@ -155,9 +155,10 @@ possible.
 Writing FITS files
 ------------------
 
-:meth:`~nddata.nddata.NDIOMixin.write` also supports some optional arguments
-like ``ext_mask``, ``ext_uncert`` and ``kw_unit`` but generally it might not
-be needed to use them if you don't need to process them using other software.
+:meth:`~nddata.nddata.mixins.NDIOMixin.write` also supports some optional
+arguments like ``ext_mask``, ``ext_uncert`` and ``kw_unit`` but generally it
+might not be needed to use them if you don't need to process them using other
+software.
 
 Additional parameters
 ^^^^^^^^^^^^^^^^^^^^^
@@ -166,7 +167,7 @@ Writing also supports giving parameters to
 :meth:`astropy.io.fits.HDUList.writeto`. Especially ``clobber`` might be
 helpful if replacing an existing file is desired::
 
-    >>> ndd = NDDataRef([1,2,3,4]) # doctest: +SKIP
+    >>> ndd = NDData([1,2,3,4]) # doctest: +SKIP
     >>> ndd.write('test.fits', format='simple_fits')  # doctest: +SKIP
     >>> ndd.data[1] = 100  # doctest: +SKIP
     >>> # Suppose you want to overwrite this file again use clobber=True
@@ -176,8 +177,8 @@ Why simple?
 -----------
 
 FITS files come in a plethora of formats and with varying conventions. The
-parameters for :meth:`~nddata.nddata.NDIOMixin.read` allow some flexibility
-but these don't cover all cases. It may be easier to define a customized
-reader and writer (for inspiration take a look at the source code of the
-``"simple_fits"`` code in ``"astropy.io.fits.connect.py"``) to handle
+parameters for :meth:`~nddata.nddata.mixins.NDIOMixin.read` allow some
+flexibility but these don't cover all cases. It may be easier to define a
+customized reader and writer (for inspiration take a look at the source code of
+the ``"simple_fits"`` code in ``"nddata.nddata.mixins.ndio.py"``) to handle
 incompatible formats.

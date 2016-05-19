@@ -1,15 +1,15 @@
 .. _nddata_details:
 
-NDData
-======
+NDDataBase and NDData
+=====================
 
 Overview
 --------
 
-:class:`~nddata.nddata.NDData` is based on `numpy.ndarray`-like ``data`` with
-additional meta attributes:
+:class:`~nddata.nddata.NDDataBase` and :class:`~nddata.nddata.NDData` are based
+on `numpy.ndarray`-like ``data`` with additional meta attributes:
 
-+  ``meta``, for general metadata
++ ``meta``, for general metadata
 + ``unit``, representing the physical unit of the data
 + ``uncertainty`` for the uncertainty of the data
 + ``mask``, indicating invalid points in the data
@@ -17,35 +17,37 @@ additional meta attributes:
   coordinates
 
 Each of these attributes can be set during initialization or directly on the
-instance. Only the ``data`` cannot be directly set after creating the instance.
+instance.
+
+In the following examples :class:`~nddata.nddata.NDDataBase` is used but these
+are the same for :class:`~nddata.nddata.NDData`.
 
 Data
 ----
 
-The data is the base of `~nddata.nddata.NDData` and required to be
+The data is the base of `~nddata.nddata.NDDataBase` and required to be
 `numpy.ndarray`-like. It's the only property that is required to create an
-instance and it cannot be directly set on the instance.
+instance.
 
 For example::
 
     >>> import numpy as np
-    >>> from nddata.nddata import NDData
+    >>> from nddata.nddata import NDDataBase
     >>> array = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]])
-    >>> ndd = NDData(array)
+    >>> ndd = NDDataBase(array)
     >>> ndd
-    NDData([[0, 1, 0],
-            [1, 0, 1],
-            [0, 1, 0]])
+    NDDataBase([[0, 1, 0],
+                [1, 0, 1],
+                [0, 1, 0]])
 
-and can be accessed by the ``data`` attribute::
+It can be accessed by the ``data`` attribute::
 
     >>> ndd.data
     array([[0, 1, 0],
            [1, 0, 1],
            [0, 1, 0]])
 
-as already mentioned it is not possible to set the data directly. So
-``ndd.data = np.arange(9)`` will raise an Exception. But the data can be
+It is possible to set the data directly, but more commonly the data should be
 modified in place::
 
     >>> ndd.data[1,1] = 100
@@ -62,7 +64,7 @@ During initialization it is possible to provide data that it's not a
 numerical values::
 
     >>> alist = [1, 2, 3, 4]
-    >>> ndd = NDData(alist)
+    >>> ndd = NDDataBase(alist)
     >>> ndd.data  # data will be a numpy-array:
     array([1, 2, 3, 4])
 
@@ -71,10 +73,10 @@ values the conversion might fail.
 
 Besides input that is convertible to such an array you can use the ``data``
 parameter to pass implicit additional information. For example if the data is
-another `~nddata.nddata.NDData`-object it implicitly uses it's properties::
+another `~nddata.nddata.NDDataBase`-object it implicitly uses it's properties::
 
     >>> ndd.unit = 'm'
-    >>> ndd2 = NDData(ndd)
+    >>> ndd2 = NDDataBase(ndd)
     >>> ndd2.data  # It has the same data as ndd
     array([1, 2, 3, 4])
     >>> ndd2.unit  # but it also has the same unit as ndd
@@ -85,7 +87,7 @@ parameter::
 
     >>> import astropy.units as u
     >>> quantity = np.ones(3) * u.cm  # this will create a Quantity
-    >>> ndd3 = NDData(quantity)
+    >>> ndd3 = NDDataBase(quantity)
     >>> ndd3.data
     array([ 1.,  1.,  1.])
     >>> ndd3.unit
@@ -94,7 +96,7 @@ parameter::
 or a `numpy.ma.MaskedArray`::
 
     >>> masked_array = np.ma.array([5,10,15], mask=[False, True, False])
-    >>> ndd4 = NDData(masked_array)
+    >>> ndd4 = NDDataBase(masked_array)
     >>> ndd4.data
     array([ 5, 10, 15])
     >>> ndd4.mask
@@ -103,7 +105,7 @@ or a `numpy.ma.MaskedArray`::
 or even a masked Quantity::
 
     >>> masked_quantity = np.ma.array([1,2,3,4]*u.kg, mask=[True, False, True, False])
-    >>> ndd5 = NDData(masked_quantity)
+    >>> ndd5 = NDDataBase(masked_quantity)
     >>> ndd5.data
     array([ 1.,  2.,  3.,  4.])
     >>> ndd5.mask
@@ -115,8 +117,8 @@ If such an implicitly passed property conflicts with an explicit parameter, the
 explicit parameter will be used and an info-message will be issued::
 
     >>> quantity = np.ones(3) * u.cm
-    >>> ndd6 = NDData(quantity, unit='m')
-    INFO: overwriting Quantity's current unit with specified unit. [nddata.nddata.nddata]
+    >>> ndd6 = NDDataBase(quantity, unit='m')
+    INFO: overwriting Quantity's current unit with specified unit. [nddata.nddata.nddata_base]
     >>> ndd6.data
     array([ 1.,  1.,  1.])
     >>> ndd6.unit
@@ -128,9 +130,9 @@ to the explicitly passed one.
 This can also be used to create an instance and set one of the attributes to
 ``None``::
 
-    >>> ndd7 = NDData(np.ones(5), mask=np.array(True))
-    >>> ndd8 = NDData(ndd7, mask=None)
-    INFO: overwriting NDData's current mask with specified mask. [nddata.nddata.nddata]
+    >>> ndd7 = NDDataBase(np.ones(5), mask=np.array(True))
+    >>> ndd8 = NDDataBase(ndd7, mask=None)
+    INFO: overwriting NDDataBase's current mask with specified mask. [nddata.nddata.nddata_base]
     >>> print(ndd8.mask)
     None
 
@@ -145,7 +147,7 @@ Mask
 ----
 
 The ``mask`` is being used to indicate if data points are valid or invalid.
-`~nddata.nddata.NDData` doesn't restrict this mask in any way but it is
+`~nddata.nddata.NDDataBase` doesn't restrict this mask in any way but it is
 expected to follow the `numpy.ma.MaskedArray` convention that the mask:
 
 + returns ``True`` for data points that are considered **invalid**.
@@ -163,10 +165,10 @@ One possibility is to create a mask by using numpys comparison operators::
     >>> other_mask
     array([False, False,  True, False,  True], dtype=bool)
 
-and initialize the `~nddata.nddata.NDData` instance using the ``mask``
+and initialize the `~nddata.nddata.NDDataBase` instance using the ``mask``
 parameter::
 
-    >>> ndd = NDData(array, mask=mask)
+    >>> ndd = NDDataBase(array, mask=mask)
     >>> ndd.mask
     array([ True, False, False,  True, False], dtype=bool)
 
@@ -188,7 +190,7 @@ The ``unit`` represents the unit of the data values. It is required to be
 `~astropy.units.Unit`::
 
     >>> import astropy.units as u
-    >>> ndd = NDData([1, 2, 3, 4], unit="meter")  # using a string
+    >>> ndd = NDDataBase([1, 2, 3, 4], unit="meter")  # using a string
     >>> ndd.unit
     Unit("m")
 
@@ -202,10 +204,10 @@ or by replacing it on the instance::
     >>> ndd.unit
     Unit("kg Mpc / (h m)")
 
-..note::
-    This will however simply replace the saved unit and not scale or convert
-    the data values. Appropriate conversion and sanity checks **must be done
-    manually**.
+.. note::
+  This will however simply replace the saved unit and not scale or convert
+  the data values. Appropriate conversion and sanity checks **must be done
+  manually**.
 
 Uncertainties
 -------------
@@ -226,7 +228,7 @@ initialization::
     >>> from nddata.nddata import StdDevUncertainty
     >>> array = np.array([10, 7, 12, 22])
     >>> uncert = StdDevUncertainty(np.sqrt(array))
-    >>> ndd = NDData(array, uncertainty=uncert)
+    >>> ndd = NDDataBase(array, uncertainty=uncert)
     >>> ndd.uncertainty
     StdDevUncertainty([ 3.16227766,  2.64575131,  3.46410162,  4.69041576])
 
@@ -252,7 +254,7 @@ coordinates. There are no restrictions placed on the property currently but it
 may be restricted to an `~astropy.wcs.WCS` object or a more generalized WCS
 object in the future::
 
-    >>> ndd = NDData(np.ones((3, 3)), wcs=np.zeros((3,3), dtype=int))
+    >>> ndd = NDDataBase(np.ones((3, 3)), wcs=np.zeros((3,3), dtype=int))
     >>> ndd.wcs
     array([[0, 0, 0],
            [0, 0, 0],
@@ -266,7 +268,7 @@ any other property.
 
 If given it must be `dict`-like::
 
-    >>> ndd = NDData([1,2,3], meta={'observer': 'myself'})
+    >>> ndd = NDDataBase([1,2,3], meta={'observer': 'myself'})
     >>> ndd.meta
     {'observer': 'myself'}
 
@@ -276,7 +278,7 @@ also includes `~astropy.io.fits.Header` objects::
     >>> from astropy.io import fits
     >>> header = fits.Header()
     >>> header['observer'] = 'Edwin Hubble'
-    >>> ndd = NDData(np.zeros([10, 10]), meta=header)
+    >>> ndd = NDDataBase(np.zeros([10, 10]), meta=header)
     >>> ndd.meta['observer']
     'Edwin Hubble'
 
@@ -287,7 +289,7 @@ an empty `collections.OrderedDict`::
     >>> ndd.meta
     OrderedDict()
 
-    >>> ndd = NDData([1,2,3])
+    >>> ndd = NDDataBase([1,2,3])
     >>> ndd.meta
     OrderedDict()
 
@@ -308,45 +310,41 @@ Flags are meant to be array-like meta information on the data which wouldn't
 be suitable for the ``meta`` attribute. For example a bitmask could be a
 potential use-case. However there are no restrictions on the flags::
 
-    >>> ndd = NDData(np.arange(10), flags=np.zeros(10))
+    >>> ndd = NDDataBase(np.arange(10), flags=np.zeros(10))
     >>> ndd.flags
     array([ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.])
 
 Initialization with copy
 ------------------------
 
-The default way to create an `~nddata.nddata.NDData` instance is to try saving
+The default way to create an `~nddata.nddata.NDDataBase` instance is to try saving
 the parameters as references to the original rather than as copy. Sometimes
 this is not possible because the internal mechanics don't allow for this. For
 example if the ``data`` is a `list` then during initialization this is copied
-while converting to a `~numpy.ndarray`. But it is also possible to enforce
+while converting to a `numpy.ndarray`. But it is also possible to enforce
 copies during initialization by setting the ``copy`` parameter to ``True``::
 
     >>> array = np.array([1, 2, 3, 4])
-    >>> ndd = NDData(array)
+    >>> ndd = NDDataBase(array)
     >>> ndd.data[2] = 10
     >>> array[2]  # Original array has changed
     10
 
-    >>> ndd2 = NDData(array, copy=True)
+    >>> ndd2 = NDDataBase(array, copy=True)
     >>> ndd2.data[2] = 3
     >>> array[2]  # Original array hasn't changed.
     10
 
-.. note::
-    In some cases setting ``copy=True`` will copy the ``data`` twice. Known
-    cases are if the ``data`` is a `list` or `tuple`.
+Converting NDDataBase to other classes
+--------------------------------------
 
-Converting NDData to other classes
-----------------------------------
-
-There is limited to support to convert a `~nddata.nddata.NDData` instance to
+There is limited to support to convert a `~nddata.nddata.NDDataBase` instance to
 other classes. In the process some properties might be lost.
 
     >>> data = np.array([1, 2, 3, 4])
     >>> mask = np.array([True, False, False, True])
     >>> unit = 'm'
-    >>> ndd = NDData(data, mask=mask, unit=unit)
+    >>> ndd = NDDataBase(data, mask=mask, unit=unit)
 
 `numpy.ndarray`
 ^^^^^^^^^^^^^^^
