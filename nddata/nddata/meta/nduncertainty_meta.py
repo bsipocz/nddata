@@ -25,11 +25,8 @@ __all__ = ['NDUncertainty',
 
 @six.add_metaclass(ABCMeta)
 class NDUncertainty(object):
-    """This is the metaclass for uncertainty classes used with `~.NDDataBase`.
-
-    .. warning::
-        NDUncertainty is an abstract class and should *never* be instantiated
-        directly.
+    """Base metaclass (`abc.ABCMeta`) for uncertainty classes used with \
+            `~.NDDataBase`.
 
     Parameters
     ----------
@@ -38,10 +35,14 @@ class NDUncertainty(object):
         `~astropy.units.Quantity` or `NDUncertainty`-like data is recommended.
         Default is ``None``.
 
-    unit : `~astropy.units.Unit` or str, optional
+    unit : `~astropy.units.Unit`, `str` or `None`, optional
         Unit for the uncertainty ``data``. Strings that can be converted to a
         `~astropy.units.Unit` are allowed.
         Default is ``None``.
+
+    parent_nddata : `~.NDDataBase`-like or None, optional
+        The parent dataset for this uncertainty.
+        Defaults is ``None``.
 
     copy : `bool`, optional
         Indicates whether to save the ``data`` as a copy. ``True`` copies it
@@ -53,8 +54,7 @@ class NDUncertainty(object):
     Raises
     ------
     IncompatibleUncertaintiesException
-        If given another `NDUncertainty`-like class as ``data`` if their
-        ``uncertainty_type`` is different.
+        If given another `NDUncertainty`-like class and it isn't convertible.
     """
 
     def __init__(self, data=None, unit=ParameterNotSpecified,
@@ -216,13 +216,7 @@ class NDUncertainty(object):
         # We don't need sliced uncertainties linking to unsliced data.
         return self.__class__(self.data[item], unit=self.unit, copy=False)
 
-    @abstractproperty
-    def uncertainty_type(self):
-        """(`str`) Short description of the type of uncertainty.
-
-        Defined as abstract property so subclasses *have* to override this.
-        """
-
+    # Descriptor-properties
     @descriptors.UncertaintyData
     def data(self):
         """(any type) Uncertainty value.
@@ -238,6 +232,13 @@ class NDUncertainty(object):
           unit is compatible or convertible to the old unit. Neither will this
           scale or otherwise affect the saved uncertainty. Appropriate
           conversion of these values must be done manually.
+        """
+
+    # Real properties.
+    @abstractproperty
+    def uncertainty_type(self):
+        """(`abc.abstractproperty`) Short description of the type of \
+                uncertainty.
         """
 
     @property
@@ -283,22 +284,31 @@ class NDUncertainty(object):
 
 @six.add_metaclass(ABCMeta)
 class NDUncertaintyPropagatable(NDUncertainty):
+    """Metaclass (`abc.ABCMeta`) that extends `NDUncertainty` and indicates \
+            that instances allow uncertainty propatation.
+    """
 
-    @property
+    @abstractproperty
     def supports_correlated(self):
-        """(`bool`) Supports uncertainty propagation with correlated \
-                 uncertainties?
+        """(`abc.abstractproperty`) Supports uncertainty propagation with \
+                correlated uncertainties?
+
+        Should be a `bool`.
         """
-        return False
 
     @abstractmethod
     def propagate(self, *args, **kwargs):
         """(`abc.abstractmethod`) Propagate uncertainties.
+
+        No restrictions on the arguments.
         """
 
 
 @six.add_metaclass(ABCMeta)
 class NDUncertaintyGaussian(NDUncertaintyPropagatable):
+    """Metaclass (`abc.ABCMeta`) that extens `NDUncertaintyPropagatable` and \
+            indicates the propagation assumes gaussian uncertainties.
+    """
 
     @descriptors.ArrayData
     def data(self):
