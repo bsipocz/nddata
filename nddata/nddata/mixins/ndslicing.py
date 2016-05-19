@@ -10,15 +10,27 @@ __all__ = ['NDSlicingMixin']
 
 
 class NDSlicingMixin(object):
-    """
-    Mixin to provide slicing on objects using the `NDData`
-    interface.
+    """Mixin to provide slicing on objects using the `~.NDDataBase` interface.
 
     The ``data``, ``mask``, ``uncertainty``, ``flags`` and ``wcs`` will be
     sliced, if set and sliceable. The ``unit`` and ``meta`` will be untouched.
 
     .. warning::
         The sliced return will be, if possible, a reference and not a copy.
+
+    Examples
+    --------
+    `~.NDData` implements this mixin::
+
+        >>> from nddata.nddata import NDData
+        >>> import numpy as np
+
+        >>> ndd = NDData([1,2,3], mask=np.array([True, False, True]))
+        >>> ndd[:2]
+        NDData([1, 2])
+
+        >>> ndd[~ndd.mask]
+        NDData([2])
     """
     def __getitem__(self, item):
         # Abort slicing if the data is a single scalar.

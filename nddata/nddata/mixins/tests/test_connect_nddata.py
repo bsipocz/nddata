@@ -1,7 +1,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from ...nddata import NDData
+from ...nddata import NDDataBase
 from ...nduncertainty import StdDevUncertainty, UnknownUncertainty
 from ..ndio import NDIOMixin, write_nddata_fits, read_nddata_fits
 
@@ -9,7 +9,7 @@ import numpy as np
 
 
 # Define minimal class that uses the I/O mixin
-class NDDataIO(NDIOMixin, NDData):
+class NDDataIO(NDIOMixin, NDDataBase):
     pass
 
 
@@ -66,7 +66,7 @@ class TestIOFunctions(object):
             assert all(ndd1.meta[key] == ndd2.meta[key] for key in ndd1.meta)
 
     def test_nddata_write_read_data_only(self, tmpdir):
-        ndd1 = NDData(np.ones((3, 3)))
+        ndd1 = NDDataBase(np.ones((3, 3)))
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)
@@ -75,7 +75,7 @@ class TestIOFunctions(object):
         self.compare_nddata(ndd1, ndd2)
 
     def test_nddata_write_read_data_only_with_dtype(self, tmpdir):
-        ndd1 = NDData(np.ones((3, 3)))
+        ndd1 = NDDataBase(np.ones((3, 3)))
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)
@@ -84,8 +84,8 @@ class TestIOFunctions(object):
         assert ndd2.data.dtype == np.int32
 
     def test_nddata_write_read_flags(self, tmpdir):
-        ndd1 = NDData(np.ones((3, 3)),
-                      flags=np.array([[1, 0, 1], [0, 1, 0], [1, 0, 1]]))
+        ndd1 = NDDataBase(np.ones((3, 3)),
+                          flags=np.array([[1, 0, 1], [0, 1, 0], [1, 0, 1]]))
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)
@@ -94,9 +94,9 @@ class TestIOFunctions(object):
         self.compare_nddata(ndd1, ndd2)
 
     def test_nddata_write_read_mask_boolean(self, tmpdir):
-        ndd1 = NDData(np.ones((3, 3)),
-                      mask=np.array([[1, 0, 1], [0, 1, 0], [1, 0, 1]],
-                                    dtype=bool))
+        ndd1 = NDDataBase(np.ones((3, 3)),
+                          mask=np.array([[1, 0, 1], [0, 1, 0], [1, 0, 1]],
+                                        dtype=bool))
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)
@@ -105,8 +105,8 @@ class TestIOFunctions(object):
         self.compare_nddata(ndd1, ndd2)
 
     def test_nddata_write_read_mask_not_boolean(self, tmpdir):
-        ndd1 = NDData(np.ones((3, 3)),
-                      mask=np.array([[1, 0, 1], [0, 1, 0], [1, 0, 1]]))
+        ndd1 = NDDataBase(np.ones((3, 3)),
+                          mask=np.array([[1, 0, 1], [0, 1, 0], [1, 0, 1]]))
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)
@@ -115,8 +115,8 @@ class TestIOFunctions(object):
         self.compare_nddata(ndd1, ndd2)
 
     def test_nddata_write_read_uncertainty_unknown(self, tmpdir):
-        ndd1 = NDData(np.ones((3, 3)),
-                      uncertainty=np.random.random((3, 3)))
+        ndd1 = NDDataBase(np.ones((3, 3)),
+                          uncertainty=np.random.random((3, 3)))
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)
@@ -125,8 +125,8 @@ class TestIOFunctions(object):
         self.compare_nddata(ndd1, ndd2)
 
     def test_nddata_write_read_uncertainty_unknown_explicit(self, tmpdir):
-        ndd1 = NDData(np.ones((3, 3)),
-                      uncertainty=UnknownUncertainty(np.random.random((3, 3))))
+        ndd1 = NDDataBase(np.ones((3, 3)),
+                          uncertainty=UnknownUncertainty(np.random.random((3, 3))))
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)
@@ -135,8 +135,8 @@ class TestIOFunctions(object):
         self.compare_nddata(ndd1, ndd2)
 
     def test_nddata_write_read_uncertainty_stddev_explicit(self, tmpdir):
-        ndd1 = NDData(np.ones((3, 3)),
-                      uncertainty=StdDevUncertainty(np.random.random((3, 3))))
+        ndd1 = NDDataBase(np.ones((3, 3)),
+                          uncertainty=StdDevUncertainty(np.random.random((3, 3))))
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)
@@ -145,8 +145,8 @@ class TestIOFunctions(object):
         self.compare_nddata(ndd1, ndd2)
 
     def test_nddata_write_read_uncertainty_with_unit(self, tmpdir):
-        ndd1 = NDData(np.ones((3, 3)),
-                      uncertainty=UnknownUncertainty(np.random.random((3, 3)), 'm'))
+        ndd1 = NDDataBase(np.ones((3, 3)),
+                          uncertainty=UnknownUncertainty(np.random.random((3, 3)), 'm'))
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)
@@ -155,8 +155,8 @@ class TestIOFunctions(object):
         self.compare_nddata(ndd1, ndd2)
 
     def test_nddata_write_read_uncertainty_with_same_unit(self, tmpdir):
-        ndd1 = NDData(np.ones((3, 3)), unit='m',
-                      uncertainty=UnknownUncertainty(np.random.random((3, 3)), 'm'))
+        ndd1 = NDDataBase(np.ones((3, 3)), unit='m',
+                          uncertainty=UnknownUncertainty(np.random.random((3, 3)), 'm'))
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)
@@ -165,7 +165,7 @@ class TestIOFunctions(object):
         self.compare_nddata(ndd1, ndd2)
 
     def test_nddata_write_read_unit(self, tmpdir):
-        ndd1 = NDData(np.ones((3, 3)), unit='m')
+        ndd1 = NDDataBase(np.ones((3, 3)), unit='m')
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)
@@ -174,7 +174,7 @@ class TestIOFunctions(object):
         self.compare_nddata(ndd1, ndd2)
 
     def test_nddata_write_read_unit_dimensionless(self, tmpdir):
-        ndd1 = NDData(np.ones((3, 3)), unit='')
+        ndd1 = NDDataBase(np.ones((3, 3)), unit='')
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)
@@ -183,7 +183,7 @@ class TestIOFunctions(object):
         self.compare_nddata(ndd1, ndd2)
 
     def test_nddata_write_read_complex_unit(self, tmpdir):
-        ndd1 = NDData(np.ones((3, 3)), unit='m^2 / s / kg')
+        ndd1 = NDDataBase(np.ones((3, 3)), unit='m^2 / s / kg')
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)
@@ -192,7 +192,7 @@ class TestIOFunctions(object):
         self.compare_nddata(ndd1, ndd2)
 
     def test_nddata_write_read_unit_uppercase(self, tmpdir):
-        ndd1 = NDData(np.ones((3, 3)))
+        ndd1 = NDDataBase(np.ones((3, 3)))
         ndd1.meta['BUNIT'] = 'ADU'
         # ADU cannot be parsed but it can be parsed if it tries lowercase. We
         # need to change 'kw_unit' during writing though otherwise it will be
@@ -204,12 +204,12 @@ class TestIOFunctions(object):
 
         # It couldn't be parsed so it will have no unit
         # TODO: Catch info-message here
-        ndd3 = NDData(ndd1, unit=None)
+        ndd3 = NDDataBase(ndd1, unit=None)
 
         self.compare_nddata(ndd3, ndd2)
 
     def test_nddata_write_read_unit_deletes_keyword(self, tmpdir):
-        ndd1 = NDData(np.ones((3, 3)))
+        ndd1 = NDDataBase(np.ones((3, 3)))
         ndd1.meta['BUNIT'] = 'adu'
 
         filename = str(self.temp(tmpdir))
@@ -217,14 +217,14 @@ class TestIOFunctions(object):
         ndd2 = read_nddata_fits(filename)
 
         # Since we had no unit
-        ndd3 = NDData(ndd1, unit=None)
+        ndd3 = NDDataBase(ndd1, unit=None)
         del ndd3.meta['BUNIT']
 
         self.compare_nddata(ndd3, ndd2)
 
     def test_nddata_write_read_meta(self, tmpdir):
         meta = dict([(j, i) for i, j in enumerate('abcdefghijklmnopqrstuvwxyz')])
-        ndd1 = NDData(np.ones((3, 3)), meta=meta)
+        ndd1 = NDDataBase(np.ones((3, 3)), meta=meta)
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)
@@ -233,7 +233,7 @@ class TestIOFunctions(object):
         self.compare_nddata(ndd1, ndd2)
 
     def test_nddata_write_read_wcs(self, tmpdir):
-        ndd1 = NDData(np.ones((3, 3)))
+        ndd1 = NDDataBase(np.ones((3, 3)))
 
         # Write and read to generate basic wcs
         filename = str(self.temp(tmpdir))
@@ -249,7 +249,8 @@ class TestIOFunctions(object):
         self.compare_nddata(ndd2, ndd3)
 
     def test_nddata_write_read_wcs_no_toheader(self, tmpdir):
-        ndd1 = NDData(np.ones((3, 3)), wcs=5)  # int has no "to_header"-method
+        # int has no "to_header"-method
+        ndd1 = NDDataBase(np.ones((3, 3)), wcs=5)
 
         # Write and read to generate basic wcs
         filename = str(self.temp(tmpdir))
@@ -257,7 +258,7 @@ class TestIOFunctions(object):
         write_nddata_fits(ndd1, filename)
 
     def test_nddata_write_read_wcs_slicing(self, tmpdir):
-        ndd1 = NDData(np.ones((10, 10)))
+        ndd1 = NDDataBase(np.ones((10, 10)))
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)
@@ -266,8 +267,8 @@ class TestIOFunctions(object):
         # Need another round trip to compare "new" wcs.
         # Slice data and wcs to have something real to compare but keep header
         # and see if it is updated correctly
-        ndd2tmp = NDData(ndd2.data[2:5, 4:8],
-                         wcs=ndd2.wcs[2:5, 4:8], meta=ndd2.meta)
+        ndd2tmp = NDDataBase(ndd2.data[2:5, 4:8],
+                             wcs=ndd2.wcs[2:5, 4:8], meta=ndd2.meta)
 
         anotherfile = str(self.temp(tmpdir))
         write_nddata_fits(ndd2tmp, anotherfile)
@@ -284,14 +285,14 @@ class TestIOFunctions(object):
 
     def test_nddata_write_read_meta_wcs(self, tmpdir):
         meta = dict([(j, i) for i, j in enumerate('abcdefghijklmnopqrstuvwxyz')])
-        ndd1 = NDData(np.ones((10, 10)), meta=meta)
+        ndd1 = NDDataBase(np.ones((10, 10)), meta=meta)
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)
         ndd2 = read_nddata_fits(filename)
 
-        ndd2tmp = NDData(ndd2.data[2:5, 4:8],
-                         wcs=ndd2.wcs[2:5, 4:8], meta=ndd2.meta)
+        ndd2tmp = NDDataBase(ndd2.data[2:5, 4:8],
+                             wcs=ndd2.wcs[2:5, 4:8], meta=ndd2.meta)
 
         anotherfile = str(self.temp(tmpdir))
         write_nddata_fits(ndd2tmp, anotherfile)
@@ -314,8 +315,8 @@ class TestIOFunctions(object):
         mask = np.random.random((10, 10)) > 0.5
         uncertainty = UnknownUncertainty(np.ones((5, 5)))
         flags = np.zeros(data.shape)
-        ndd1 = NDData(data, uncertainty=uncertainty, unit=unit, meta=meta,
-                      mask=mask, flags=flags)
+        ndd1 = NDDataBase(data, uncertainty=uncertainty, unit=unit, meta=meta,
+                          mask=mask, flags=flags)
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)

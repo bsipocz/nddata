@@ -4,10 +4,10 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from ..nddata_base import NDDataBase
+from ..nddata_meta import NDDataMeta
 
 
-class MinimalSubclass(NDDataBase):
+class MinimalSubclass(NDDataMeta):
     def __init__(self):
         super(MinimalSubclass, self).__init__()
 

@@ -3,8 +3,8 @@
 Subclassing
 ===========
 
-`~nddata.nddata.NDData`
-------------------------
+`~nddata.nddata.NDDataBase`
+---------------------------
 
 This class serves as the base for subclasses that use a `numpy.ndarray` (or
 something that presents a numpy-like interface) as the ``data`` attribute.
@@ -16,10 +16,10 @@ something that presents a numpy-like interface) as the ``data`` attribute.
 Adding another property
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-    >>> from nddata.nddata import NDData
+    >>> from nddata.nddata import NDDataBase
     >>> from copy import deepcopy
 
-    >>> class NDDataWithBlob(NDData):
+    >>> class NDDataWithBlob(NDDataBase):
     ...     def __init__(self, *args, **kwargs):
     ...         # We allowed args and kwargs so find out where the data is.
     ...         data = args[0] if args else kwargs['data']
@@ -29,7 +29,7 @@ Adding another property
     ...         blob = kwargs.pop('blob', None)
     ...         if blob is None:
     ...             # 2.) another NDData - maybe with blob
-    ...             if isinstance(data, NDData):
+    ...             if isinstance(data, NDDataBase):
     ...                 blob = getattr(data, 'blob', None)
     ...             # 3.) implements the NDData interface, maybe returns blob
     ...             elif hasattr(data, '__astropy_nddata__'):
@@ -68,7 +68,7 @@ Customize the setter for a property
 
     >>> import numpy as np
 
-    >>> class NDDataMaskBoolNumpy(NDData):
+    >>> class NDDataMaskBoolNumpy(NDDataBase):
     ...
     ...     @property
     ...     def mask(self):
@@ -92,7 +92,7 @@ super property set the attribute afterwards::
 
     >>> import numpy as np
 
-    >>> class NDDataUncertaintyShapeChecker(NDData):
+    >>> class NDDataUncertaintyShapeChecker(NDDataBase):
     ...     @property
     ...     def uncertainty(self):
     ...         return self._uncertainty
@@ -111,16 +111,16 @@ super property set the attribute afterwards::
     >>> ndd.uncertainty
     UnknownUncertainty([2, 3, 4])
 
-`~nddata.nddata.NDDataRef`
----------------------------
+`~nddata.nddata.NDData`
+-----------------------
 
-`~nddata.nddata.NDDataRef` itself inherits from `~nddata.nddata.NDData` so
-any of the possibilities there also apply to NDDataRef. But NDDataRef also
+`~nddata.nddata.NDData` itself inherits from `~nddata.nddata.NDDataBase` so
+any of the possibilities there also apply to NDData. But NDData also
 inherits from the Mixins:
 
-- `~nddata.nddata.NDSlicingMixin`
-- `~nddata.nddata.NDArithmeticMixin`
-- `~nddata.nddata.NDIOMixin`
+- `~nddata.nddata.mixins.NDSlicingMixin`
+- `~nddata.nddata.mixins.NDArithmeticMixin`
+- `~nddata.nddata.mixins.NDIOMixin`
 
 which allow additional operations.
 
@@ -130,10 +130,10 @@ Slicing an existing property
 Suppose you have a class expecting a 2 dimensional ``data`` but the mask is
 only 1D. This would lead to problems if one were to slice in two dimensions.
 
-    >>> from nddata.nddata import NDDataRef
+    >>> from nddata.nddata import NDData
     >>> import numpy as np
 
-    >>> class NDDataMask1D(NDDataRef):
+    >>> class NDDataMask1D(NDData):
     ...     def _slice_mask(self, item):
     ...         # Multidimensional slices are represented by tuples:
     ...         if isinstance(item, tuple):
@@ -162,7 +162,7 @@ Slicing an additional property
 Building on the added property ``blob`` we want them to be sliceable:
 
     >>> # The init and property is identical to the one earlier mentioned.
-    >>> class NDDataWithBlob(NDDataRef):
+    >>> class NDDataWithBlob(NDData):
     ...     def __init__(self, *args, **kwargs):
     ...         # We allowed args and kwargs so find out where the data is.
     ...         data = args[0] if args else kwargs['data']
@@ -172,7 +172,7 @@ Building on the added property ``blob`` we want them to be sliceable:
     ...         blob = kwargs.pop('blob', None)
     ...         if blob is None:
     ...             # 2.) another NDData - maybe with blob
-    ...             if isinstance(data, NDData):
+    ...             if isinstance(data, NDDataBase):
     ...                 blob = getattr(data, 'blob', None)
     ...             # 3.) implements the NDData interface, maybe returns blob
     ...             elif hasattr(data, '__astropy_nddata__'):
@@ -216,14 +216,15 @@ Arithmetic on an existing property
 
 Customizing how an existing property is handled during arithmetic is possible
 with some arguments to the function calls like
-:meth:`~nddata.nddata.NDArithmeticMixin.add` but it's possible to hardcode
-behaviour too. The actual operation on the attribute (except for ``unit``) is
-done in a method ``_arithmetic_*`` where ``*`` is the name of the property.
+:meth:`~nddata.nddata.mixins.NDArithmeticMixin.add` but it's possible to
+hardcode behaviour too. The actual operation on the attribute (except for
+``unit``) is done in a method ``_arithmetic_*`` where ``*`` is the name of the
+property.
 
 For example to customize how the ``meta`` will be affected during arithmetics::
 
     >>> from copy import deepcopy
-    >>> class NDDataWithMetaArithmetics(NDDataRef):
+    >>> class NDDataWithMetaArithmetics(NDData):
     ...
     ...     def _arithmetic_meta(self, operation, operand, handle_mask, **kwds):
     ...         # the function must take the arguments:
@@ -252,8 +253,8 @@ be anything except ``None`` or ``"first_found"``::
     {'exposure': 5.0}
 
 .. warning::
-  To use these internal `_arithmetic_*` methods there are some restrictions on
-  the attributes when calling the operation:
+  To use these internal ``_arithmetic_*`` methods there are some restrictions
+  on the attributes when calling the operation:
 
   - ``mask``: ``handle_mask`` must not be ``None``, ``"ff"`` or ``"first_found"``.
   - ``wcs``: ``compare_wcs`` argument with the same restrictions as mask.
@@ -272,10 +273,10 @@ time you're calling an arithmetic operation is too much effort, you can easily
 change the default value of existing parameters by changing it in the method
 signature of ``_arithmetic``::
 
-    >>> from nddata.nddata import NDDataRef
+    >>> from nddata.nddata import NDData
     >>> import numpy as np
 
-    >>> class NDDDiffAritDefaults(NDDataRef):
+    >>> class NDDDiffAritDefaults(NDData):
     ...     def _arithmetic(self, *args, **kwargs):
     ...         # Changing the default of handle_mask to None
     ...         if 'handle_mask' not in kwargs:
@@ -312,7 +313,7 @@ This also requires overriding the ``_arithmetic`` method. Suppose we have a
     >>> import numpy as np
 
     >>> # The init and attribute is identical to the other blob classes
-    >>> class NDDataWithBlob(NDDataRef):
+    >>> class NDDataWithBlob(NDData):
     ...     def __init__(self, *args, **kwargs):
     ...         # We allowed args and kwargs so find out where the data is.
     ...         data = args[0] if args else kwargs['data']
@@ -322,7 +323,7 @@ This also requires overriding the ``_arithmetic`` method. Suppose we have a
     ...         blob = kwargs.pop('blob', None)
     ...         if blob is None:
     ...             # 2.) another NDData - maybe with blob
-    ...             if isinstance(data, NDData):
+    ...             if isinstance(data, NDDataBase):
     ...                 blob = getattr(data, 'blob', None)
     ...             # 3.) implements the NDData interface, maybe returns blob
     ...             elif hasattr(data, '__astropy_nddata__'):
@@ -379,11 +380,11 @@ Adding another possible operations is quite easy provided the ``data`` and
 
 For example adding a power function::
 
-    >>> from nddata.nddata import NDDataRef
+    >>> from nddata.nddata import NDData
     >>> import numpy as np
     >>> from astropy.utils import sharedmethod
 
-    >>> class NDDataPower(NDDataRef):
+    >>> class NDDataPower(NDData):
     ...     @sharedmethod # sharedmethod to allow it also as classmethod
     ...     def pow(self, operand, operand2=None, **kwargs):
     ...         # the uncertainty doesn't allow propagation so set it to None
@@ -394,8 +395,8 @@ For example adding a power function::
     ...                                                 operand2, **kwargs)
 
 This can be used like the other arithmetic methods like
-:meth:`~nddata.nddata.NDArithmeticMixin.add`. So it works when calling it
-on the class or the instance::
+:meth:`~nddata.nddata.mixins.NDArithmeticMixin.add`. So it works when calling
+it on the class or the instance::
 
     >>> ndd = NDDataPower([1,2,3])
 
@@ -412,7 +413,7 @@ on the class or the instance::
     NDDataPower([  6,  36, 216])
 
 To allow propagation also with ``uncertainty`` see subclassing
-`~nddata.nddata.NDUncertainty`.
+`~nddata.nddata.meta.NDUncertainty`.
 
 The ``_prepare_then_do_arithmetic`` implements the relevant checks if it was
 called on the class or the instance and if one or two operands were given and
@@ -420,27 +421,27 @@ converts the operands, if necessary, to the appropriate classes. Overriding
 this ``_prepare_then_do_arithmetic`` in subclasses should be avoided if
 possible.
 
-`~nddata.nddata.NDDataBase`
-----------------------------
+`~nddata.nddata.meta.NDDataMeta`
+--------------------------------
 
-The class `~nddata.nddata.NDDataBase` is a metaclass -- when subclassing it,
-all properties of `~nddata.nddata.NDDataBase` *must* be overriden in the
-subclass.
+The class `~nddata.nddata.meta.NDDataMeta` is a metaclass -- when subclassing
+it, all properties of `~nddata.nddata.meta.NDDataMeta` *must* be overriden in
+the subclass.
 
-Subclassing from `~nddata.nddata.NDDataBase` gives you complete flexibility
-in how you implement data storage and the other properties. If your data is
-stored in a numpy array (or something that behaves like a numpy array), it may
-be more straightforward to subclass `~nddata.nddata.NDData` instead of
-`~nddata.nddata.NDDataBase`.
+Subclassing from `~nddata.nddata.meta.NDDataMeta` gives you complete
+flexibility in how you implement data storage and the other properties. If your
+data is stored in a numpy array (or something that behaves like a numpy array),
+it may be more straightforward to subclass `~nddata.nddata.NDDataBase` instead
+of `~nddata.nddata.meta.NDDataMeta`.
 
-Implementing the NDDataBase interface
+Implementing the NDDataMeta interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 For example to create a readonly container::
 
-    >>> from nddata.nddata import NDDataBase
+    >>> from nddata.nddata.meta import NDDataMeta
 
-    >>> class NDDataReadOnlyNoRestrictions(NDDataBase):
+    >>> class NDDataReadOnlyNoRestrictions(NDDataMeta):
     ...     def __init__(self, data, unit, mask, uncertainty, meta, wcs, flags):
     ...         self._data = data
     ...         self._unit = unit
@@ -486,18 +487,16 @@ For example to create a readonly container::
   Actually defining an ``__init__`` is not necessary and the properties could
   return arbitary values but the properties **must** be defined.
 
-Subclassing `~nddata.nddata.NDUncertainty`
--------------------------------------------
+Subclassing `~nddata.nddata.meta.NDUncertainty`
+-----------------------------------------------
 .. warning::
-    The internal interface of NDUncertainty and subclasses is experimental and
-    might change in future versions.
+    The internal interface of `~nddata.nddata.meta.NDUncertainty` and
+    subclasses is experimental and might change in future versions.
 
-Subclasses deriving from `~nddata.nddata.NDUncertainty` need to implement:
+Subclasses deriving from `~nddata.nddata.meta.NDUncertainty` need to implement:
 
 - property ``uncertainty_type``, should return a string describing the
   uncertainty for example ``"ivar"`` for inverse variance.
-- methods for propagation: `_propagate_*` where ``*`` is the name of the UFUNC
-  that is used on the ``NDData`` parent.
 
 Creating an uncertainty without propagation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -506,7 +505,7 @@ Creating an uncertainty without propagation
 without error propagation. So let's create an uncertainty just storing
 systematic uncertainties::
 
-    >>> from nddata.nddata import NDUncertainty
+    >>> from nddata.nddata.meta import NDUncertainty
 
     >>> class SystematicUncertainty(NDUncertainty):
     ...     @property
@@ -564,38 +563,36 @@ uncertainty using these propagations:
     ...         # Return the square of it
     ...         return np.square(result)
 
-    >>> from nddata.nddata import NDDataRef
+    >>> from nddata.nddata import NDData
 
-    >>> ndd1 = NDDataRef([1,2,3], unit='m', uncertainty=VarianceUncertainty([1,4,9]))
-    >>> ndd2 = NDDataRef([1,2,3], unit='m', uncertainty=VarianceUncertainty([1,4,9]))
+    >>> ndd1 = NDData([1,2,3], unit='m', uncertainty=VarianceUncertainty([1,4,9]))
+    >>> ndd2 = NDData([1,2,3], unit='m', uncertainty=VarianceUncertainty([1,4,9]))
     >>> ndd = ndd1.add(ndd2)
     >>> ndd.uncertainty
     VarianceUncertainty([  2.,   8.,  18.])
 
 this approach certainly works if both are variance uncertainties, but if you
-want to allow that the second operand also can be a standard deviation one can
-override the ``_convert_uncertainty`` method as well::
+want to allow that VarianceUncertainty also propagates with StdDevUncertainty
+you must register the conversion::
 
-    >>> class VarianceUncertainty2(VarianceUncertainty):
-    ...     def _convert_uncertainty(self, other_uncert):
-    ...         if isinstance(other_uncert, VarianceUncertainty):
-    ...             return other_uncert
-    ...         elif isinstance(other_uncert, StdDevUncertainty):
-    ...             converted = VarianceUncertainty(np.square(other_uncert.array))
-    ...             converted.parent_nddata = weakref.ref(other_uncert.parent_nddata)
-    ...             return converted
-    ...         raise ValueError('not compatible uncertainties.')
+    >>> from nddata.nddata.meta import UncertaintyConverter
+    >>> UncertaintyConverter.register(VarianceUncertainty, StdDevUncertainty, np.sqrt, np.square)
 
-    >>> ndd1 = NDDataRef([1,2,3], uncertainty=VarianceUncertainty2([1,4,9]))
-    >>> ndd2 = NDDataRef([1,2,3], uncertainty=StdDevUncertainty([1,2,3]))
+    >>> ndd1 = NDData([1,2,3], uncertainty=VarianceUncertainty([1,4,9]))
+    >>> ndd2 = NDData([1,2,3], uncertainty=StdDevUncertainty([1,2,3]))
     >>> ndd = ndd1.add(ndd2)
     >>> ndd.uncertainty
-    VarianceUncertainty2([  2.,   8.,  18.])
+    VarianceUncertainty([  2.,   8.,  18.])
 
-.. warning::
-    This will only allow the **second** operand to have a
-    `~nddata.nddata.StdDevUncertainty` uncertainty. It will fail if the first
-    operand is standard deviation and the second operand a variance.
+    >>> ndd = ndd2.add(ndd1)
+    >>> ndd.uncertainty
+    StdDevUncertainty([ 1.41421356,  2.82842712,  4.24264069])
+
+This converter also allows direct conversion between the types simply by using
+the constructor::
+
+    >>> VarianceUncertainty(ndd.uncertainty)
+    VarianceUncertainty([  2.,   8.,  18.])
 
 .. note::
     Creating a variance uncertainty like this might require more work to

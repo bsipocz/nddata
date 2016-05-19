@@ -491,7 +491,8 @@ def test_uncertainty_descriptor():
 
     t = UncertaintyDescriptorTest()
 
-    from ...nddata import UnknownUncertainty, StdDevUncertainty, NDUncertainty
+    from ...nddata.meta import NDUncertainty
+    from ...nddata import UnknownUncertainty, StdDevUncertainty
 
     # Test not-NDUncertainty will be wrapped in unknown uncertainty
     data = np.ones((3, 3))

@@ -10,40 +10,37 @@ Introduction
 The ``nddata`` package provides a uniform interface to N-dimensional datasets
 (for tabulated data please have a look at `astropy.table`) in astropy through:
 
-+ `~nddata.nddata.NDData`: a basic container for `numpy.ndarray`-like data.
-+ `~nddata.nddata.NDDataRef`: like `~nddata.nddata.NDData` but with
-  additional functionality like an reading/writing, simple arithmetic
-  operations and slicing.
++ `~nddata.nddata.NDDataBase`: a basic container for `numpy.ndarray`-like data.
++ `~nddata.nddata.NDData`: like NDDataBase but with additional functionality
+  like an reading/writing, simple arithmetic operations and slicing.
 + `~nddata.nddata.StdDevUncertainty` a class that can store and propagate
   uncertainties for a NDData object.
-+ General utility functions (:ref:`nddata_utils`) for operations on these
++ :ref:`nddata_utils`: General utility functions for operations on these
   classes, including a decorator to facilitate writing functions for such
   classes.
-+ A framework including different mixins and metaclasses to facilitate
-  customizing subclasses.
 
 Getting started
 ===============
 
-NDData
-------
+NDDataBase
+----------
 
-The primary purpose of `~nddata.nddata.NDData` is to act as a *container* for
-data, metadata, and other related information like a mask.
+The primary purpose of `~nddata.nddata.NDDataBase` is to act as a *container*
+for data, metadata, and other related information like a mask.
 
-An `~nddata.nddata.NDData` object can be instantiated by passing it an
+An `~nddata.nddata.NDDataBase` object can be instantiated by passing it an
 n-dimensional `numpy` array::
 
     >>> import numpy as np
-    >>> from nddata.nddata import NDData
+    >>> from nddata.nddata import NDDataBase
     >>> array = np.zeros((12, 12, 12))  # a 3-dimensional array with all zeros
-    >>> ndd1 = NDData(array)
+    >>> ndd1 = NDDataBase(array)
 
 or something that can be converted to an `numpy.ndarray`::
 
-    >>> ndd2 = NDData([1, 2, 3, 4])
+    >>> ndd2 = NDDataBase([1, 2, 3, 4])
     >>> ndd2
-    NDData([1, 2, 3, 4])
+    NDDataBase([1, 2, 3, 4])
 
 and can be accessed again via the ``data`` attribute::
 
@@ -63,10 +60,10 @@ additional ``meta`` attributes:
     >>> flags = np.zeros(data.shape)
     >>> from astropy.coordinates import SkyCoord
     >>> wcs = SkyCoord('00h42m44.3s', '+41d16m09s')
-    >>> ndd = NDData(data, mask=mask, unit=unit, uncertainty=uncertainty,
-    ...              meta=meta, wcs=wcs)
+    >>> ndd = NDDataBase(data, mask=mask, unit=unit, uncertainty=uncertainty,
+    ...                  meta=meta, wcs=wcs)
     >>> ndd
-    NDData([1, 2, 3, 4])
+    NDDataBase([1, 2, 3, 4])
 
 the representation does not show additional attributes but these can be
 accessed like ``data`` above::
@@ -77,10 +74,10 @@ accessed like ``data`` above::
     array([False, False,  True,  True], dtype=bool)
 
 
-NDDataRef
----------
+NDData
+------
 
-Building upon this pure container `~nddata.nddata.NDDataRef` implements:
+Building upon this pure container `~nddata.nddata.NDData` implements:
 
 + a ``read`` and ``write`` method to access astropys unified file io interface.
 + simple arithmetics like addition, subtraction, division and multiplication.
@@ -88,17 +85,17 @@ Building upon this pure container `~nddata.nddata.NDDataRef` implements:
 
 Instances are created in the same way::
 
-    >>> from nddata.nddata import NDDataRef
-    >>> ndd = NDDataRef(ndd)
+    >>> from nddata.nddata import NDData
+    >>> ndd = NDData(ndd)
     >>> ndd
-    NDDataRef([1, 2, 3, 4])
+    NDData([1, 2, 3, 4])
 
 But also support arithmetic (:ref:`nddata_arithmetic`) like addition::
 
     >>> import astropy.units as u
     >>> ndd2 = ndd.add([4, 3, 2, 1] * u.erg / u.s)
     >>> ndd2
-    NDDataRef([ 5.,  5.,  5.,  5.])
+    NDData([ 5.,  5.,  5.,  5.])
 
 Because these operations have a wide range of options these are not available
 using arithmetic operators like ``+``.
@@ -108,15 +105,15 @@ some attribute cannot be sliced)::
 
     >>> ndd2[2:]  # discard the first two elements
     INFO: wcs cannot be sliced. [nddata.nddata.mixins.ndslicing]
-    NDDataRef([ 5.,  5.])
+    NDData([ 5.,  5.])
     >>> ndd2[1]   # get the second element
     INFO: wcs cannot be sliced. [nddata.nddata.mixins.ndslicing]
-    NDDataRef(5.0)
+    NDData(5.0)
 
 Creating from a file or writing (:ref:`nddata_io`) such an instance a file is
-possible using :meth:`~nddata.nddata.NDIOMixin.read` and
-:meth:`~nddata.nddata.NDIOMixin.write`. See these methods which formats are
-supported. For example writing a ``.fits`` file:
+possible using :meth:`~nddata.nddata.mixins.NDIOMixin.read` and
+:meth:`~nddata.nddata.mixins.NDIOMixin.write`. See these methods which formats
+are supported. For example writing a ``.fits`` file:
 
     >>> # fits doesn't work with a single coordinate as wcs:
     >>> ndd2.wcs = None
@@ -124,9 +121,9 @@ supported. For example writing a ``.fits`` file:
 
 and reading this file::
 
-    >>> ndd_fits = NDDataRef.read('testfile.fits', format='simple_fits')
+    >>> ndd_fits = NDData.read('testfile.fits', format='simple_fits')
     >>> ndd_fits
-    NDDataRef([ 5.,  5.,  5.,  5.])
+    NDData([ 5.,  5.,  5.,  5.])
 
 
 StdDevUncertainty
@@ -134,13 +131,13 @@ StdDevUncertainty
 
 `~nddata.nddata.StdDevUncertainty` implements uncertainty based on standard
 deviation and can propagate these using the arithmetic methods of
-`~nddata.nddata.NDDataRef`::
+`~nddata.nddata.NDData`::
 
-    >>> from nddata.nddata import NDDataRef, StdDevUncertainty
+    >>> from nddata.nddata import NDData, StdDevUncertainty
     >>> import numpy as np
 
     >>> uncertainty = StdDevUncertainty(np.arange(5))
-    >>> ndd = NDDataRef([5,5,5,5,5], uncertainty=uncertainty)
+    >>> ndd = NDData([5,5,5,5,5], uncertainty=uncertainty)
 
     >>> doubled_ndd = ndd.multiply(2)  # multiply by 2
     >>> doubled_ndd.uncertainty
@@ -168,16 +165,22 @@ Using ``nddata``
    :maxdepth: 2
 
    nddata.rst
-   decorator.rst
    mixins/index.rst
    subclassing.rst
-   utils.rst
    interface.rst
+   utils.rst
+   decorator.rst
 
 Reference/API
 =============
 
 .. automodapi:: nddata.nddata
+
+.. automodapi:: nddata.nddata.mixins
+    :no-inheritance-diagram:
+
+.. automodapi:: nddata.nddata.meta
+    :no-inheritance-diagram:
 
 .. automodapi:: nddata.nddata.utils
     :no-inheritance-diagram:

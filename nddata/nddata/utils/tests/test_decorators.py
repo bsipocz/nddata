@@ -11,7 +11,7 @@ from astropy.extern import six
 from astropy.tests.helper import catch_warnings, pytest
 from astropy import units as u
 
-from ..nddata import NDData
+from ..nddata import NDDataBase
 from ..decorators import support_nddata
 
 
@@ -36,7 +36,8 @@ def test_pass_all_separate():
     wcs_in = "the wcs"
     unit_in = u.Jy
 
-    data_out, wcs_out, unit_out = wrapped_function_1(data=data_in, wcs=wcs_in, unit=unit_in)
+    data_out, wcs_out, unit_out = wrapped_function_1(data=data_in, wcs=wcs_in,
+                                                     unit=unit_in)
 
     assert data_out is data_in
     assert wcs_out is wcs_in
@@ -49,7 +50,7 @@ def test_pass_nddata():
     wcs_in = "the wcs"
     unit_in = u.Jy
 
-    nddata_in = NDData(data_in, wcs=wcs_in, unit=unit_in)
+    nddata_in = NDDataBase(data_in, wcs=wcs_in, unit=unit_in)
 
     data_out, wcs_out, unit_out = wrapped_function_1(nddata_in)
 
@@ -65,18 +66,20 @@ def test_pass_nddata_and_explicit():
     unit_in = u.Jy
     unit_in_alt = u.mJy
 
-    nddata_in = NDData(data_in, wcs=wcs_in, unit=unit_in)
+    nddata_in = NDDataBase(data_in, wcs=wcs_in, unit=unit_in)
 
     with catch_warnings() as w:
-        data_out, wcs_out, unit_out = wrapped_function_1(nddata_in, unit=unit_in_alt)
+        data_out, wcs_out, unit_out = wrapped_function_1(nddata_in,
+                                                         unit=unit_in_alt)
 
     assert data_out is data_in
     assert wcs_out is wcs_in
     assert unit_out is unit_in_alt
 
     assert len(w) == 1
-    assert str(w[0].message) == ("Property unit has been passed explicitly and as "
-                                 "an NDData property, using explicitly specified value")
+    assert str(w[0].message) == ("Property unit has been passed explicitly and"
+                                 " as an NDData property, using explicitly "
+                                 "specified value")
 
 
 def test_pass_nddata_ignored():
@@ -85,7 +88,7 @@ def test_pass_nddata_ignored():
     wcs_in = "the wcs"
     unit_in = u.Jy
 
-    nddata_in = NDData(data_in, wcs=wcs_in, unit=unit_in, mask=[0, 1, 0])
+    nddata_in = NDDataBase(data_in, wcs=wcs_in, unit=unit_in, mask=[0, 1, 0])
 
     with catch_warnings() as w:
         data_out, wcs_out, unit_out = wrapped_function_1(nddata_in)
@@ -95,29 +98,32 @@ def test_pass_nddata_ignored():
     assert unit_out is unit_in
 
     assert len(w) == 1
-    assert str(w[0].message) == ("The following attributes were set on the data "
-                                 "object, but will be ignored by the function: mask")
+    assert str(w[0].message) == ("The following attributes were set on the "
+                                 "data object, but will be ignored by the "
+                                 "function: mask")
 
 
 def test_incorrect_first_argument():
+
+    msg = "Can only wrap functions whose first positional argument is `data`"
 
     with pytest.raises(ValueError) as exc:
         @support_nddata
         def wrapped_function_2(something, wcs=None, unit=None):
             pass
-    assert exc.value.args[0] == "Can only wrap functions whose first positional argument is `data`"
+    assert exc.value.args[0] == msg
 
     with pytest.raises(ValueError) as exc:
         @support_nddata
         def wrapped_function_3(something, data, wcs=None, unit=None):
             pass
-    assert exc.value.args[0] == "Can only wrap functions whose first positional argument is `data`"
+    assert exc.value.args[0] == msg
 
     with pytest.raises(ValueError) as exc:
         @support_nddata
         def wrapped_function_4(wcs=None, unit=None):
             pass
-    assert exc.value.args[0] == "Can only wrap functions whose first positional argument is `data`"
+    assert exc.value.args[0] == msg
 
 
 def test_wrap_function_no_kwargs():
@@ -127,7 +133,7 @@ def test_wrap_function_no_kwargs():
         return data
 
     data_in = np.array([1, 2, 3])
-    nddata_in = NDData(data_in)
+    nddata_in = NDDataBase(data_in)
 
     assert wrapped_function_5(nddata_in, [1, 2, 3]) is data_in
 
@@ -139,17 +145,17 @@ def test_wrap_function_repack_valid():
         return data
 
     data_in = np.array([1, 2, 3])
-    nddata_in = NDData(data_in)
+    nddata_in = NDDataBase(data_in)
 
     nddata_out = wrapped_function_5(nddata_in, [1, 2, 3])
 
-    assert isinstance(nddata_out, NDData)
+    assert isinstance(nddata_out, NDDataBase)
     assert nddata_out.data is data_in
 
 
 def test_wrap_function_accepts():
 
-    class MyData(NDData):
+    class MyData(NDDataBase):
         pass
 
     @support_nddata(accepts=MyData)
@@ -157,14 +163,15 @@ def test_wrap_function_accepts():
         return data
 
     data_in = np.array([1, 2, 3])
-    nddata_in = NDData(data_in)
+    nddata_in = NDDataBase(data_in)
     mydata_in = MyData(data_in)
 
     assert wrapped_function_5(mydata_in, [1, 2, 3]) is data_in
 
     with pytest.raises(TypeError) as exc:
         wrapped_function_5(nddata_in, [1, 2, 3])
-    assert exc.value.args[0] == "Only NDData sub-classes that inherit from MyData can be used by this function"
+    assert exc.value.args[0] == ("Only NDData sub-classes that inherit from "
+                                 "MyData can be used by this function")
 
 
 def test_wrap_preserve_signature_docstring():

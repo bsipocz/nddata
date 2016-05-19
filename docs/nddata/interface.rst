@@ -1,9 +1,9 @@
 .. _nddata_interface:
 
-Interface for NDData
-====================
+Interface for NDDataBase and NDData
+===================================
 
-Classes that don't inherit from `~nddata.nddata.NDData` but want to be
+Classes that don't inherit from `~nddata.nddata.NDDataBase` but want to be
 convertible to one can implement a method ``__astropy_nddata__`` to provide
 necessary keywords for creating a NDData instance or subclass.
 
@@ -20,7 +20,7 @@ Complete interface
 A complete interface would be provided if all attributes were provided. This
 would probably not be the case for real classes but provides a good example::
 
-    >>> from nddata.nddata import NDData, NDDataRef
+    >>> from nddata.nddata import NDData, NDDataBase
 
     >>> class NDDataInterface(object):
     ...
@@ -40,30 +40,30 @@ would probably not be the case for real classes but provides a good example::
     ...                 'meta': self.meta, 'flags': self.flags}
     ...
     >>> nddlike = NDDataInterface([1], 2, 3, 4, {1: 1}, 'm', True)
-    >>> ndd = NDData(nddlike)
+    >>> ndd = NDDataBase(nddlike)
     INFO: uncertainty should have attribute uncertainty_type. [nddata.utils.descriptors]
 
     >>> ndd
-    NDData([1])
+    NDDataBase([1])
     >>> ndd.mask
     3
 
-    >>> ndd = NDDataRef(nddlike)
+    >>> ndd = NDData(nddlike)
     INFO: uncertainty should have attribute uncertainty_type. [nddata.utils.descriptors]
     >>> ndd
-    NDDataRef([1])
+    NDData([1])
 
 But given an explicit argument this will be used::
 
     >>> nddlike = NDDataInterface([1], mask=2)
-    >>> ndd = NDDataRef(nddlike, mask=False)
-    INFO: overwriting NDDataInterface's current mask with specified mask. [nddata.nddata.nddata]
+    >>> ndd = NDData(nddlike, mask=False)
+    INFO: overwriting NDDataInterface's current mask with specified mask. [nddata.nddata.nddata_base]
 
     >>> ndd.mask
     False
 
 .. note::
-    This would also allow using it with ``NDData(**nddlike.__astropy_nddata__())``.
+    This would also allow using it with ``NDDataBase(**nddlike.__astropy_nddata__())``.
 
 Partial interface
 ^^^^^^^^^^^^^^^^^
@@ -78,9 +78,9 @@ subclasses) and only the relevant ones are used::
     ...                 'unneccesary': 'do not use me'}
 
     >>> nddlike = NDDataPartialInterface([1], 2, 3, 4, {1: 1}, 'm')
-    >>> ndd = NDDataRef(nddlike)
+    >>> ndd = NDData(nddlike)
     >>> ndd
-    NDDataRef([1])
+    NDData([1])
 
     >>> ndd.unit
     Unit("m")
@@ -99,7 +99,7 @@ It will also work if the return doesn't include a value for the ``data``::
     ...                 'mask': self.mask, 'unit': self.unit, 'wcs': self.wcs}
 
     >>> nddlike = NDDataBrokenInterface([1], 2, 3, 4, {1: 1}, 'm')
-    >>> ndd = NDDataRef(nddlike)
+    >>> ndd = NDData(nddlike)
     INFO: uncertainty should have attribute uncertainty_type. [nddata.utils.descriptors]
     >>> ndd.data is None
     True

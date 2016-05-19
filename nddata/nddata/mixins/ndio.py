@@ -11,7 +11,7 @@ from astropy.io import fits
 import astropy.units as u
 from astropy.wcs import WCS
 
-from ..nddata import NDData
+from ..nddata import NDDataBase
 from ..nduncertainty import StdDevUncertainty, UnknownUncertainty
 
 
@@ -19,16 +19,16 @@ __all__ = ['NDIOMixin', 'read_nddata_fits', 'write_nddata_fits']
 
 
 class NDIOMixin(object):
-    """Mixin class to connect `NDData` to the astropy input/output registry:
-    `astropy.io.registry`.
+    """Mixin class to connect `~.NDDataBase` to the astropy input/output \
+            registry: `astropy.io.registry`.
     """
 
     @classmethod
     def read(cls, *args, **kwargs):
         """Read and parse gridded N-dimensional data and return as an
-        `NDData`-derived object.
+        `~.NDDataBase`-derived object.
 
-        This function provides the `NDDataBase` interface to the astropy
+        This function provides the `~.NDDataBase` interface to the astropy
         unified I/O layer. This allows easily reading a file in the supported
         data formats.
         """
@@ -37,7 +37,7 @@ class NDIOMixin(object):
     def write(self, *args, **kwargs):
         """Write a gridded N-dimensional data object out in specified format.
 
-        This function provides the `NDDataBase` interface to the astropy
+        This function provides the `~.NDDataBase` interface to the astropy
         unified I/O layer. This allows easily writing a file in the supported
         data formats.
         """
@@ -48,7 +48,7 @@ def read_nddata_fits(filename, ext_data=0, ext_meta=0, ext_mask='mask',
                      ext_uncert='uncert', ext_flags='flags', kw_unit='bunit',
                      dtype=None, **kwargs_for_open):
     """ Read data from a FITS file and wrap the contents in a \
-            `~astropy.nddata.NDData`.
+            `~nddata.nddata.NDDataBase`.
 
     Parameters
     ----------
@@ -74,6 +74,11 @@ def read_nddata_fits(filename, ext_data=0, ext_meta=0, ext_mask='mask',
     kwargs_for_open :
         Additional keyword arguments that are passed to
         :func:`~astropy.io.fits.open` (not all of them might be possible).
+
+    Returns
+    -------
+    ndd : `~nddata.nddata.NDDataBase`
+        The wrapped FITS file contents.
     """
 
     # Hardcoded values to get additional information about mask and uncertainty
@@ -136,19 +141,21 @@ def read_nddata_fits(filename, ext_data=0, ext_meta=0, ext_mask='mask',
 
     # Just create an NDData instance: This will be upcast to the appropriate
     # class
-    return NDData(data, meta=meta, mask=mask, uncertainty=uncertainty,
-                  wcs=wcs, unit=unit, flags=flags, copy=False)
+    return NDDataBase(data, meta=meta, mask=mask, uncertainty=uncertainty,
+                      wcs=wcs, unit=unit, flags=flags, copy=False)
 
 
 def write_nddata_fits(ndd, filename, ext_mask='mask', ext_uncert='uncert',
                       ext_flags='flags', kw_unit='bunit', **kwargs_for_write):
-    """Take an `~astropy.nddata.NDData`-like object and save it as FITS file.
+    """Take an `~nddata.nddata.NDDataBase`-like object and save it as FITS \
+            file.
 
     Parameters
     ----------
-    ndd : `astropy.nddata.NDData`-like
+    ndd : `~nddata.nddata.NDDataBase`-like
         The data which is to be saved. Must not be given when this function
-        is called through the ``NDData.write``-method!
+        is called through the with
+        :meth:`NDIOMixin.write`!
 
     filename : str
         The filename for the newly written file.
@@ -159,7 +166,7 @@ def write_nddata_fits(ndd, filename, ext_mask='mask', ext_uncert='uncert',
 
     kwargs_for_write :
         Additional keyword arguments that are passed to
-        :func:`~astropy.io.fits.HDUList.writeto` (not all of them might be
+        :meth:`~astropy.io.fits.HDUList.writeto` (not all of them might be
         possible).
 
     Notes

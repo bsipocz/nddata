@@ -8,16 +8,17 @@ from __future__ import (absolute_import, division, print_function,
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
-from ...nduncertainty import (StdDevUncertainty, UnknownUncertainty,
-                              IncompatibleUncertaintiesException)
-from ... import NDData, NDDataRef  # , NDArithmeticMixin
+from ...nduncertainty import StdDevUncertainty, UnknownUncertainty
+from ...meta import IncompatibleUncertaintiesException
+
+from ... import NDData
 from astropy.units import UnitsError, Quantity
 from astropy.tests.helper import pytest
 from astropy import units as u
 
 
 # Alias NDDataAllMixins in case this will be renamed ... :-)
-NDDataArithmetic = NDDataRef
+NDDataArithmetic = NDData
 
 
 class StdDevUncertaintyUncorrelated(StdDevUncertainty):
@@ -303,8 +304,8 @@ def test_uncertainty_fail():
 
         uncertainty_type = 'std'
 
-    ndd1 = NDDataRef([0, 1, 3], uncertainty=FakeUncertainty())
-    ndd2 = NDDataRef([0, 1, 1])
+    ndd1 = NDDataArithmetic([0, 1, 3], uncertainty=FakeUncertainty())
+    ndd2 = NDDataArithmetic([0, 1, 1])
     with pytest.raises(TypeError):
         ndd1.add(ndd2)
 

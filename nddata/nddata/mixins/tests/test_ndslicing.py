@@ -8,7 +8,7 @@ from __future__ import (absolute_import, division, print_function,
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from ... import NDData, NDSlicingMixin
+from ... import NDData
 from ...nduncertainty import NDUncertainty, StdDevUncertainty
 from astropy.tests.helper import pytest
 from astropy import units as u
@@ -16,9 +16,9 @@ from astropy import units as u
 
 # Just add the Mixin to NDData
 # TODO: Make this use NDDataRef instead!
-class NDDataSliceable(NDSlicingMixin, NDData):
-    pass
-
+#class NDDataSliceable(NDSlicingMixin, NDData):
+#    pass
+NDDataSliceable = NDData
 
 # Just some uncertainty (following the StdDevUncertainty implementation of
 # storing the uncertainty in a propery 'array') with slicing.

@@ -1,7 +1,5 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
-# TEST_UNICODE_LITERALS
-
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
@@ -11,10 +9,10 @@ from numpy.testing import assert_array_equal
 from astropy.tests.helper import pytest
 from astropy import units as u
 
-from ..nduncertainty import (StdDevUncertainty, NDUncertainty,
-                             IncompatibleUncertaintiesException,
+from ..nduncertainty import (StdDevUncertainty,
                              UnknownUncertainty)
-from ..nddata import NDData
+from ..meta import NDUncertainty, IncompatibleUncertaintiesException
+from ..nddata import NDDataBase
 
 from ...utils.garbagecollector import assert_memory_leak
 
@@ -66,7 +64,7 @@ def test_init_fake_with_list(UncertClass):
                                            UnknownUncertainty])
 def test_init_fake_with_ndarray(UncertClass):
     uncert = np.arange(100).reshape(10, 10)
-    fake_uncert = UncertClass(uncert)
+    fake_uncert = UncertClass(uncert, copy=True)
     # Numpy Arrays are copied by default
     assert_array_equal(fake_uncert.array, uncert)
     assert fake_uncert.array is not uncert
@@ -74,7 +72,7 @@ def test_init_fake_with_ndarray(UncertClass):
     fake_uncert = UncertClass(uncert, copy=False)
     assert fake_uncert.array is uncert
     # let's provide a unit
-    fake_uncert = UncertClass(uncert, unit=u.adu)
+    fake_uncert = UncertClass(uncert, unit=u.adu, copy=True)
     assert_array_equal(fake_uncert.array, uncert)
     assert fake_uncert.array is not uncert
     assert fake_uncert.unit is u.adu
@@ -84,8 +82,8 @@ def test_init_fake_with_ndarray(UncertClass):
                                            UnknownUncertainty])
 def test_init_fake_with_quantity(UncertClass):
     uncert = np.arange(10).reshape(2, 5) * u.adu
-    fake_uncert = UncertClass(uncert)
-    # Numpy Arrays are copied by default
+    # with copy
+    fake_uncert = UncertClass(uncert, copy=True)
     assert_array_equal(fake_uncert.array, uncert.value)
     assert fake_uncert.array is not uncert.value
     assert fake_uncert.unit is u.adu
@@ -94,7 +92,7 @@ def test_init_fake_with_quantity(UncertClass):
     assert fake_uncert.array is not uncert.value
     assert fake_uncert.unit is u.adu
     # Now try with an explicit unit parameter too
-    fake_uncert = UncertClass(uncert, unit=u.m)
+    fake_uncert = UncertClass(uncert, unit=u.m, copy=True)
     assert_array_equal(fake_uncert.array, uncert.value)  # No conversion done
     assert fake_uncert.array is not uncert.value
     assert fake_uncert.unit is u.m  # It took the explicit one
@@ -104,8 +102,8 @@ def test_init_fake_with_quantity(UncertClass):
                                            UnknownUncertainty])
 def test_init_fake_with_fake(UncertClass):
     uncert = np.arange(5).reshape(5, 1)
-    fake_uncert1 = UncertClass(uncert)
-    fake_uncert2 = UncertClass(fake_uncert1)
+    fake_uncert1 = UncertClass(uncert, copy=True)
+    fake_uncert2 = UncertClass(fake_uncert1, copy=True)
     assert_array_equal(fake_uncert2.array, uncert)
     assert fake_uncert2.array is not uncert
     # Without making copies
@@ -115,13 +113,13 @@ def test_init_fake_with_fake(UncertClass):
     assert fake_uncert2.array is fake_uncert1.array
     # With a unit
     uncert = np.arange(5).reshape(5, 1) * u.adu
-    fake_uncert1 = UncertClass(uncert)
-    fake_uncert2 = UncertClass(fake_uncert1)
+    fake_uncert1 = UncertClass(uncert, copy=True)
+    fake_uncert2 = UncertClass(fake_uncert1, copy=True)
     assert_array_equal(fake_uncert2.array, uncert.value)
     assert fake_uncert2.array is not uncert.value
     assert fake_uncert2.unit is u.adu
     # With a unit and an explicit unit-parameter
-    fake_uncert2 = UncertClass(fake_uncert1, unit=u.cm)
+    fake_uncert2 = UncertClass(fake_uncert1, unit=u.cm, copy=True)
     assert_array_equal(fake_uncert2.array, uncert.value)
     assert fake_uncert2.array is not uncert.value
     assert fake_uncert2.unit is u.cm
@@ -177,19 +175,19 @@ def test_for_leak_with_uncertainty():
     # NDData and uncertainty
 
     def non_leaker():
-        NDData(np.ones(100))
+        NDDataBase(np.ones(100))
 
     def leaker():
-        NDData(np.ones(100), uncertainty=StdDevUncertainty(np.ones(100)))
+        NDDataBase(np.ones(100), uncertainty=StdDevUncertainty(np.ones(100)))
 
-    assert_memory_leak(non_leaker, NDData)
-    assert_memory_leak(leaker, NDData)
+    assert_memory_leak(non_leaker, NDDataBase)
+    assert_memory_leak(leaker, NDDataBase)
 
 
 def test_for_stolen_uncertainty():
     # Sharing uncertainties should not overwrite the parent_nddata attribute
-    ndd1 = NDData(1, uncertainty=1)
-    ndd2 = NDData(2, uncertainty=ndd1.uncertainty)
+    ndd1 = NDDataBase(1, uncertainty=1)
+    ndd2 = NDDataBase(2, uncertainty=ndd1.uncertainty)
     # uncertainty.parent_nddata.data should be the original data!
     assert ndd1.uncertainty.parent_nddata.data == ndd1.data
 
