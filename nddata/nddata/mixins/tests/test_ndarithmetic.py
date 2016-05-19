@@ -891,3 +891,15 @@ def test_arithmetics_unknown_uncertainties():
 
     ndd4 = ndd1.add(ndd2, propagate_uncertainties=None)
     assert ndd4.uncertainty is None
+
+
+def test_uncertainty_impossible_operation():
+    ndd2 = NDData([1, 2, 3], StdDevUncertainty(None))
+    uncert1 = StdDevUncertainty([1, 2, 3])
+    # TODO: One shouldn't call propagate directly but for now I have no
+    # unsupported arithmetic operations that cannot be propagated. So better
+    # to do this than don't test it.
+    with pytest.raises(ValueError):
+        # Parameter 3 and 4 are just stubs... they shouldn't affect the
+        # behaviour in THIS case.
+        uncert1.propagate(np.power, ndd2, np.array([1, 2, 3]), 0)

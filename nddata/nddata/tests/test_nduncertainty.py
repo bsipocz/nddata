@@ -13,6 +13,7 @@ from ..nduncertainty import (StdDevUncertainty,
                              UnknownUncertainty)
 from ..meta import NDUncertainty
 from ..exceptions import IncompatibleUncertaintiesException
+from ..exceptions import MissingDataAssociationException
 from ..nddata import NDDataBase
 
 from ...utils.garbagecollector import assert_memory_leak
@@ -196,3 +197,86 @@ def test_for_stolen_uncertainty():
 
     # just check if it worked also for ndd2
     assert ndd2.uncertainty.parent_nddata.data == ndd2.data
+
+
+def test_repr():
+    uncert = StdDevUncertainty([1, 2, 3])
+    assert str(uncert) == 'StdDevUncertainty([1, 2, 3])'
+    assert uncert.__repr__() == str(uncert)
+
+
+def test_param_parent():
+    ndd1 = NDDataBase([1, 2, 3], StdDevUncertainty(None))
+    ndd2 = NDDataBase(ndd1, copy=True)
+
+    # Not given so it should link to the same parent as the first argument.
+    uncert = StdDevUncertainty(ndd1.uncertainty)
+    assert uncert.parent_nddata is ndd1
+
+    # Explicitly given will overwrite the current parent so it should link to
+    # the other one.
+    uncert = StdDevUncertainty(ndd1.uncertainty, parent_nddata=ndd2)
+    assert uncert.parent_nddata is ndd2
+
+
+def test_mess_with_private_parent():
+    # DON'T DO THIS ... EVER
+    ndd1 = NDDataBase([1, 2, 3], StdDevUncertainty(None))
+    ndd1.uncertainty._parent_nddata = ndd1  # direct link leads to memory leak!
+
+    # TODO: This will raise a Warning. Catch it.
+    assert ndd1.uncertainty.parent_nddata is ndd1
+
+    # To avoid keeping this as memory leak delete both links manually
+    ndd1.uncertainty._parent_nddata = None
+    ndd1._uncertainty = None
+
+
+def test_copy():
+    from copy import copy, deepcopy
+
+    parentnddata = NDDataBase([1])
+
+    for unit in ['m', None]:
+        for parent in [parentnddata, None]:
+
+            uncert_data = np.array([1, 2, 3])
+
+            uncertainty = StdDevUncertainty(uncert_data, unit=unit,
+                                            parent_nddata=parent)
+            copy1 = uncertainty.copy()
+            copy2 = copy(uncertainty)
+            copy3 = deepcopy(uncertainty)
+            copy4 = StdDevUncertainty(uncertainty, copy=True)
+
+            uncert_data[0] = 5
+
+            # Check that the uncertainties are unaffected
+            assert uncertainty.data[0] == 5
+            assert copy1.data[0] == 1
+            assert copy2.data[0] == 1
+            assert copy3.data[0] == 1
+            assert copy4.data[0] == 1
+
+            assert copy1.unit == uncertainty.unit
+            assert copy2.unit == uncertainty.unit
+            assert copy3.unit == uncertainty.unit
+            assert copy4.unit == uncertainty.unit
+
+            if parent is None:
+                with pytest.raises(MissingDataAssociationException):
+                    uncertainty.parent_nddata
+                with pytest.raises(MissingDataAssociationException):
+                    copy1.parent_nddata
+                with pytest.raises(MissingDataAssociationException):
+                    copy2.parent_nddata
+                with pytest.raises(MissingDataAssociationException):
+                    copy3.parent_nddata
+                with pytest.raises(MissingDataAssociationException):
+                    copy4.parent_nddata
+            else:
+                assert uncertainty.parent_nddata is parentnddata
+                assert copy1.parent_nddata is parentnddata
+                assert copy2.parent_nddata is parentnddata
+                assert copy3.parent_nddata is parentnddata
+                assert copy4.parent_nddata is parentnddata

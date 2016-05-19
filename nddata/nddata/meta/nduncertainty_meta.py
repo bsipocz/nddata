@@ -262,21 +262,26 @@ class NDUncertainty(object):
         uncertainty.
         """
         message = "uncertainty is not associated with an NDData object."
-        try:
-            if self._parent_nddata is None:
-                raise MissingDataAssociationException(message)
-            else:
-                # The NDData is saved as weak reference so we must call it
-                # to get the object the reference points to.
-                if isinstance(self._parent_nddata, weakref.ref):
-                    return self._parent_nddata()
-                else:
-                    log.info("parent_nddata should be a weakref to an NDData "
-                             "object.")
-                    return self._parent_nddata
-                return self._parent_nddata
-        except AttributeError:
+        if self._parent_nddata is None:
+            # There is no parent so raise a custom exception. It is guaranteed
+            # that there is such an private attribute because the init did set
+            # it to None. If there is no private attribute someone must have
+            # messed with private attributes. He will get the AttributeError.
+            # Don't mess with private attributes :-)
             raise MissingDataAssociationException(message)
+
+        # The NDData is saved as weak reference so we must call it
+        # to get the object the reference points to.
+        if isinstance(self._parent_nddata, weakref.ref):
+            return self._parent_nddata()
+
+        # If it wasn't a weakref someone messed with the private attribute.
+        # Print a Warning since maybe someone used it in a pre-astropy 1.2
+        # manner.
+        # TODO: This could be removed ... but wait a bit... better to have this
+        # warning than to fail it.
+        log.info("parent_nddata should be a weakref to an NDData object.")
+        return self._parent_nddata
 
     @parent_nddata.setter
     def parent_nddata(self, value):
@@ -312,7 +317,7 @@ class NDUncertaintyGaussian(NDUncertaintyPropagatable):
         """(`numpy.ndarray`) Uncertainty value.
 
         Gaussian uncertainties need the value to be numeric so it is cast to
-        a `numpy.ndarray`. Always.
+        a `numpy.ndarray`. Always!
         """
 
     @property
