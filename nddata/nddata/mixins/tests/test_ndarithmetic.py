@@ -987,6 +987,18 @@ def test_power_first_op_uncertainty():
     assert ndd2.uncertainty.data == ndd3.uncertainty.data
     assert ndd2.uncertainty.unit == ndd3.uncertainty.unit
 
+    # Case 4: Base has different unit for data and uncertainty
+    ndd = NDDataArithmetic(10, uncertainty=StdDevUncertainty(500, unit='cm/m'))
+    ndd2 = ndd.power(2)
+    assert ndd2.data == 100
+    assert ndd2.uncertainty.data == 100
+    # Compare this against converted case
+    ndd = NDDataArithmetic(10, unit='m',
+                           uncertainty=StdDevUncertainty(5))
+    ndd3 = ndd.power(2)
+    assert ndd2.data == ndd3.data
+    assert ndd2.uncertainty.data == ndd3.uncertainty.data
+
     # Test the trivial case that ** 1 leaves the uncertainty be and 0 sets it
     # to zero
     ndd = NDDataArithmetic(10, unit='m', uncertainty=StdDevUncertainty(0.05))
@@ -1086,3 +1098,28 @@ def test_power_both_uncertainty():
     np.testing.assert_almost_equal(nddres.data, nddres2.data)
     np.testing.assert_almost_equal(nddres.uncertainty.data,
                                    nddres2.uncertainty.data)
+
+
+def test_compare_power_to_multiply_with_correlation():
+    # First lets check if correlation for uncertainty works correctly
+    ndd1 = NDDataArithmetic(7, uncertainty=StdDevUncertainty(3))
+    ndd2 = NDDataArithmetic(2, uncertainty=StdDevUncertainty(6))
+
+    ndd_power = ndd1.power(2)
+    ndd_square = ndd1.multiply(ndd1, uncertainty_correlation=1)
+    np.testing.assert_almost_equal(ndd_power.data, ndd_square.data)
+    np.testing.assert_almost_equal(ndd_power.uncertainty.data,
+                                   ndd_square.uncertainty.data)
+
+
+def test_power_both_uncertainty_correlation():
+    # First lets check if correlation for uncertainty works correctly
+    ndd1 = NDDataArithmetic(7, uncertainty=StdDevUncertainty(3))
+    ndd2 = NDDataArithmetic(2, uncertainty=StdDevUncertainty(6))
+
+    for cor in [-1, -0.7, -0.2, 0, 0.3, 0.67, 0.75, 1]:
+        ndd_power = ndd1.power(ndd2, uncertainty_correlation=cor)
+        ref = 49*np.sqrt((2*3/7)**2 +
+                         (np.log(7)*6)**2 +
+                         (cor*2*2*np.log(7)*3*6/7))
+        np.testing.assert_almost_equal(ndd_power.uncertainty.data, ref)

@@ -551,6 +551,7 @@ class StdDevUncertainty(NDUncertaintyGaussian):
             # A has a unit or A has negative elements. So we ignore the unit
             # and take the absolute before we do the logarithm
             # TODO: Check if this is valid!!!
+            # TODO: This makes problems... find out why
             lnA = np.log(np.abs(self.parent_nddata.data))
 
             return np.abs(result_data * lnA * dB)
@@ -592,6 +593,7 @@ class StdDevUncertainty(NDUncertaintyGaussian):
             # to ensure we have the right dimension we convert some units:
 
             # A doesn't need it's unit
+            # TODO: This makes problems... find out why
             A = self.parent_nddata.data
 
             # B must be dimensionless:
