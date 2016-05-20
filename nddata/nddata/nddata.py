@@ -19,13 +19,6 @@ class NDData(NDArithmeticMixin, NDIOMixin, NDSlicingMixin, NDDataBase):
     and writing as implemented in the ``astropy.io.registry`` and also slicing
     (indexing) and simple arithmetics (add, subtract, divide and multiply).
 
-    See also
-    --------
-    NDDataBase
-    mixins.NDArithmeticMixin
-    mixins.NDSlicingMixin
-    mixins.NDIOMixin
-
     Examples
     --------
     The mixins allow operation that are not possible with `NDDataBase` or
