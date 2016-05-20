@@ -1185,31 +1185,44 @@ def test_power_equivalent_units():
                             uncertainty=StdDevUncertainty(2))
     res5 = ndd1.power(ndd2)
 
+    ndd1 = NDDataArithmetic(200, unit='cm/m',
+                            uncertainty=StdDevUncertainty(0.02, unit='m/cm'))
+    ndd2 = NDDataArithmetic(3,
+                            uncertainty=StdDevUncertainty(2))
+    res6 = ndd1.power(ndd2)
+
     compare_results(res1, res2)
     compare_results(res1, res3)
     compare_results(res1, res4)
     compare_results(res1, res5)
+    compare_results(res1, res6)
 
     # TESTS 3
     ndd1 = NDDataArithmetic(3)
-    ndd2 = NDDataArithmetic(6, uncertainty=StdDevUncertainty(4))
+    ndd2 = NDDataArithmetic(1.2, uncertainty=StdDevUncertainty(4))
     res1 = ndd1.power(ndd2)
 
-    ndd2 = NDDataArithmetic(0.06, unit='m/cm',
+    ndd2 = NDDataArithmetic(0.012, unit='m/cm',
                             uncertainty=StdDevUncertainty(0.04))
     res2 = ndd1.power(ndd2)
 
-    ndd2 = NDDataArithmetic(6,
+    ndd2 = NDDataArithmetic(1.2,
                             uncertainty=StdDevUncertainty(0.04, unit='m/cm'))
     res3 = ndd1.power(ndd2)
 
-    ndd2 = NDDataArithmetic(0.06, unit='m/cm',
+    ndd2 = NDDataArithmetic(0.012, unit='m/cm',
                             uncertainty=StdDevUncertainty(4, unit=''))
     res4 = ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(300, unit='cm/m')
+    ndd2 = NDDataArithmetic(0.012, unit='m/cm',
+                            uncertainty=StdDevUncertainty(4, unit=''))
+    res5 = ndd1.power(ndd2)
 
     compare_results(res1, res2)
     compare_results(res1, res3)
     compare_results(res1, res4)
+    compare_results(res1, res5)
 
     # TESTS 4
     ndd1 = NDDataArithmetic(8, uncertainty=StdDevUncertainty(5))
