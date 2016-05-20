@@ -425,10 +425,10 @@ class StdDevUncertainty(NDUncertaintyGaussian):
                 # The base has no unit in that case just take the data.
                 A_ = self.parent_nddata.data
 
-            # FIXME: Absolute is not really in the formula. But the logarithm
-            # fails for negative input so I thought it may be a good idea. :-)
-            # See also the third case - there this formula is used too.
-            lnA = np.log(np.abs(A_))
+            # FIXME: In case negative elements exist this might make problems
+            # because the logarithm of negative numbers is only valid if the
+            # operand is complex...
+            lnA = np.log(A_)
 
             # dB must be dimensionless because B is dimensionless so
             # convert it to dimensionless if any unit is present. This will
@@ -494,7 +494,7 @@ class StdDevUncertainty(NDUncertaintyGaussian):
             else:
                 A_ = self.parent_nddata.data
 
-            lnA = np.log(np.abs(A_))
+            lnA = np.log(A_)
 
             if other_uncert.parent_nddata.unit is not None:
                 B = other_uncert.parent_nddata.unit.to(
