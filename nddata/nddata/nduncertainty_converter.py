@@ -4,12 +4,16 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from astropy import log
+import astropy.units as u
 
 from .exceptions import IncompatibleUncertaintiesException
 from .exceptions import MissingDataAssociationException
 
-from .nduncertainty_stddev import StdDevUncertainty
 from .nduncertainty_unknown import UnknownUncertainty
+from .nduncertainty_stddev import StdDevUncertainty
+from .nduncertainty_relstd import RelativeUncertainty
+from .nduncertainty_var import VarianceUncertainty
+
 
 __all__ = ['UncertaintyConverter']
 
@@ -109,6 +113,14 @@ class UncertaintyConverter(object):
         +======================+=======================+=========+==========+
         | `UnknownUncertainty` | `StdDevUncertainty`   | Yes     | Yes      |
         +----------------------+-----------------------+---------+----------+
+        | `UnknownUncertainty` | `VarianceUncertainty` | Yes     | Yes      |
+        +----------------------+-----------------------+---------+----------+
+        | `UnknownUncertainty` | `RelativeUncertainty` | Yes     | Yes      |
+        +----------------------+-----------------------+---------+----------+
+        | `StdDevUncertainty`  | `VarianceUncertainty` | Yes     | Yes      |
+        +----------------------+-----------------------+---------+----------+
+        | `StdDevUncertainty`  | `RelativeUncertainty` | Yes     | Yes      |
+        +----------------------+-----------------------+---------+----------+
 
         Examples
         --------
@@ -149,3 +161,89 @@ def _convert_unknown_to_something(val):
 UncertaintyConverter.register(UnknownUncertainty, StdDevUncertainty,
                               _convert_unknown_to_something,
                               _convert_unknown_to_something)
+UncertaintyConverter.register(UnknownUncertainty, VarianceUncertainty,
+                              _convert_unknown_to_something,
+                              _convert_unknown_to_something)
+UncertaintyConverter.register(UnknownUncertainty, RelativeUncertainty,
+                              _convert_unknown_to_something,
+                              _convert_unknown_to_something)
+
+
+def _convert_std_to_var(val):
+    data = val.data
+    unit = val.unit
+    try:
+        parent_nddata = val.parent_nddata
+    except MissingDataAssociationException:
+        parent_nddata = None
+    if data is not None:
+        data = data ** 2
+    if unit is not None:
+        unit = unit ** 2
+    return {'data': data, 'unit': unit, 'parent_nddata': parent_nddata}
+
+
+def _convert_var_to_std(val):
+    data = val.data
+    unit = val.unit
+    try:
+        parent_nddata = val.parent_nddata
+    except MissingDataAssociationException:
+        parent_nddata = None
+    if data is not None:
+        data = data ** (1/2)
+    if unit is not None:
+        unit = unit ** (1/2)
+    return {'data': data, 'unit': unit, 'parent_nddata': parent_nddata}
+
+
+UncertaintyConverter.register(StdDevUncertainty, VarianceUncertainty,
+                              _convert_std_to_var,
+                              _convert_var_to_std)
+
+
+def _convert_std_to_rel(val):
+    try:
+        parent_nddata = val.parent_nddata
+    except MissingDataAssociationException:
+        msg = 'converting to relative uncertainty requires the parents data.'
+        raise MissingDataAssociationException(msg)
+
+    # We need the parents values to calculate the relative ones.
+    if parent_nddata.unit is not None:
+        data_p = parent_nddata.data * parent_nddata.unit
+    else:
+        data_p = parent_nddata.data
+
+    if val.effective_unit is not None:
+        data_u = val.data * val.effective_unit
+    else:
+        data_u = val.data
+
+    data = data_u / data_p
+
+    if isinstance(data, u.Quantity):
+        data = data.to(u.dimensionless_unscaled).value
+    return {'data': data, 'unit': None, 'parent_nddata': parent_nddata}
+
+
+def _convert_rel_to_std(val):
+    try:
+        parent_nddata = val.parent_nddata
+    except MissingDataAssociationException:
+        msg = 'converting from relative uncertainty requires the parents data.'
+        raise MissingDataAssociationException(msg)
+
+    # We need the parents values to calculate the relative ones.
+    data_p = parent_nddata.data
+
+    data_u = val.data
+
+    data = data_p * data_u
+
+    return {'data': data, 'unit': None, 'parent_nddata': parent_nddata}
+
+
+UncertaintyConverter.register(StdDevUncertainty, RelativeUncertainty,
+                              _convert_std_to_rel,
+                              _convert_rel_to_std)

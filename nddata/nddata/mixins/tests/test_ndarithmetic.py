@@ -977,16 +977,16 @@ def test_power_first_op_uncertainty():
     ndd2 = ndd.power(2)
     assert ndd2.data == 100
     assert ndd2.unit == u.m ** 2
-    assert ndd2.uncertainty.data == 1
-    assert ndd2.uncertainty.unit is None
+    assert ndd2.uncertainty.data == 10000
+    assert ndd2.uncertainty.unit == u.cm ** 2
     # Compare this against converted case
     ndd = NDDataArithmetic(10, unit='m',
                            uncertainty=StdDevUncertainty(0.05))
     ndd3 = ndd.power(2)
     assert ndd2.data == ndd3.data
     assert ndd2.unit == ndd3.unit
-    assert ndd2.uncertainty.data == ndd3.uncertainty.data
-    assert ndd2.uncertainty.unit == ndd3.uncertainty.unit
+    assert ndd2.uncertainty.data == ndd3.uncertainty.data * 10000
+    assert ndd3.uncertainty.unit == u.m ** 2
 
     # Case 4: Base has different unit for data and uncertainty
     ndd = NDDataArithmetic(10, uncertainty=StdDevUncertainty(500, unit='cm/m'))
@@ -1131,17 +1131,31 @@ def test_power_equivalent_units():
     # units. So 2cm yields the same result as 0.02m.
 
     def compare_results(result1, result2):
-        if result1.unit is None and result2.unit is None:
-            factor = 1
-        elif result1.unit is None:
-            factor = 1 / result2.unit.to(u.dimensionless_unscaled, 1)
-        elif result2.unit is None:
-            factor = result1.unit.to(u.dimensionless_unscaled, 1)
+        if result1.unit is not None:
+            data1 = result1.data * result1.unit
         else:
-            factor = result1.unit.to(result2.unit)
-        np.testing.assert_almost_equal(result1.data * factor, result2.data)
-        np.testing.assert_almost_equal(result1.uncertainty.data * factor,
-                                       result2.uncertainty.data)
+            data1 = result1.data * u.dimensionless_unscaled
+
+        if result2.unit is not None:
+            data2 = result2.data * result2.unit
+        else:
+            data2 = result2.data * u.dimensionless_unscaled
+
+        data1 = data1.to(data2.unit)
+        np.testing.assert_array_almost_equal(data1.value, data2.value)
+
+        if result1.uncertainty.unit is not None:
+            data1 = result1.uncertainty.data * result1.uncertainty.effective_unit
+        else:
+            data1 = result1.uncertainty.data * u.dimensionless_unscaled
+
+        if result2.uncertainty.unit is not None:
+            data2 = result2.uncertainty.data * result2.uncertainty.effective_unit
+        else:
+            data2 = result2.uncertainty.data * u.dimensionless_unscaled
+
+        data1 = data1.to(data2.unit)
+        np.testing.assert_array_almost_equal(data1.value, data2.value)
 
     # TESTS 1
     ndd1 = NDDataArithmetic(2, unit='m', uncertainty=StdDevUncertainty(0.02))

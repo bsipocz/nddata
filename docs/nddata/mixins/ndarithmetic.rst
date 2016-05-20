@@ -431,7 +431,7 @@ correct uncertainty of ``0``::
 which would be consistent with the equivalent operation ``ndd1 * 0``::
 
     >>> ndd1.multiply(0, propagate_uncertainties=True).uncertainty
-    StdDevUncertainty([0])
+    StdDevUncertainty([ 0.])
 
 .. warning::
     The user needs to calculate or know the appropriate value or array manually
@@ -459,6 +459,9 @@ if the unit of the data differs from the unit of the uncertainty::
     >>> ndd1 = NDData([10], unit='m', uncertainty=StdDevUncertainty([10], unit='cm'))
     >>> ndd2 = NDData([20], unit='m', uncertainty=StdDevUncertainty([10]))
     >>> ndd1.subtract(ndd2, propagate_uncertainties=True).uncertainty
-    StdDevUncertainty([ 10.00049999])
+    StdDevUncertainty([ 1000.04999875])
 
-but it needs to be convertible to the unit for the data.
+With the resulting uncertainty having a unit of ``cm``. The uncertainty follows
+the convention that the unit will have the unit of the first operand with
+``add`` and ``subtract`` and the combined units in case of ``multiply`` and
+``divide``.
