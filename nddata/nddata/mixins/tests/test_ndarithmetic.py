@@ -894,7 +894,7 @@ def test_arithmetics_unknown_uncertainties():
 
 
 def test_uncertainty_impossible_operation():
-    ndd2 = NDData([1, 2, 3], StdDevUncertainty(None))
+    ndd2 = NDDataArithmetic([1, 2, 3], StdDevUncertainty(None))
     uncert1 = StdDevUncertainty([1, 2, 3])
     # TODO: One shouldn't call propagate directly but for now I have no
     # unsupported arithmetic operations that cannot be propagated. So better
@@ -902,4 +902,364 @@ def test_uncertainty_impossible_operation():
     with pytest.raises(ValueError):
         # Parameter 3 and 4 are just stubs... they shouldn't affect the
         # behaviour in THIS case.
-        uncert1.propagate(np.power, ndd2, np.array([1, 2, 3]), 0)
+        uncert1.propagate(np.log, ndd2, np.array([1, 2, 3]), 0)
+
+
+# Power operation.
+
+def test_power_data_unit():
+    # Test it with classmethods, other uses should be the same.
+
+    # Case 1: Two scalars
+    ndd = NDDataArithmetic.power(2, 2)
+    assert ndd.data == 4
+
+    # Case 2: Scalar Quantity and scalar
+    ndd = NDDataArithmetic.power(2 * u.m, 4)
+    assert ndd.data == 2 ** 4
+    assert ndd.unit == u.m ** 4
+
+    # Case 3: Quantity Array and scalar
+    ndd = NDDataArithmetic.power(np.array([1, 2, 3]) * u.cm, 0.5)
+    np.testing.assert_almost_equal(ndd.data, np.sqrt([1, 2, 3]))
+    assert ndd.unit == u.cm ** 0.5
+
+    # Case 4: Array and array
+    ndd = NDDataArithmetic.power(np.array([1, 2, 3]), np.array([1, 2, 3]))
+    np.testing.assert_almost_equal(ndd.data, np.array([1, 4, 27]))
+
+    # Cases that don't work because of Quantity framework:
+    # Case 5: Quantity Array and array
+    with pytest.raises(ValueError):
+        NDDataArithmetic.power(np.array([1, 2, 3]) * u.cm, [1, 2, 3])
+
+    # Case 6: Exponent has unit
+    with pytest.raises(TypeError):
+        NDDataArithmetic.power(2, 4 * u.m)
+
+
+# TODO: Check if this test needs to be skipped if astropy < 1.2
+def test_power_first_op_uncertainty():
+    # Case 1: Only first operand has uncertainty and second operand is really
+    # dimensionless
+    ndd = NDDataArithmetic(10, uncertainty=StdDevUncertainty(5))
+    ndd2 = ndd.power(3)
+    assert ndd2.data == 1000
+    assert ndd2.unit is None
+    assert ndd2.uncertainty.data == 1500
+    assert ndd2.uncertainty.unit is None
+    # Check that this is identical to dimensionless exponent (with unit)
+    ndd3 = ndd.power(3*u.dimensionless_unscaled)
+    assert ndd2.data == ndd3.data
+    assert ndd2.uncertainty.data == ndd3.uncertainty.data
+    assert ndd2.uncertainty.unit == ndd3.uncertainty.unit
+
+    # Case 2: Like case 1 but this time the exponent has a unit that can be
+    # converted to dimensionless
+    ndd = NDDataArithmetic(10, uncertainty=StdDevUncertainty(5))
+    ndd2 = ndd.power(3 * u.cm / u.mm)
+    assert ndd2.data == 1e30
+    assert ndd2.unit == u.dimensionless_unscaled
+    # really big values so only compare like 8 valid decimals
+    # unfortunatly numpy testing wasn't very useful here...
+    assert np.abs(ndd2.uncertainty.data - 1.5e31) < 1e23
+    assert ndd2.uncertainty.unit is None
+    # Check this against a converted case
+    ndd3 = ndd.power(30.)
+    assert ndd2.data == ndd3.data
+    assert ndd2.uncertainty.data == ndd3.uncertainty.data
+    assert ndd2.uncertainty.unit == ndd3.uncertainty.unit
+
+    # Case 3: Base has different unit for data and uncertainty
+    ndd = NDDataArithmetic(10, unit='m',
+                           uncertainty=StdDevUncertainty(5, unit='cm'))
+    ndd2 = ndd.power(2)
+    assert ndd2.data == 100
+    assert ndd2.unit == u.m ** 2
+    assert ndd2.uncertainty.data == 1
+    assert ndd2.uncertainty.unit is None
+    # Compare this against converted case
+    ndd = NDDataArithmetic(10, unit='m',
+                           uncertainty=StdDevUncertainty(0.05))
+    ndd3 = ndd.power(2)
+    assert ndd2.data == ndd3.data
+    assert ndd2.unit == ndd3.unit
+    assert ndd2.uncertainty.data == ndd3.uncertainty.data
+    assert ndd2.uncertainty.unit == ndd3.uncertainty.unit
+
+    # Case 4: Base has different unit for data and uncertainty
+    ndd = NDDataArithmetic(10, uncertainty=StdDevUncertainty(500, unit='cm/m'))
+    ndd2 = ndd.power(2)
+    assert ndd2.data == 100
+    assert ndd2.uncertainty.data == 100
+    # Compare this against converted case
+    ndd = NDDataArithmetic(10, unit='m',
+                           uncertainty=StdDevUncertainty(5))
+    ndd3 = ndd.power(2)
+    assert ndd2.data == ndd3.data
+    assert ndd2.uncertainty.data == ndd3.uncertainty.data
+
+    # Test the trivial case that ** 1 leaves the uncertainty be and 0 sets it
+    # to zero
+    ndd = NDDataArithmetic(10, unit='m', uncertainty=StdDevUncertainty(0.05))
+    assert ndd.power(1).uncertainty.data == ndd.uncertainty.data
+    assert ndd.power(0).uncertainty.data == 0
+
+
+def test_power_second_op_uncertainty():
+    # The second operand must be dimensionless or convertable to dimensionless
+    # So let's check:
+
+    # Case 1: Exponent unitless and unitless uncertainty
+    ndd = NDDataArithmetic(10, uncertainty=StdDevUncertainty(5))
+    ndd2 = ndd.power(2, ndd)
+    assert ndd2.data == 1024
+    assert ndd2.unit is None
+    np.testing.assert_almost_equal(ndd2.uncertainty.data,
+                                   1024 * np.log(2) * 5)
+    # Formula is result (1024) * ln(operand1) (ln(2)) * uncertainty2 (5)
+    assert ndd2.uncertainty.unit is None
+
+    # Compare this to dimensionless exponent
+    ndd = NDDataArithmetic(10, unit='', uncertainty=StdDevUncertainty(5))
+    ndd3 = ndd.power(2, ndd)
+    assert ndd2.data == ndd3.data
+    # The unit is somehow convolved because of power ... don't compare it.
+    np.testing.assert_almost_equal(ndd2.uncertainty.data,
+                                   ndd3.uncertainty.data)
+    assert ndd2.uncertainty.unit is None
+
+    # and to an exponent with a unit that can be converted to dimensionless
+    ndd = NDDataArithmetic(10, uncertainty=StdDevUncertainty(500, unit='cm/m'))
+    ndd3 = ndd.power(2, ndd)
+    assert ndd2.data == ndd3.data
+    # The unit is somehow convolved because of power ... don't compare it.
+    np.testing.assert_almost_equal(ndd2.uncertainty.data,
+                                   ndd3.uncertainty.data)
+    assert ndd2.uncertainty.unit is None
+
+
+def test_power_both_uncertainty():
+    # Easy test first: Both uncertainties but both of them zero
+    ndd1 = NDDataArithmetic(2, uncertainty=StdDevUncertainty(0))
+    ndd2 = NDDataArithmetic(3, uncertainty=StdDevUncertainty(0))
+
+    nddres = ndd1.power(ndd2)
+    assert nddres.data == 8
+    assert nddres.uncertainty.data == 0
+
+    # Both of them set
+    ndd1 = NDDataArithmetic(2, uncertainty=StdDevUncertainty(2))
+    ndd2 = NDDataArithmetic(3, uncertainty=StdDevUncertainty(2))
+
+    nddres = ndd1.power(ndd2)
+    assert nddres.data == 8
+    np.testing.assert_almost_equal(nddres.uncertainty.data,
+                                   np.sqrt((8*3*2/2)**2+(8*np.log(2)*2)**2))
+
+    # Compare this to dimensionless operands
+    ndd1 = NDDataArithmetic(2, unit='', uncertainty=StdDevUncertainty(2))
+    ndd2 = NDDataArithmetic(3, unit='', uncertainty=StdDevUncertainty(2))
+    nddres2 = ndd1.power(ndd2)
+    assert nddres.data == nddres2.data
+    np.testing.assert_almost_equal(nddres.uncertainty.data,
+                                   nddres2.uncertainty.data)
+
+    # and to only second nominally unitless operands
+    ndd1 = NDDataArithmetic(2,
+                            uncertainty=StdDevUncertainty(2))
+    ndd2 = NDDataArithmetic(300, unit='cm/m',
+                            uncertainty=StdDevUncertainty(200))
+
+    nddres2 = ndd1.power(ndd2)
+    np.testing.assert_almost_equal(nddres.data,
+                                   nddres2.unit.to('', nddres2.data))
+    np.testing.assert_almost_equal(nddres.uncertainty.data,
+                                   nddres2.unit.to('',
+                                                   nddres2.uncertainty.data))
+
+    # and to only first nominally unitless operands
+    ndd1 = NDDataArithmetic(2,
+                            uncertainty=StdDevUncertainty(200, unit='cm/m'))
+    ndd2 = NDDataArithmetic(3, uncertainty=StdDevUncertainty(2))
+
+    nddres2 = ndd1.power(ndd2)
+    np.testing.assert_almost_equal(nddres.data, nddres2.data)
+    np.testing.assert_almost_equal(nddres.uncertainty.data,
+                                   nddres2.uncertainty.data)
+
+    # and to only nominally unitless operands
+    ndd1 = NDDataArithmetic(2,
+                            uncertainty=StdDevUncertainty(200, unit='cm/m'))
+    ndd2 = NDDataArithmetic(300, unit='cm/m',
+                            uncertainty=StdDevUncertainty(200))
+
+    nddres2 = ndd1.power(ndd2)
+    np.testing.assert_almost_equal(nddres.data, nddres2.data)
+    np.testing.assert_almost_equal(nddres.uncertainty.data,
+                                   nddres2.uncertainty.data)
+
+
+def test_compare_power_to_multiply_with_correlation():
+    # First lets check if correlation for uncertainty works correctly
+    ndd1 = NDDataArithmetic(7, uncertainty=StdDevUncertainty(3))
+    ndd2 = NDDataArithmetic(2, uncertainty=StdDevUncertainty(6))
+
+    ndd_power = ndd1.power(2)
+    ndd_square = ndd1.multiply(ndd1, uncertainty_correlation=1)
+    np.testing.assert_almost_equal(ndd_power.data, ndd_square.data)
+    np.testing.assert_almost_equal(ndd_power.uncertainty.data,
+                                   ndd_square.uncertainty.data)
+
+
+def test_power_both_uncertainty_correlation():
+    # First lets check if correlation for uncertainty works correctly
+    ndd1 = NDDataArithmetic(7, uncertainty=StdDevUncertainty(3))
+    ndd2 = NDDataArithmetic(2, uncertainty=StdDevUncertainty(6))
+
+    for cor in [-1, -0.7, -0.2, 0, 0.3, 0.67, 0.75, 1]:
+        ndd_power = ndd1.power(ndd2, uncertainty_correlation=cor)
+        ref = 49*np.sqrt((2*3/7)**2 +
+                         (np.log(7)*6)**2 +
+                         (cor*2*2*np.log(7)*3*6/7))
+        np.testing.assert_almost_equal(ndd_power.uncertainty.data, ref)
+
+
+def test_power_equivalent_units():
+    # These tests are thought to ensure that the result doesn't depend on the
+    # units. So 2cm yields the same result as 0.02m.
+
+    def compare_results(result1, result2):
+        if result1.unit is None and result2.unit is None:
+            factor = 1
+        elif result1.unit is None:
+            factor = 1 / result2.unit.to(u.dimensionless_unscaled, 1)
+        elif result2.unit is None:
+            factor = result1.unit.to(u.dimensionless_unscaled, 1)
+        else:
+            factor = result1.unit.to(result2.unit)
+        np.testing.assert_almost_equal(result1.data * factor, result2.data)
+        np.testing.assert_almost_equal(result1.uncertainty.data * factor,
+                                       result2.uncertainty.data)
+
+    # TESTS 1
+    ndd1 = NDDataArithmetic(2, unit='m', uncertainty=StdDevUncertainty(0.02))
+    ndd2 = NDDataArithmetic(3)
+    res1 = ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(2, unit='m',
+                            uncertainty=StdDevUncertainty(2, unit='cm'))
+    ndd2 = NDDataArithmetic(3)
+    res2 = ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(200., unit='cm', uncertainty=StdDevUncertainty(2.))
+    ndd2 = NDDataArithmetic(3)
+    res3 = ndd1.power(ndd2)
+
+    compare_results(res1, res2)
+    compare_results(res1, res3)
+
+    # TESTS 2
+    ndd1 = NDDataArithmetic(2, uncertainty=StdDevUncertainty(2))
+    ndd2 = NDDataArithmetic(3, uncertainty=StdDevUncertainty(2))
+    res1 = ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(2, uncertainty=StdDevUncertainty(2))
+    ndd2 = NDDataArithmetic(0.03, unit='m/cm',
+                            uncertainty=StdDevUncertainty(0.02))
+    res2 = ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(0.02, unit='m/cm',
+                            uncertainty=StdDevUncertainty(0.02))
+    ndd2 = NDDataArithmetic(3, uncertainty=StdDevUncertainty(2))
+    res3 = ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(2, uncertainty=StdDevUncertainty(2))
+    ndd2 = NDDataArithmetic(3,
+                            uncertainty=StdDevUncertainty(0.02, unit='m/cm'))
+    res4 = ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(2,
+                            uncertainty=StdDevUncertainty(0.02, unit='m/cm'))
+    ndd2 = NDDataArithmetic(3,
+                            uncertainty=StdDevUncertainty(2))
+    res5 = ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(200, unit='cm/m',
+                            uncertainty=StdDevUncertainty(0.02, unit='m/cm'))
+    ndd2 = NDDataArithmetic(3,
+                            uncertainty=StdDevUncertainty(2))
+    res6 = ndd1.power(ndd2)
+
+    compare_results(res1, res2)
+    compare_results(res1, res3)
+    compare_results(res1, res4)
+    compare_results(res1, res5)
+    compare_results(res1, res6)
+
+    # TESTS 3
+    ndd1 = NDDataArithmetic(3)
+    ndd2 = NDDataArithmetic(1.2, uncertainty=StdDevUncertainty(4))
+    res1 = ndd1.power(ndd2)
+
+    ndd2 = NDDataArithmetic(0.012, unit='m/cm',
+                            uncertainty=StdDevUncertainty(0.04))
+    res2 = ndd1.power(ndd2)
+
+    ndd2 = NDDataArithmetic(1.2,
+                            uncertainty=StdDevUncertainty(0.04, unit='m/cm'))
+    res3 = ndd1.power(ndd2)
+
+    ndd2 = NDDataArithmetic(0.012, unit='m/cm',
+                            uncertainty=StdDevUncertainty(4, unit=''))
+    res4 = ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(300, unit='cm/m')
+    ndd2 = NDDataArithmetic(0.012, unit='m/cm',
+                            uncertainty=StdDevUncertainty(4, unit=''))
+    res5 = ndd1.power(ndd2)
+
+    compare_results(res1, res2)
+    compare_results(res1, res3)
+    compare_results(res1, res4)
+    compare_results(res1, res5)
+
+    # TESTS 4
+    ndd1 = NDDataArithmetic(8, uncertainty=StdDevUncertainty(5))
+    ndd2 = NDDataArithmetic(2.3)
+    res1 = ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(0.08, unit='m/cm',
+                            uncertainty=StdDevUncertainty(0.05))
+    res2 = ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(8,
+                            uncertainty=StdDevUncertainty(0.05, unit='m/cm'))
+    res3 = ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(0.08, unit='m/cm',
+                            uncertainty=StdDevUncertainty(5, unit=''))
+    res4 = ndd1.power(ndd2)
+
+    compare_results(res1, res2)
+    compare_results(res1, res3)
+    compare_results(res1, res4)
+
+
+def test_power_not_allowed_things():
+    # Even with the exponent being a scalar it must not have an uncertainty
+    # if the base has a unit that differs from dimensionless
+    ndd1 = NDDataArithmetic(2, unit='m')
+    ndd2 = NDDataArithmetic(3, uncertainty=StdDevUncertainty(0.1))
+    with pytest.raises(u.UnitConversionError):
+        ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(2, unit='m')
+    ndd2 = NDDataArithmetic(3, uncertainty=StdDevUncertainty(0.1))
+    with pytest.raises(u.UnitConversionError):
+        ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(200., unit='cm')
+    ndd2 = NDDataArithmetic(3, uncertainty=StdDevUncertainty(0.1))
+    with pytest.raises(u.UnitConversionError):
+        ndd1.power(ndd2)

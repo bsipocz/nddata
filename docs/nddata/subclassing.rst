@@ -421,6 +421,10 @@ converts the operands, if necessary, to the appropriate classes. Overriding
 this ``_prepare_then_do_arithmetic`` in subclasses should be avoided if
 possible.
 
+.. note::
+    This example is fictional since `~nddata.nddata.NDData` already implements
+    a :meth:`~nddata.nddata.mixins.NDArithmeticMixin.power` method.
+
 `~nddata.nddata.meta.NDDataMeta`
 --------------------------------
 

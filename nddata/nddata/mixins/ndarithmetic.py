@@ -389,28 +389,32 @@ class NDArithmeticMixin(object):
         if self.uncertainty is None and operand.uncertainty is None:
             # Neither has uncertainties so the result should have none.
             return None
-        elif self.uncertainty is None:
+
+        # At least one uncertainty is set, so build a dictionary containing
+        # the parameters for the "propagation"-call.
+        prop_kwargs = {'operation': operation,
+                       'other_nddata': operand,
+                       'result_data': result,
+                       'correlation': correlation}
+
+        if self.uncertainty is None:
             # Create a temporary uncertainty to allow uncertainty propagation
             # to yield the correct results. (issue #4152)
             self.uncertainty = operand.uncertainty.__class__(None)
-            result_uncert = self.uncertainty.propagate(operation, operand,
-                                                       result, correlation)
+            result_uncert = self.uncertainty.propagate(**prop_kwargs)
             # Delete the temporary uncertainty again.
             self.uncertainty = None
             return result_uncert
 
-        elif operand.uncertainty is None:
+        if operand.uncertainty is None:
             # As with self.uncertainty is None but the other way around.
             operand.uncertainty = self.uncertainty.__class__(None)
-            result_uncert = self.uncertainty.propagate(operation, operand,
-                                                       result, correlation)
+            result_uncert = self.uncertainty.propagate(**prop_kwargs)
             operand.uncertainty = None
             return result_uncert
 
-        else:
-            # Both have uncertainties so just propagate.
-            return self.uncertainty.propagate(operation, operand, result,
-                                              correlation)
+        # Both have uncertainties so just propagate.
+        return self.uncertainty.propagate(**prop_kwargs)
 
     def _arithmetic_mask(self, operation, operand, handle_mask, **kwds):
         """Calculate the resulting mask.
@@ -577,6 +581,12 @@ class NDArithmeticMixin(object):
     def divide(self, operand, operand2=None, **kwargs):
         return self._prepare_then_do_arithmetic(np.true_divide, operand,
                                                 operand2, **kwargs)
+
+    @sharedmethod
+    @format_doc(_arit_doc, name="power", op="**")
+    def power(self, operand, operand2=None, **kwargs):
+        return self._prepare_then_do_arithmetic(np.power, operand, operand2,
+                                                **kwargs)
 
     @sharedmethod
     def _prepare_then_do_arithmetic(self_or_cls, operation, operand, operand2,
