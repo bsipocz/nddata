@@ -129,6 +129,58 @@ def test_std_to_rel():
     assert unc2.unit is None
     assert unc3.unit is None
 
+    # and no units
+    unc1 = StdDevUncertainty(0.1)
+    parent = NDDataBase(5)
+    parent.uncertainty = unc1
+
+    unc2 = RelativeUncertainty.from_uncertainty(unc1)
+    unc3 = RelativeUncertainty(unc1)
+
+    np.testing.assert_array_equal(unc2.data, 0.02)
+    np.testing.assert_array_equal(unc2.data, unc3.data)
+    assert unc1.parent_nddata is unc3.parent_nddata
+    assert unc2.parent_nddata is unc3.parent_nddata
+    assert unc2.unit is None
+    assert unc3.unit is None
+
+
+def test_rel_to_std():
+    unc1 = RelativeUncertainty(0.02)
+    # Without parent conversion is impossible
+    with pytest.raises(MissingDataAssociationException):
+        StdDevUncertainty.from_uncertainty(unc1)
+    with pytest.raises(MissingDataAssociationException):
+        StdDevUncertainty(unc1)
+
+    parent = NDDataBase(100, unit='m')
+    parent.uncertainty = unc1
+
+    unc2 = StdDevUncertainty.from_uncertainty(unc1)
+    unc3 = StdDevUncertainty(unc1)
+
+    np.testing.assert_array_equal(unc2.data, 2)
+    np.testing.assert_array_equal(unc2.data, unc3.data)
+    assert unc1.parent_nddata is unc3.parent_nddata
+    assert unc2.parent_nddata is unc3.parent_nddata
+    assert unc2.unit is None
+    assert unc3.unit is None
+
+    # and parent with no unit
+    unc1 = RelativeUncertainty(0.02)
+    parent = NDDataBase(100)
+    parent.uncertainty = unc1
+
+    unc2 = StdDevUncertainty.from_uncertainty(unc1)
+    unc3 = StdDevUncertainty(unc1)
+
+    np.testing.assert_array_equal(unc2.data, 2)
+    np.testing.assert_array_equal(unc2.data, unc3.data)
+    assert unc1.parent_nddata is unc3.parent_nddata
+    assert unc2.parent_nddata is unc3.parent_nddata
+    assert unc2.unit is None
+    assert unc3.unit is None
+
 
 def test_unknown_to_stddev():
     # This conversion does:

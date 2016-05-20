@@ -17,6 +17,10 @@ from astropy.units import UnitsError, Quantity
 from astropy.tests.helper import pytest
 from astropy import units as u
 
+import astropy
+from distutils.version import LooseVersion
+astropy_1_2 = LooseVersion(astropy.__version__) >= LooseVersion('1.2')
+
 
 # Alias NDDataAllMixins in case this will be renamed ... :-)
 NDDataArithmetic = NDData
@@ -1126,6 +1130,11 @@ def test_power_both_uncertainty_correlation():
         np.testing.assert_almost_equal(ndd_power.uncertainty.data, ref)
 
 
+# Unfortunatly #4770 of astropy is probably not backported so will only
+# be avaiable for astropy 1.2. So this test is marked as skipped.
+@pytest.mark.xfail(not astropy_1_2, strict=True,
+                   reason="dimensionless_scaled base or exponent are only "
+                          "allowed from 1.2 on.")
 def test_power_equivalent_units():
     # These tests are thought to ensure that the result doesn't depend on the
     # units. So 2cm yields the same result as 0.02m.
