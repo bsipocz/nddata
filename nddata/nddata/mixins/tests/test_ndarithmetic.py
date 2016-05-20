@@ -1231,3 +1231,22 @@ def test_power_equivalent_units():
     compare_results(res1, res2)
     compare_results(res1, res3)
     compare_results(res1, res4)
+
+
+def test_power_not_allowed_things():
+    # Even with the exponent being a scalar it must not have an uncertainty
+    # if the base has a unit that differs from dimensionless
+    ndd1 = NDDataArithmetic(2, unit='m')
+    ndd2 = NDDataArithmetic(3, uncertainty=StdDevUncertainty(0.1))
+    with pytest.raises(u.UnitConversionError):
+        ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(2, unit='m')
+    ndd2 = NDDataArithmetic(3, uncertainty=StdDevUncertainty(0.1))
+    with pytest.raises(u.UnitConversionError):
+        ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(200., unit='cm')
+    ndd2 = NDDataArithmetic(3, uncertainty=StdDevUncertainty(0.1))
+    with pytest.raises(u.UnitConversionError):
+        ndd1.power(ndd2)
