@@ -109,13 +109,17 @@ class NDUncertainty(object):
                 parent_nddata is not parent_nddata2):
             log.info(msg.format(name, 'parent_nddata'))
 
-        if copy:
-            data = deepcopy(data)
+        self.data = data
+
+        # only copy the data if it wasn't copied already during setting. See
+        # this avoids unnecessary copy-steps. Hopefully noone does just a
+        # shallow copy in the property...
+        if copy and self.data is data:
+            self.data = deepcopy(data)
             # No need to copy unit because they are immutable
             # and copying parent_nddata would be bad since this would copy the
             # associated NDData instance!!!
 
-        self.data = data
         self.unit = unit
         self.parent_nddata = parent_nddata
 
