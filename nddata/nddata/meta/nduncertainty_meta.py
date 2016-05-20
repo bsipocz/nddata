@@ -308,6 +308,8 @@ class NDUncertaintyPropagatable(NDUncertainty):
 class NDUncertaintyGaussian(NDUncertaintyPropagatable):
     """Metaclass (`abc.ABCMeta`) that extens `NDUncertaintyPropagatable` and \
             indicates the propagation assumes gaussian uncertainties.
+
+    This metaclass ensures that the ``data`` is always a `numpy.ndarray`.
     """
 
     @descriptors.ArrayData
@@ -318,18 +320,14 @@ class NDUncertaintyGaussian(NDUncertaintyPropagatable):
         a `numpy.ndarray`. Always!
         """
 
-    @property
+    @abstractproperty
     def effective_unit(self):
-        """(`~astropy.units.Unit`) The effective unit of the instance. If the \
-                `unit` is not set the converted unit of the parent is used.
+        """(`abc.abstractproperty`) The effective unit of the instance.
+
+        If the own ``unit`` is not set the (converted) unit of the parent
+        should be returned. This ensures that propagation methods don't need
+        to check for those cases by themselves.
         """
-        if self._unit is None:
-            if (self._parent_nddata is None or
-                    self.parent_nddata.unit is None):
-                return None
-            else:
-                return self.parent_nddata.unit
-        return self._unit
 
     @abstractmethod
     def propagate(self, *args, **kwargs):

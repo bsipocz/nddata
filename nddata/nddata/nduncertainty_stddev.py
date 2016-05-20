@@ -9,6 +9,7 @@ from astropy.units import Quantity
 import astropy.units as u
 
 from .meta import NDUncertaintyGaussian
+from .exceptions import MissingDataAssociationException
 
 __all__ = ['StdDevUncertainty']
 
@@ -63,6 +64,20 @@ class StdDevUncertainty(NDUncertaintyGaussian):
                     np.divide: '_propagate_divide',
                     np.true_divide: '_propagate_divide',
                     np.power: '_propagate_power'}
+
+    @property
+    def effective_unit(self):
+        """(`~astropy.units.Unit`) The effective unit of the instance is the \
+            ``unit`` of the uncertainty or, if not set, the unit of the parent.
+        """
+        if self.unit is None:
+            # The uncertainty has no unit by itself, check if the parent has a
+            # unit and return it. StdDevUncertainty should have the same
+            # dimension as the data so it's ok to simply return it. If it has
+            # no parent let the MissingDataAssociationException bubble up, we
+            # would expect to find a unit if this property is accessed.
+            return self.parent_nddata.unit
+        return self._unit
 
     @property
     def supports_correlated(self):
