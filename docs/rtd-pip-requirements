@@ -1,5 +1,5 @@
 numpy
 matplotlib
 Cython
-astropy-helpers
+git+https://github.com/astropy/astropy-helpers.git@master
 astropy
