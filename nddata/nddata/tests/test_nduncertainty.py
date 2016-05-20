@@ -9,8 +9,8 @@ from numpy.testing import assert_array_equal
 from astropy.tests.helper import pytest
 from astropy import units as u
 
-from ..nduncertainty import (StdDevUncertainty,
-                             UnknownUncertainty)
+from ..nduncertainty_stddev import StdDevUncertainty
+from ..nduncertainty_unknown import UnknownUncertainty
 from ..meta import NDUncertainty
 from ..exceptions import IncompatibleUncertaintiesException
 from ..exceptions import MissingDataAssociationException

@@ -149,7 +149,7 @@ class NDUncertainty(object):
         if uncertainty.__class__ is cls:
             return uncertainty
 
-        from ..nduncertainty import UncertaintyConverter
+        from ..nduncertainty_converter import UncertaintyConverter
 
         # Get the appropriate function to convert between these classes. The
         # converter will raise an appropriate Exception if there is no

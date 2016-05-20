@@ -9,7 +9,9 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 from ... import NDData
-from ...nduncertainty import NDUncertainty, StdDevUncertainty
+from ...nduncertainty_stddev import StdDevUncertainty
+from ...nduncertainty_unknown import UnknownUncertainty
+from ...meta.nduncertainty_meta import NDUncertainty
 from astropy.tests.helper import pytest
 from astropy import units as u
 
@@ -19,6 +21,7 @@ from astropy import units as u
 #class NDDataSliceable(NDSlicingMixin, NDData):
 #    pass
 NDDataSliceable = NDData
+
 
 # Just some uncertainty (following the StdDevUncertainty implementation of
 # storing the uncertainty in a propery 'array') with slicing.

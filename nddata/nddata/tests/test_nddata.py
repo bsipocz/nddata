@@ -12,8 +12,9 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 from ..nddata_base import NDDataBase
-from ..nduncertainty import (NDUncertainty, StdDevUncertainty,
-                             UnknownUncertainty)
+from ..nduncertainty_stddev import StdDevUncertainty
+from ..nduncertainty_unknown import UnknownUncertainty
+from ..meta.nduncertainty_meta import NDUncertainty
 from astropy.tests.helper import pytest
 from astropy import units as u
 from astropy.utils import NumpyRNGContext

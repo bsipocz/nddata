@@ -2,7 +2,8 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from ...nddata import NDDataBase
-from ...nduncertainty import StdDevUncertainty, UnknownUncertainty
+from ...nduncertainty_stddev import StdDevUncertainty
+from ...nduncertainty_unknown import UnknownUncertainty
 from ..ndio import NDIOMixin, write_nddata_fits, read_nddata_fits
 
 import numpy as np
