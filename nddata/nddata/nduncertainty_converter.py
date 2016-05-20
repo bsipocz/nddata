@@ -3,6 +3,8 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+import numpy as np
+
 from astropy import log
 import astropy.units as u
 
@@ -108,19 +110,21 @@ class UncertaintyConverter(object):
         -----
         Possible conversions:
 
-        +----------------------+-----------------------+---------+----------+
-        | Source               | Target                | Forward | Backward |
-        +======================+=======================+=========+==========+
-        | `UnknownUncertainty` | `StdDevUncertainty`   | Yes     | Yes      |
-        +----------------------+-----------------------+---------+----------+
-        | `UnknownUncertainty` | `VarianceUncertainty` | Yes     | Yes      |
-        +----------------------+-----------------------+---------+----------+
-        | `UnknownUncertainty` | `RelativeUncertainty` | Yes     | Yes      |
-        +----------------------+-----------------------+---------+----------+
-        | `StdDevUncertainty`  | `VarianceUncertainty` | Yes     | Yes      |
-        +----------------------+-----------------------+---------+----------+
-        | `StdDevUncertainty`  | `RelativeUncertainty` | Yes     | Yes      |
-        +----------------------+-----------------------+---------+----------+
+        +-----------------------+-----------------------+---------+----------+
+        | Source                | Target                | Forward | Backward |
+        +=======================+=======================+=========+==========+
+        | `UnknownUncertainty`  | `StdDevUncertainty`   | Yes     | Yes      |
+        +-----------------------+-----------------------+---------+----------+
+        | `UnknownUncertainty`  | `VarianceUncertainty` | Yes     | Yes      |
+        +-----------------------+-----------------------+---------+----------+
+        | `UnknownUncertainty`  | `RelativeUncertainty` | Yes     | Yes      |
+        +-----------------------+-----------------------+---------+----------+
+        | `StdDevUncertainty`   | `VarianceUncertainty` | Yes     | Yes      |
+        +-----------------------+-----------------------+---------+----------+
+        | `StdDevUncertainty`   | `RelativeUncertainty` | Yes     | Yes      |
+        +-----------------------+-----------------------+---------+----------+
+        | `VarianceUncertainty` | `RelativeUncertainty` | Yes     | Yes      |
+        +-----------------------+-----------------------+---------+----------+
 
         Examples
         --------
@@ -247,3 +251,50 @@ def _convert_rel_to_std(val):
 UncertaintyConverter.register(StdDevUncertainty, RelativeUncertainty,
                               _convert_std_to_rel,
                               _convert_rel_to_std)
+
+
+def _convert_var_to_rel(val):
+    try:
+        parent_nddata = val.parent_nddata
+    except MissingDataAssociationException:
+        msg = 'converting to relative uncertainty requires the parents data.'
+        raise MissingDataAssociationException(msg)
+
+    # We need the parents values to calculate the relative ones.
+    if parent_nddata.unit is not None:
+        data_p = (parent_nddata.data * parent_nddata.unit)**2
+    else:
+        data_p = parent_nddata.data ** 2
+
+    if val.effective_unit is not None:
+        data_u = val.data * val.effective_unit
+    else:
+        data_u = val.data
+
+    data = np.sqrt(data_u / data_p)
+
+    if isinstance(data, u.Quantity):
+        data = data.to(u.dimensionless_unscaled).value
+    return {'data': data, 'unit': None, 'parent_nddata': parent_nddata}
+
+
+def _convert_rel_to_var(val):
+    try:
+        parent_nddata = val.parent_nddata
+    except MissingDataAssociationException:
+        msg = 'converting from relative uncertainty requires the parents data.'
+        raise MissingDataAssociationException(msg)
+
+    # We need the parents values to calculate the relative ones.
+    data_p = parent_nddata.data
+
+    data_u = val.data
+
+    data = (data_p * data_u)**2
+
+    return {'data': data, 'unit': None, 'parent_nddata': parent_nddata}
+
+
+UncertaintyConverter.register(VarianceUncertainty, RelativeUncertainty,
+                              _convert_var_to_rel,
+                              _convert_rel_to_var)

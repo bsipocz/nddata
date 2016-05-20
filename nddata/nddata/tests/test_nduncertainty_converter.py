@@ -182,6 +182,95 @@ def test_rel_to_std():
     assert unc3.unit is None
 
 
+def test_var_to_rel():
+    unc1 = VarianceUncertainty(np.ones(5)*9, unit='m*m')
+    # Without parent conversion is impossible
+    with pytest.raises(MissingDataAssociationException):
+        RelativeUncertainty.from_uncertainty(unc1)
+    with pytest.raises(MissingDataAssociationException):
+        RelativeUncertainty(unc1)
+
+    parent = NDDataBase(np.ones(5)*100, unit='m')
+    parent.uncertainty = unc1
+
+    unc2 = RelativeUncertainty.from_uncertainty(unc1)
+    unc3 = RelativeUncertainty(unc1)
+
+    np.testing.assert_array_almost_equal(unc2.data, np.ones(5)*3/100)
+    np.testing.assert_array_almost_equal(unc2.data, unc3.data)
+    assert unc1.parent_nddata is unc3.parent_nddata
+    assert unc2.parent_nddata is unc3.parent_nddata
+    assert unc2.unit is None
+    assert unc3.unit is None
+
+    # Let's see if it works if uncertainty and parent have different units.
+    unc1 = VarianceUncertainty(np.ones(5)*9, unit='m*m')
+    parent = NDDataBase(np.ones(5)/10, unit='km')
+    parent.uncertainty = unc1
+
+    unc2 = RelativeUncertainty.from_uncertainty(unc1)
+    unc3 = RelativeUncertainty(unc1)
+
+    np.testing.assert_array_almost_equal(unc2.data, np.ones(5)*3/100)
+    np.testing.assert_array_almost_equal(unc2.data, unc3.data)
+    assert unc1.parent_nddata is unc3.parent_nddata
+    assert unc2.parent_nddata is unc3.parent_nddata
+    assert unc2.unit is None
+    assert unc3.unit is None
+
+    # and no units
+    unc1 = VarianceUncertainty(0.01)
+    parent = NDDataBase(5)
+    parent.uncertainty = unc1
+
+    unc2 = RelativeUncertainty.from_uncertainty(unc1)
+    unc3 = RelativeUncertainty(unc1)
+
+    np.testing.assert_array_almost_equal(unc2.data, 0.02)
+    np.testing.assert_array_almost_equal(unc2.data, unc3.data)
+    assert unc1.parent_nddata is unc3.parent_nddata
+    assert unc2.parent_nddata is unc3.parent_nddata
+    assert unc2.unit is None
+    assert unc3.unit is None
+
+
+def test_rel_to_var():
+    unc1 = RelativeUncertainty(0.02)
+    # Without parent conversion is impossible
+    with pytest.raises(MissingDataAssociationException):
+        VarianceUncertainty.from_uncertainty(unc1)
+    with pytest.raises(MissingDataAssociationException):
+        VarianceUncertainty(unc1)
+
+    parent = NDDataBase(100, unit='m')
+    parent.uncertainty = unc1
+
+    unc2 = VarianceUncertainty.from_uncertainty(unc1)
+    unc3 = VarianceUncertainty(unc1)
+
+    np.testing.assert_array_equal(unc2.data, 4)
+    np.testing.assert_array_equal(unc2.data, unc3.data)
+    assert unc1.parent_nddata is unc3.parent_nddata
+    assert unc2.parent_nddata is unc3.parent_nddata
+    assert unc2.unit is None
+    assert unc3.unit is None
+
+    # and parent with no unit
+    unc1 = RelativeUncertainty(0.02)
+    parent = NDDataBase(100)
+    parent.uncertainty = unc1
+
+    unc2 = VarianceUncertainty.from_uncertainty(unc1)
+    unc3 = VarianceUncertainty(unc1)
+
+    np.testing.assert_array_equal(unc2.data, 4)
+    np.testing.assert_array_equal(unc2.data, unc3.data)
+    assert unc1.parent_nddata is unc3.parent_nddata
+    assert unc2.parent_nddata is unc3.parent_nddata
+    assert unc2.unit is None
+    assert unc3.unit is None
+
+
 def test_unknown_to_stddev():
     # This conversion does:
     # - not copy the data
