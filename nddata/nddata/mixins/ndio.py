@@ -12,7 +12,8 @@ import astropy.units as u
 from astropy.wcs import WCS
 
 from ..nddata import NDDataBase
-from ..nduncertainty import StdDevUncertainty, UnknownUncertainty
+from ..nduncertainty_stddev import StdDevUncertainty
+from ..nduncertainty_unknown import UnknownUncertainty
 
 
 __all__ = ['NDIOMixin', 'read_nddata_fits', 'write_nddata_fits']
