@@ -175,6 +175,7 @@ Reference/API
 =============
 
 .. automodapi:: nddata.nddata
+    :inherited-members:
 
 .. automodapi:: nddata.nddata.mixins
     :no-inheritance-diagram:
