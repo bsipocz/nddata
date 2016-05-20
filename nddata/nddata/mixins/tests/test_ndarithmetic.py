@@ -1123,3 +1123,111 @@ def test_power_both_uncertainty_correlation():
                          (np.log(7)*6)**2 +
                          (cor*2*2*np.log(7)*3*6/7))
         np.testing.assert_almost_equal(ndd_power.uncertainty.data, ref)
+
+
+def test_power_equivalent_units():
+    # These tests are thought to ensure that the result doesn't depend on the
+    # units. So 2cm yields the same result as 0.02m.
+
+    def compare_results(result1, result2):
+        if result1.unit is None and result2.unit is None:
+            factor = 1
+        elif result1.unit is None:
+            factor = 1 / result2.unit.to(u.dimensionless_unscaled, 1)
+        elif result2.unit is None:
+            factor = result1.unit.to(u.dimensionless_unscaled, 1)
+        else:
+            factor = result1.unit.to(result2.unit)
+        np.testing.assert_almost_equal(result1.data * factor, result2.data)
+        np.testing.assert_almost_equal(result1.uncertainty.data * factor,
+                                       result2.uncertainty.data)
+
+    # TESTS 1
+    ndd1 = NDDataArithmetic(2, unit='m', uncertainty=StdDevUncertainty(0.02))
+    ndd2 = NDDataArithmetic(3)
+    res1 = ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(2, unit='m',
+                            uncertainty=StdDevUncertainty(2, unit='cm'))
+    ndd2 = NDDataArithmetic(3)
+    res2 = ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(200., unit='cm', uncertainty=StdDevUncertainty(2.))
+    ndd2 = NDDataArithmetic(3)
+    res3 = ndd1.power(ndd2)
+
+    compare_results(res1, res2)
+    compare_results(res1, res3)
+
+    # TESTS 2
+    ndd1 = NDDataArithmetic(2, uncertainty=StdDevUncertainty(2))
+    ndd2 = NDDataArithmetic(3, uncertainty=StdDevUncertainty(2))
+    res1 = ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(2, uncertainty=StdDevUncertainty(2))
+    ndd2 = NDDataArithmetic(0.03, unit='m/cm',
+                            uncertainty=StdDevUncertainty(0.02))
+    res2 = ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(0.02, unit='m/cm',
+                            uncertainty=StdDevUncertainty(0.02))
+    ndd2 = NDDataArithmetic(3, uncertainty=StdDevUncertainty(2))
+    res3 = ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(2, uncertainty=StdDevUncertainty(2))
+    ndd2 = NDDataArithmetic(3,
+                            uncertainty=StdDevUncertainty(0.02, unit='m/cm'))
+    res4 = ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(2,
+                            uncertainty=StdDevUncertainty(0.02, unit='m/cm'))
+    ndd2 = NDDataArithmetic(3,
+                            uncertainty=StdDevUncertainty(2))
+    res5 = ndd1.power(ndd2)
+
+    compare_results(res1, res2)
+    compare_results(res1, res3)
+    compare_results(res1, res4)
+    compare_results(res1, res5)
+
+    # TESTS 3
+    ndd1 = NDDataArithmetic(3)
+    ndd2 = NDDataArithmetic(6, uncertainty=StdDevUncertainty(4))
+    res1 = ndd1.power(ndd2)
+
+    ndd2 = NDDataArithmetic(0.06, unit='m/cm',
+                            uncertainty=StdDevUncertainty(0.04))
+    res2 = ndd1.power(ndd2)
+
+    ndd2 = NDDataArithmetic(6,
+                            uncertainty=StdDevUncertainty(0.04, unit='m/cm'))
+    res3 = ndd1.power(ndd2)
+
+    ndd2 = NDDataArithmetic(0.06, unit='m/cm',
+                            uncertainty=StdDevUncertainty(4, unit=''))
+    res4 = ndd1.power(ndd2)
+
+    compare_results(res1, res2)
+    compare_results(res1, res3)
+    compare_results(res1, res4)
+
+    # TESTS 4
+    ndd1 = NDDataArithmetic(8, uncertainty=StdDevUncertainty(5))
+    ndd2 = NDDataArithmetic(2.3)
+    res1 = ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(0.08, unit='m/cm',
+                            uncertainty=StdDevUncertainty(0.05))
+    res2 = ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(8,
+                            uncertainty=StdDevUncertainty(0.05, unit='m/cm'))
+    res3 = ndd1.power(ndd2)
+
+    ndd1 = NDDataArithmetic(0.08, unit='m/cm',
+                            uncertainty=StdDevUncertainty(5, unit=''))
+    res4 = ndd1.power(ndd2)
+
+    compare_results(res1, res2)
+    compare_results(res1, res3)
+    compare_results(res1, res4)
