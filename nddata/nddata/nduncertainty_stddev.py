@@ -190,9 +190,11 @@ class StdDevUncertainty(NDUncertaintyGaussian):
 
         # Calculate the result including correlation if necessary
         if isinstance(correlation, np.ndarray) or correlation != 0:
+            # TODO: This is not overflow safe unfortunatly there is no handy
+            # function like np.hypot.
             result = np.sqrt(dA**2 + dB**2 + 2 * correlation * dA * dB)
         else:
-            result = np.sqrt(dA**2 + dB**2)
+            result = np.hypot(dA, dB)
 
         return result
 
@@ -214,9 +216,10 @@ class StdDevUncertainty(NDUncertaintyGaussian):
 
         # Calculate the result including correlation if necessary
         if isinstance(correlation, np.ndarray) or correlation != 0:
+            # TODO: This is not overflow safe.
             result = np.sqrt(dA**2 + dB**2 - 2 * correlation * dA * dB)
         else:
-            result = np.sqrt(dA**2 + dB**2)
+            result = np.hypot(dA, dB)
 
         return result
 
@@ -269,9 +272,10 @@ class StdDevUncertainty(NDUncertaintyGaussian):
 
         # Calculate the result with or without correlation
         if isinstance(correlation, np.ndarray) or correlation != 0:
+            # TODO: This is not overflow safe.
             result = np.sqrt(BdA**2 + AdB**2 + 2*correlation*AdB*BdA)
         else:
-            result = np.sqrt(BdA**2 + AdB**2)
+            result = np.hypot(BdA, AdB)
 
         return result
 
@@ -313,13 +317,15 @@ class StdDevUncertainty(NDUncertaintyGaussian):
         # Calculate some intermediate values so they will not computed twice
         # in case correlation is given.
         dA_B = dA / B
+        # TODO: This factor might be not overflow safe for B**2
         AdB_B2 = A * dB / B ** 2
 
         # Calculate the result with or without correlation
         if isinstance(correlation, np.ndarray) or correlation != 0:
+            # TODO: This is not overflow safe.
             result = np.sqrt(dA_B**2 + AdB_B2**2 - 2*correlation*dA_B*AdB_B2)
         else:
-            result = np.sqrt(dA_B**2 + AdB_B2**2)
+            result = np.hypot(dA_B, AdB_B2)
 
         return result
 
@@ -396,9 +402,10 @@ class StdDevUncertainty(NDUncertaintyGaussian):
 
         # Calculate the result with or without correlation
         if isinstance(correlation, np.ndarray) or correlation != 0:
+            # TODO: This is not overflow safe.
             result = np.sqrt(dBlnAA_B**2 + BdAA_Bm1**2 +
                              2 * correlation * dBlnAA_B * BdAA_Bm1)
         else:
-            result = np.sqrt(dBlnAA_B**2 + BdAA_Bm1**2)
+            result = np.hypot(dBlnAA_B, BdAA_Bm1)
 
         return result
