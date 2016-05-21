@@ -1313,8 +1313,6 @@ def test_power_not_allowed_things():
 
 
 def test_var_uncertainty_correctness():
-    # Currently add/subtract are implemented
-    # TODO: Add tests with the other operations
 
     # Without units
     ndd1 = NDDataArithmetic(2, uncertainty=VarianceUncertainty(1))
@@ -1379,11 +1377,14 @@ def test_var_compare_with_std(op, corr, unit_uncert1, unit_uncert2):
     np.testing.assert_almost_equal(var_from_var.data, var_from_std.data)
 
 
-# TODO: Not sure what's the difference between this one and the one that needed
-# skipping. Make sure I don't miss a case here....
-@pytest.mark.parametrize(('corr'), [-1, 0.2, 0, 1])
-@pytest.mark.parametrize(('unit_base'), [None, u.m/u.cm, '', u.m/u.m])
-@pytest.mark.parametrize(('unit_base_uncert'), [None, u.m/u.cm, '', u.m/u.m])
+# Unfortunatly #4770 of astropy is probably not backported so will only
+# be avaiable for astropy 1.2. So this test is marked as skipped.
+@pytest.mark.xfail(not astropy_1_2,
+                   reason="dimensionless_scaled base or exponent are only "
+                          "allowed from 1.2 on.")
+@pytest.mark.parametrize(('corr'), [-0.3, 0])
+@pytest.mark.parametrize(('unit_base'), [None, u.m/u.cm, ''])
+@pytest.mark.parametrize(('unit_base_uncert'), [None, u.m/u.cm, ''])
 @pytest.mark.parametrize(('unit_exp'), [None, u.m/u.m])
 @pytest.mark.parametrize(('unit_exp_uncert'), [None, u.cm/u.m])
 @pytest.mark.parametrize(('exponent_has_uncert'), [False, True])
