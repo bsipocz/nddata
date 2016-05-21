@@ -10,6 +10,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from ...nduncertainty_stddev import StdDevUncertainty
 from ...nduncertainty_unknown import UnknownUncertainty
+from ...nduncertainty_var import VarianceUncertainty
 from ...exceptions import IncompatibleUncertaintiesException
 
 from ... import NDData
@@ -990,7 +991,7 @@ def test_power_first_op_uncertainty():
     assert ndd2.data == ndd3.data
     assert ndd2.unit == ndd3.unit
     assert ndd2.uncertainty.data == ndd3.uncertainty.data * 10000
-    assert ndd3.uncertainty.unit is None # the uncertainty should have no unit
+    assert ndd3.uncertainty.unit is None  # the uncertainty should have no unit
 
     # Case 4: Base has different unit for data and uncertainty
     ndd = NDDataArithmetic(10, uncertainty=StdDevUncertainty(500, unit='cm/m'))
@@ -1154,12 +1155,14 @@ def test_power_equivalent_units():
         np.testing.assert_array_almost_equal(data1.value, data2.value)
 
         if result1.uncertainty.effective_unit is not None:
-            data1 = result1.uncertainty.data * result1.uncertainty.effective_unit
+            data1 = (result1.uncertainty.data *
+                     result1.uncertainty.effective_unit)
         else:
             data1 = result1.uncertainty.data * u.dimensionless_unscaled
 
         if result2.uncertainty.effective_unit is not None:
-            data2 = result2.uncertainty.data * result2.uncertainty.effective_unit
+            data2 = (result2.uncertainty.data *
+                     result2.uncertainty.effective_unit)
         else:
             data2 = result2.uncertainty.data * u.dimensionless_unscaled
 
@@ -1287,3 +1290,52 @@ def test_power_not_allowed_things():
     ndd2 = NDDataArithmetic(3, uncertainty=StdDevUncertainty(0.1))
     with pytest.raises(u.UnitConversionError):
         ndd1.power(ndd2)
+
+
+def test_var_uncertainty_correctness():
+    # Currently add/subtract are implemented
+    # TODO: Add tests with the other operations
+
+    # Without units
+    ndd1 = NDDataArithmetic(2, uncertainty=VarianceUncertainty(1))
+    ndd2 = NDDataArithmetic(3, uncertainty=VarianceUncertainty(2))
+    ndd_res = ndd1.add(ndd2)
+    assert ndd_res.uncertainty.data == 3  # simply uncertainties added
+
+    ndd_res = ndd1.subtract(ndd2)
+    assert ndd_res.uncertainty.data == 3  # simply uncertainties added
+
+    # With correlation
+    ndd1 = NDDataArithmetic(2, unit='m', uncertainty=VarianceUncertainty(1))
+    ndd2 = NDDataArithmetic(3, unit='m', uncertainty=VarianceUncertainty(2))
+    ndd_res = ndd1.add(ndd2, uncertainty_correlation=1)
+    np.testing.assert_almost_equal(ndd_res.uncertainty.data,
+                                   3 + 2 * np.sqrt(2))
+
+    ndd_res = ndd1.subtract(ndd2, uncertainty_correlation=1)
+    np.testing.assert_almost_equal(ndd_res.uncertainty.data,
+                                   3 - 2 * np.sqrt(2))
+
+
+def test_var_compare_with_std():
+    # StdDevUncertainty is fully tested as is the converter. So it should
+    # be enough to compare the result with Variance to the same calculation
+    # with standard deviation.
+
+    uncert1 = VarianceUncertainty(np.arange(3))
+    uncert2 = VarianceUncertainty(np.arange(2, 5))
+    ndd1 = NDDataArithmetic(np.array([7, 2, 6]), unit='m',
+                            uncertainty=uncert1)
+    ndd2 = NDDataArithmetic(np.array([5, 2, 8]), unit='cm',
+                            uncertainty=uncert2)
+
+    # control group
+    ndd3 = NDDataArithmetic(ndd1, uncertainty=StdDevUncertainty(uncert1))
+    ndd4 = NDDataArithmetic(ndd2, uncertainty=StdDevUncertainty(uncert2))
+
+    for i in ['add', 'subtract']:
+        ndd_var = getattr(ndd1, i)(ndd2)
+        ndd_std = getattr(ndd3, i)(ndd4)
+        var_from_var = ndd_var.uncertainty
+        var_from_std = VarianceUncertainty(ndd_std.uncertainty)
+        np.testing.assert_almost_equal(var_from_var.data, var_from_std.data)

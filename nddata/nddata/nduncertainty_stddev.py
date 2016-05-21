@@ -356,6 +356,9 @@ class StdDevUncertainty(NDUncertaintyGaussian):
         # case the exponent has no uncertainty - it can be immediatly set to 0.
         if self.parent_nddata.unit is not None:
             # See 2)
+            # A must have a unit, so we do not lose the connection to the unit
+            # of the result of the parent. Cost me a lot of time finding THAT
+            # out ... the hard way ;-)
             A = A * self.parent_nddata.unit
             if exponent_uncertainty:
                 A = A.to(u.dimensionless_unscaled)
