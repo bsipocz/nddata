@@ -900,6 +900,8 @@ def test_arithmetics_unknown_uncertainties():
 
 
 def test_uncertainty_impossible_operation():
+    impossible_operation = np.log
+
     ndd2 = NDDataArithmetic([1, 2, 3], StdDevUncertainty(None))
     uncert1 = StdDevUncertainty([1, 2, 3])
     # TODO: One shouldn't call propagate directly but for now I have no
@@ -908,7 +910,12 @@ def test_uncertainty_impossible_operation():
     with pytest.raises(ValueError):
         # Parameter 3 and 4 are just stubs... they shouldn't affect the
         # behaviour in THIS case.
-        uncert1.propagate(np.log, ndd2, np.array([1, 2, 3]), 0)
+        uncert1.propagate(impossible_operation, ndd2, np.array([1, 2, 3]), 0)
+
+    ndd2 = NDDataArithmetic([1, 2, 3], VarianceUncertainty(None))
+    uncert1 = VarianceUncertainty([1, 2, 3])
+    with pytest.raises(ValueError):
+        uncert1.propagate(impossible_operation, ndd2, np.array([1, 2, 3]), 0)
 
 
 # Power operation.
@@ -1305,7 +1312,13 @@ def test_var_uncertainty_correctness():
     ndd_res = ndd1.subtract(ndd2)
     assert ndd_res.uncertainty.data == 3  # simply uncertainties added
 
-    # With correlation
+    ndd_res = ndd1.multiply(ndd2)
+    assert ndd_res.uncertainty.data == (1*3**2 + 2*2**2)
+
+    ndd_res = ndd1.divide(ndd2)
+    assert ndd_res.uncertainty.data == (1/3**2 + 2*2**2/3**4)
+
+    # With correlation and parent_unit
     ndd1 = NDDataArithmetic(2, unit='m', uncertainty=VarianceUncertainty(1))
     ndd2 = NDDataArithmetic(3, unit='m', uncertainty=VarianceUncertainty(2))
     ndd_res = ndd1.add(ndd2, uncertainty_correlation=1)
@@ -1316,14 +1329,27 @@ def test_var_uncertainty_correctness():
     np.testing.assert_almost_equal(ndd_res.uncertainty.data,
                                    3 - 2 * np.sqrt(2))
 
+    ndd_res = ndd1.multiply(ndd2, uncertainty_correlation=1)
+    np.testing.assert_almost_equal(ndd_res.uncertainty.data,
+                                   1*3**2 + 2*2**2 + 2*np.sqrt(9*8))
 
-def test_var_compare_with_std():
+    ndd_res = ndd1.divide(ndd2, uncertainty_correlation=1)
+    np.testing.assert_almost_equal(ndd_res.uncertainty.data,
+                                   1/3**2 + 2*2**2/3**4 -
+                                   2*np.sqrt(1/3**2 * 2*2**2/3**4))
+
+
+@pytest.mark.parametrize(('op'), ['add', 'subtract', 'multiply', 'divide'])
+@pytest.mark.parametrize(('corr'), [-1, 0.2, 0])
+@pytest.mark.parametrize(('unit_uncert1'), [None, 'km*km'])
+@pytest.mark.parametrize(('unit_uncert2'), [None, 'm*m'])
+def test_var_compare_with_std(op, corr, unit_uncert1, unit_uncert2):
     # StdDevUncertainty is fully tested as is the converter. So it should
     # be enough to compare the result with Variance to the same calculation
     # with standard deviation.
 
-    uncert1 = VarianceUncertainty(np.arange(3))
-    uncert2 = VarianceUncertainty(np.arange(2, 5))
+    uncert1 = VarianceUncertainty(np.arange(3), unit=unit_uncert1)
+    uncert2 = VarianceUncertainty(np.arange(2, 5), unit=unit_uncert2)
     ndd1 = NDDataArithmetic(np.array([7, 2, 6]), unit='m',
                             uncertainty=uncert1)
     ndd2 = NDDataArithmetic(np.array([5, 2, 8]), unit='cm',
@@ -1333,9 +1359,8 @@ def test_var_compare_with_std():
     ndd3 = NDDataArithmetic(ndd1, uncertainty=StdDevUncertainty(uncert1))
     ndd4 = NDDataArithmetic(ndd2, uncertainty=StdDevUncertainty(uncert2))
 
-    for i in ['add', 'subtract']:
-        ndd_var = getattr(ndd1, i)(ndd2)
-        ndd_std = getattr(ndd3, i)(ndd4)
-        var_from_var = ndd_var.uncertainty
-        var_from_std = VarianceUncertainty(ndd_std.uncertainty)
-        np.testing.assert_almost_equal(var_from_var.data, var_from_std.data)
+    ndd_var = getattr(ndd1, op)(ndd2, uncertainty_correlation=corr)
+    ndd_std = getattr(ndd3, op)(ndd4, uncertainty_correlation=corr)
+    var_from_var = ndd_var.uncertainty
+    var_from_std = VarianceUncertainty(ndd_std.uncertainty)
+    np.testing.assert_almost_equal(var_from_var.data, var_from_std.data)

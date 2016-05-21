@@ -227,10 +227,78 @@ class VarianceUncertainty(NDUncertaintyGaussian):
         return result
 
     def _propagate_multiply(self, other_uncert, result_data, correlation):
-        pass
+
+        # Formula: sigma = dA*B**2 + dB*A**2 + 2 * rho * A * B * sqrt(dA dB)
+
+        # Any uncertainty or parent with None is considered 0
+        A = 0 if self.parent_nddata.data is None else self.parent_nddata.data
+        dA = 0 if self.data is None else self.data
+        B = (0 if other_uncert.parent_nddata.data is None
+             else other_uncert.parent_nddata.data)
+        dB = 0 if other_uncert.data is None else other_uncert.data
+
+        # Then apply the units if necessary.
+        if self.parent_nddata.unit is not None:
+            A = A * self.parent_nddata.unit
+        if self.effective_unit is not None:
+            dA = dA * self.effective_unit
+        if other_uncert.parent_nddata.unit is not None:
+            B = B * other_uncert.parent_nddata.unit
+            parent_unit_squared = other_uncert.parent_nddata.unit ** 2
+            if parent_unit_squared != other_uncert.effective_unit:
+                B = B.to(other_uncert.effective_unit ** (1/2))
+        if other_uncert.effective_unit is not None:
+            dB = dB * other_uncert.effective_unit
+
+        # Calculate some intermediate values so they will not computed twice
+        # in case correlation is given.
+        dAB2 = dA * B ** 2
+        dBA2 = dB * A ** 2
+
+        # Calculate the result with or without correlation
+        if isinstance(correlation, np.ndarray) or correlation != 0:
+            result = dAB2 + dBA2 + 2 * correlation * np.sqrt(dAB2 * dBA2)
+        else:
+            result = dAB2 + dBA2
+
+        return result
 
     def _propagate_divide(self, other_uncert, result_data, correlation):
-        pass
+
+        # Formula: sigma = dA/B**2 + dBA**2/B**4 - 2 rho A / B**3 * sqrt(dA dB)
+
+        # Any uncertainty or parent with None is considered 0
+        A = 0 if self.parent_nddata.data is None else self.parent_nddata.data
+        dA = 0 if self.data is None else self.data
+        B = (0 if other_uncert.parent_nddata.data is None
+             else other_uncert.parent_nddata.data)
+        dB = 0 if other_uncert.data is None else other_uncert.data
+
+        # Then apply the units if necessary.
+        if self.parent_nddata.unit is not None:
+            A = A * self.parent_nddata.unit
+        if self.effective_unit is not None:
+            dA = dA * self.effective_unit
+        if other_uncert.parent_nddata.unit is not None:
+            B = B * other_uncert.parent_nddata.unit
+            parent_unit_squared = other_uncert.parent_nddata.unit ** 2
+            if parent_unit_squared != other_uncert.effective_unit:
+                B = B.to(other_uncert.effective_unit ** (1/2))
+        if other_uncert.effective_unit is not None:
+            dB = dB * other_uncert.effective_unit
+
+        # Calculate some intermediate values so they will not computed twice
+        # in case correlation is given.
+        dA_B2 = dA / B ** 2
+        A2dB_B4 = dB * A ** 2 / B ** 4
+
+        # Calculate the result with or without correlation
+        if isinstance(correlation, np.ndarray) or correlation != 0:
+            result = dA_B2 + A2dB_B4 - 2*correlation*np.sqrt(dA_B2*A2dB_B4)
+        else:
+            result = dA_B2 + A2dB_B4
+
+        return result
 
     def _propagate_power(self, other_uncert, result_data, correlation):
         pass
