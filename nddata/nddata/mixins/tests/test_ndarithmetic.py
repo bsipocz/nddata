@@ -325,17 +325,17 @@ def test_arithmetics_stddevuncertainty_basic():
     nd3 = nd1.add(nd2)
     nd4 = nd2.add(nd1)
     # Inverse operation should result in the same uncertainty
-    assert_array_equal(nd3.uncertainty.data, nd4.uncertainty.data)
+    np.testing.assert_allclose(nd3.uncertainty.data, nd4.uncertainty.data)
     # Compare it to the theoretical uncertainty
     ref_uncertainty = np.sqrt(np.array([1, 1, 3])**2 + np.array([2, 2, 2])**2)
-    assert_array_equal(nd3.uncertainty.data, ref_uncertainty)
+    np.testing.assert_allclose(nd3.uncertainty.data, ref_uncertainty)
 
     nd3 = nd1.subtract(nd2)
     nd4 = nd2.subtract(nd1)
     # Inverse operation should result in the same uncertainty
-    assert_array_equal(nd3.uncertainty.data, nd4.uncertainty.data)
+    np.testing.assert_allclose(nd3.uncertainty.data, nd4.uncertainty.data)
     # Compare it to the theoretical uncertainty (same as for add)
-    assert_array_equal(nd3.uncertainty.data, ref_uncertainty)
+    np.testing.assert_allclose(nd3.uncertainty.data, ref_uncertainty)
 
     # Multiplication and Division only work with almost equal array comparisons
     # since the formula implemented and the formula used as reference are
@@ -343,12 +343,12 @@ def test_arithmetics_stddevuncertainty_basic():
     nd3 = nd1.multiply(nd2)
     nd4 = nd2.multiply(nd1)
     # Inverse operation should result in the same uncertainty
-    assert_array_almost_equal(nd3.uncertainty.data, nd4.uncertainty.data)
+    np.testing.assert_allclose(nd3.uncertainty.data, nd4.uncertainty.data)
     # Compare it to the theoretical uncertainty
     ref_uncertainty = np.abs(np.array([2, 4, 6])) * np.sqrt(
         (np.array([1, 1, 3]) / np.array([1, 2, 3]))**2 +
         (np.array([2, 2, 2]) / np.array([2, 2, 2]))**2)
-    assert_array_almost_equal(nd3.uncertainty.data, ref_uncertainty)
+    np.testing.assert_allclose(nd3.uncertainty.data, ref_uncertainty)
 
     nd3 = nd1.divide(nd2)
     nd4 = nd2.divide(nd1)
@@ -357,11 +357,11 @@ def test_arithmetics_stddevuncertainty_basic():
     ref_uncertainty_1 = np.abs(np.array([1/2, 2/2, 3/2])) * np.sqrt(
         (np.array([1, 1, 3]) / np.array([1, 2, 3]))**2 +
         (np.array([2, 2, 2]) / np.array([2, 2, 2]))**2)
-    assert_array_almost_equal(nd3.uncertainty.data, ref_uncertainty_1)
+    np.testing.assert_allclose(nd3.uncertainty.data, ref_uncertainty_1)
     ref_uncertainty_2 = np.abs(np.array([2, 1, 2/3])) * np.sqrt(
         (np.array([1, 1, 3]) / np.array([1, 2, 3]))**2 +
         (np.array([2, 2, 2]) / np.array([2, 2, 2]))**2)
-    assert_array_almost_equal(nd4.uncertainty.data, ref_uncertainty_2)
+    np.testing.assert_allclose(nd4.uncertainty.data, ref_uncertainty_2)
 
 
 # Tests for correlation, covering
@@ -411,20 +411,20 @@ def test_arithmetics_stddevuncertainty_basic_with_correlation(
     nd3 = nd1.add(nd2, uncertainty_correlation=cor)
     nd4 = nd2.add(nd1, uncertainty_correlation=cor)
     # Inverse operation should result in the same uncertainty
-    assert_array_equal(nd3.uncertainty.data, nd4.uncertainty.data)
+    np.testing.assert_allclose(nd3.uncertainty.data, nd4.uncertainty.data)
     # Compare it to the theoretical uncertainty
     ref_uncertainty = np.sqrt(uncert1**2 + uncert2**2 +
                               2 * cor * uncert1 * uncert2)
-    assert_array_equal(nd3.uncertainty.data, ref_uncertainty)
+    np.testing.assert_allclose(nd3.uncertainty.data, ref_uncertainty)
 
     nd3 = nd1.subtract(nd2, uncertainty_correlation=cor)
     nd4 = nd2.subtract(nd1, uncertainty_correlation=cor)
     # Inverse operation should result in the same uncertainty
-    assert_array_equal(nd3.uncertainty.data, nd4.uncertainty.data)
+    np.testing.assert_allclose(nd3.uncertainty.data, nd4.uncertainty.data)
     # Compare it to the theoretical uncertainty
     ref_uncertainty = np.sqrt(uncert1**2 + uncert2**2 -
                               2 * cor * uncert1 * uncert2)
-    assert_array_equal(nd3.uncertainty.data, ref_uncertainty)
+    np.testing.assert_allclose(nd3.uncertainty.data, ref_uncertainty)
 
     # Multiplication and Division only work with almost equal array comparisons
     # since the formula implemented and the formula used as reference are
@@ -432,12 +432,12 @@ def test_arithmetics_stddevuncertainty_basic_with_correlation(
     nd3 = nd1.multiply(nd2, uncertainty_correlation=cor)
     nd4 = nd2.multiply(nd1, uncertainty_correlation=cor)
     # Inverse operation should result in the same uncertainty
-    assert_array_almost_equal(nd3.uncertainty.data, nd4.uncertainty.data)
+    np.testing.assert_allclose(nd3.uncertainty.data, nd4.uncertainty.data)
     # Compare it to the theoretical uncertainty
     ref_uncertainty = (np.abs(data1 * data2)) * np.sqrt(
         (uncert1 / data1)**2 + (uncert2 / data2)**2 +
         (2 * cor * uncert1 * uncert2 / (data1 * data2)))
-    assert_array_almost_equal(nd3.uncertainty.data, ref_uncertainty)
+    np.testing.assert_allclose(nd3.uncertainty.data, ref_uncertainty)
 
     nd3 = nd1.divide(nd2, uncertainty_correlation=cor)
     nd4 = nd2.divide(nd1, uncertainty_correlation=cor)
@@ -446,11 +446,11 @@ def test_arithmetics_stddevuncertainty_basic_with_correlation(
     ref_uncertainty_1 = (np.abs(data1 / data2)) * np.sqrt(
         (uncert1 / data1)**2 + (uncert2 / data2)**2 -
         (2 * cor * uncert1 * uncert2 / (data1 * data2)))
-    assert_array_almost_equal(nd3.uncertainty.data, ref_uncertainty_1)
+    np.testing.assert_allclose(nd3.uncertainty.data, ref_uncertainty_1)
     ref_uncertainty_2 = (np.abs(data2 / data1)) * np.sqrt(
         (uncert1 / data1)**2 + (uncert2 / data2)**2 -
         (2 * cor * uncert1 * uncert2 / (data1 * data2)))
-    assert_array_almost_equal(nd4.uncertainty.data, ref_uncertainty_2)
+    np.testing.assert_allclose(nd4.uncertainty.data, ref_uncertainty_2)
 
 
 # Covering:
@@ -1448,3 +1448,32 @@ def test_var_compare_with_std_power(corr, unit_base, unit_base_uncert,
     var_from_var = ndd_var.uncertainty
     var_from_std = VarianceUncertainty(ndd_std.uncertainty)
     np.testing.assert_allclose(var_from_var.data, var_from_std.data)
+
+
+@pytest.mark.parametrize(('op'), ['add', 'subtract', 'multiply', 'divide'])
+def test_std_overflow(op):
+    # np.sqrt(a**2+b**2) which is used in uncertainty propagation is not
+    # overflow resistant. To make sure we don't risk overflow again, make sure
+    # the result is not inf:
+
+    # The maximum should be around 1e308 so overflow would happen as soon as
+    # one value is above 1e155, to make sure I use 160
+    ndd = NDDataArithmetic(1, uncertainty=StdDevUncertainty(1e160))
+    ndd_res = getattr(ndd, op)(ndd)
+    assert np.isfinite(ndd_res.uncertainty.data)
+
+
+@pytest.mark.xfail(True, strict=True,
+                   reason="correlation doesn't use overflow resistant "
+                          "function.")
+@pytest.mark.parametrize(('op'), ['add', 'subtract', 'multiply', 'divide'])
+def test_std_overflow_correlation(op):
+    # np.sqrt(a**2+b**2) which is used in uncertainty propagation is not
+    # overflow resistant. To make sure we don't risk overflow again, make sure
+    # the result is not inf:
+
+    # The maximum should be around 1e308 so overflow would happen as soon as
+    # one value is above 1e155, to make sure I use 160
+    ndd = NDDataArithmetic(1, uncertainty=StdDevUncertainty(1e160))
+    ndd_res = getattr(ndd, op)(ndd, uncertainty_correlation=1)
+    assert np.isfinite(ndd_res.uncertainty.data)
