@@ -1375,6 +1375,21 @@ def test_relstd_uncertainty_correctness():
     ndd_res = ndd1.divide(ndd2)
     np.testing.assert_allclose(ndd_res.uncertainty.data, np.sqrt(0.02))
 
+    ndd1 = NDDataArithmetic(10, uncertainty=RelativeUncertainty(0.1))
+    ndd2 = NDDataArithmetic(2, uncertainty=RelativeUncertainty(0.1))
+    ndd_res = ndd1.power(ndd2)
+
+    ndd3 = NDDataArithmetic(ndd1,
+                            uncertainty=StdDevUncertainty(ndd1.uncertainty))
+    ndd4 = NDDataArithmetic(ndd2,
+                            uncertainty=StdDevUncertainty(ndd2.uncertainty))
+    ndd_ref = ndd3.power(ndd4)
+    relstd2 = RelativeUncertainty(ndd_ref.uncertainty)
+    np.testing.assert_allclose(ndd_res.uncertainty.data, relstd2.data)
+
+    # Just for fun, check that the effective unit is None
+    assert ndd_res.uncertainty.effective_unit is None
+
 
 def test_var_uncertainty_correctness():
 

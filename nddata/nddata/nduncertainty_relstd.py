@@ -174,13 +174,8 @@ class RelativeUncertainty(NDUncertaintyGaussian):
             raise ValueError('unsupported operation')
 
         # Other uncertainties check if they can drop the unit for relative
-        # uncertainty this must be done ... maybe.
-        # Because we can only accept dimensionless relative uncertainties.
-        if isinstance(result, u.Quantity):
-            if result.unit != u.dimensionless_unscaled:
-                # It's a Quantity with a unit. Convert it to dimensionless so
-                # it will be accepted as result.
-                result = result.to(u.dimensionless_unscaled).value
+        # uncertainty there is no need for it. It's checked during unit setting
+        # if the unit is allowed.
 
         return self.__class__(result, copy=False)
 
