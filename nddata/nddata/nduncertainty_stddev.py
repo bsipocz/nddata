@@ -158,6 +158,20 @@ class StdDevUncertainty(NDUncertaintyGaussian):
         else:
             raise ValueError('unsupported operation')
 
+        # Check if the unit of the resulting uncertainty is identical to the
+        # on of the result and if so drop it.
+        if isinstance(result, u.Quantity):
+            if isinstance(result_data, u.Quantity):
+                # Both are Quantities - we can drop the unit if they have the
+                # same unit.
+                if result.unit == result_data.unit:
+                    result = result.value
+            else:
+                # Only the uncertainty is a Quantity - we can drop the unit of
+                # the uncertainty if it's dimensionless.
+                if result.unit == u.dimensionless_unscaled:
+                    result = result.value
+
         return self.__class__(result, copy=False)
 
     def _propagate_add(self, other_uncert, result_data, correlation):
@@ -319,17 +333,17 @@ class StdDevUncertainty(NDUncertaintyGaussian):
         #              2ln(A)BdAdBA**(2B-1)*rho)
 
         # Any uncertainty or parent with None is considered 0
-        A = (np.array(0) if self.parent_nddata.data is None
+        A = (0 if self.parent_nddata.data is None
              else self.parent_nddata.data)
-        dA = np.array(0) if self.data is None else self.data
-        B = (np.array(0) if other_uncert.parent_nddata.data is None
+        dA = 0 if self.data is None else self.data
+        B = (0 if other_uncert.parent_nddata.data is None
              else other_uncert.parent_nddata.data)
         dB = np.array(0) if other_uncert.data is None else other_uncert.data
 
-        # Everything is a numpy array so we can find out if something is a
+        # dB is a numpy array so we can find out if something is a
         # scalar by checking how many elements it contains.
         # exponent_scalar = B.size == 1
-        exponent_uncertainty = dB.size > 1or dB != 0
+        exponent_uncertainty = dB.size > 1 or dB != 0
 
         # Then apply the units if necessary.
 
@@ -342,18 +356,16 @@ class StdDevUncertainty(NDUncertaintyGaussian):
         # case the exponent has no uncertainty - it can be immediatly set to 0.
         if self.parent_nddata.unit is not None:
             # See 2)
+            A = A * self.parent_nddata.unit
             if exponent_uncertainty:
-                A = self.parent_nddata.unit.to(u.dimensionless_unscaled, A)
+                A = A.to(u.dimensionless_unscaled)
                 lnA = np.log(A)
             else:
                 # Here we again convert the unit of A so that the final result
                 # will have the expected unit. This is not necessary in the
                 # "if" part!
                 if self.parent_nddata.unit != self.effective_unit:
-                    A = (self.parent_nddata.unit.to(self.effective_unit, A) *
-                         self.effective_unit)
-                else:
-                    A = A * self.parent_nddata.unit
+                    A = A.to(self.effective_unit)
                 lnA = 0
         else:
             lnA = np.log(A)

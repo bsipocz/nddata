@@ -990,7 +990,7 @@ def test_power_first_op_uncertainty():
     assert ndd2.data == ndd3.data
     assert ndd2.unit == ndd3.unit
     assert ndd2.uncertainty.data == ndd3.uncertainty.data * 10000
-    assert ndd3.uncertainty.unit == u.m ** 2
+    assert ndd3.uncertainty.unit is None # the uncertainty should have no unit
 
     # Case 4: Base has different unit for data and uncertainty
     ndd = NDDataArithmetic(10, uncertainty=StdDevUncertainty(500, unit='cm/m'))
@@ -1153,12 +1153,12 @@ def test_power_equivalent_units():
         data1 = data1.to(data2.unit)
         np.testing.assert_array_almost_equal(data1.value, data2.value)
 
-        if result1.uncertainty.unit is not None:
+        if result1.uncertainty.effective_unit is not None:
             data1 = result1.uncertainty.data * result1.uncertainty.effective_unit
         else:
             data1 = result1.uncertainty.data * u.dimensionless_unscaled
 
-        if result2.uncertainty.unit is not None:
+        if result2.uncertainty.effective_unit is not None:
             data2 = result2.uncertainty.data * result2.uncertainty.effective_unit
         else:
             data2 = result2.uncertainty.data * u.dimensionless_unscaled

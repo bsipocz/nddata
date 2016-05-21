@@ -144,6 +144,13 @@ def test_std_to_rel():
     assert unc2.unit is None
     assert unc3.unit is None
 
+    # Quick check to see if data=None makes trouble (we don't need a parent
+    # here).
+    unc1 = StdDevUncertainty(None)
+    unc2 = RelativeUncertainty.from_uncertainty(unc1)
+    assert unc1.data == unc2.data
+    assert unc1.unit == unc2.unit
+
 
 def test_rel_to_std():
     unc1 = RelativeUncertainty(0.02)
@@ -180,6 +187,13 @@ def test_rel_to_std():
     assert unc2.parent_nddata is unc3.parent_nddata
     assert unc2.unit is None
     assert unc3.unit is None
+
+    # Quick check to see if data=None makes trouble (we don't need a parent
+    # here).
+    unc1 = RelativeUncertainty(None)
+    unc2 = StdDevUncertainty.from_uncertainty(unc1)
+    assert unc1.data == unc2.data
+    assert unc1.unit == unc2.unit
 
 
 def test_var_to_rel():
@@ -233,6 +247,13 @@ def test_var_to_rel():
     assert unc2.unit is None
     assert unc3.unit is None
 
+    # Quick check to see if data=None makes trouble (we don't need a parent
+    # here).
+    unc1 = VarianceUncertainty(None)
+    unc2 = RelativeUncertainty.from_uncertainty(unc1)
+    assert unc1.data == unc2.data
+    assert unc1.unit == unc2.unit
+
 
 def test_rel_to_var():
     unc1 = RelativeUncertainty(0.02)
@@ -269,6 +290,71 @@ def test_rel_to_var():
     assert unc2.parent_nddata is unc3.parent_nddata
     assert unc2.unit is None
     assert unc3.unit is None
+
+    # Quick check to see if data=None makes trouble (we don't need a parent
+    # here).
+    unc1 = RelativeUncertainty(None)
+    unc2 = VarianceUncertainty.from_uncertainty(unc1)
+    assert unc1.data == unc2.data
+    assert unc1.unit == unc2.unit
+
+
+def test_roundtripping_std():
+    # All the other tests are good but if you convert std -> var -> std the
+    # result should always be the same as before. Make sure it is!
+
+    # std -> var -> std
+    std_original = StdDevUncertainty(10)
+    ndd = NDDataBase(10, uncertainty=std_original)
+    std_round = StdDevUncertainty(VarianceUncertainty(ndd.uncertainty))
+    np.testing.assert_array_almost_equal(std_original.data, std_round.data)
+
+    # std -> rel -> std
+    std_round = StdDevUncertainty(RelativeUncertainty(ndd.uncertainty))
+    np.testing.assert_array_almost_equal(std_original.data, std_round.data)
+
+
+def test_roundtripping_var():
+    # var -> std -> var
+    var_original = VarianceUncertainty(10)
+    ndd = NDDataBase(10, uncertainty=var_original)
+    var_round = VarianceUncertainty(StdDevUncertainty(ndd.uncertainty))
+    np.testing.assert_array_almost_equal(var_original.data, var_round.data)
+
+    # var -> rel -> var
+    var_round = VarianceUncertainty(RelativeUncertainty(ndd.uncertainty))
+    np.testing.assert_array_almost_equal(var_original.data, var_round.data)
+
+
+def test_roundtripping_rel():
+    # rel -> std -> rel
+    rel_original = RelativeUncertainty(10)
+    ndd = NDDataBase(10, uncertainty=rel_original)
+    rel_round = RelativeUncertainty(StdDevUncertainty(ndd.uncertainty))
+    np.testing.assert_array_almost_equal(rel_original.data, rel_round.data)
+
+    # rel -> var -> rel
+    rel_round = RelativeUncertainty(VarianceUncertainty(ndd.uncertainty))
+    np.testing.assert_array_almost_equal(rel_original.data, rel_round.data)
+
+
+def test_roundtripping_unit():
+    # var and std keep the unit information as is - rel computed with the unit
+    # but discards it afterwards so no need to check that.
+
+    # std -> var -> std
+    std_original = StdDevUncertainty(10, unit='cm')
+    ndd = NDDataBase(10, unit='m', uncertainty=std_original)
+    std_round = StdDevUncertainty(VarianceUncertainty(ndd.uncertainty))
+    np.testing.assert_array_almost_equal(std_original.data, std_round.data)
+    assert std_original.unit == std_round.unit
+
+    # var -> std -> var
+    var_original = VarianceUncertainty(10, unit='cm*cm')
+    ndd = NDDataBase(10, unit='m', uncertainty=var_original)
+    var_round = VarianceUncertainty(StdDevUncertainty(ndd.uncertainty))
+    np.testing.assert_array_almost_equal(var_original.data, var_round.data)
+    assert std_original.unit == std_round.unit
 
 
 def test_unknown_to_stddev():

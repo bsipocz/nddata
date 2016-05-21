@@ -164,6 +164,20 @@ class VarianceUncertainty(NDUncertaintyGaussian):
         else:
             raise ValueError('unsupported operation')
 
+        # Check if the unit of the resulting uncertainty is identical to the
+        # on of the result (squared) and if so drop it.
+        if isinstance(result, u.Quantity):
+            if isinstance(result_data, u.Quantity):
+                # Both are Quantities - we can drop the unit if they have the
+                # same unit.
+                if result.unit == result_data.unit ** 2:
+                    result = result.value
+            else:
+                # Only the uncertainty is a Quantity - we can drop the unit of
+                # the uncertainty if it's dimensionless.
+                if result.unit == u.dimensionless_unscaled:
+                    result = result.value
+
         return self.__class__(result, copy=False)
 
     def _propagate_add(self, other_uncert, result_data, correlation):
