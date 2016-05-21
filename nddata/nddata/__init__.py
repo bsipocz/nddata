@@ -5,6 +5,8 @@ from .nddata import *
 from .nduncertainty_converter import *
 from .nduncertainty_unknown import *
 from .nduncertainty_stddev import *
+from .nduncertainty_var import *
+from .nduncertainty_relstd import *
 from .flag_collection import *
 
 from . import utils

@@ -655,6 +655,11 @@ class Uncertainty(AdvancedDescriptor):
             # instance because we need to assume that we don't want to
             # steal the uncertainty from another NDData object
             if value._parent_nddata is not None:
+                # FIXME: Unfortunatly printing a log info pops up far too often
+                # so there is no hint when a new uncertainty was created
+                # because the old one already had a parent...
+                # log.info('created another uncertainty because the '
+                #          'uncertainty already had a parent.')
                 # Copy it if necessary because the parent will think it was
                 # already copied since it's another instance!
                 value = value.__class__(value, copy=self.copy)

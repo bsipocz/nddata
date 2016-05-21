@@ -10,6 +10,8 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from ...nduncertainty_stddev import StdDevUncertainty
 from ...nduncertainty_unknown import UnknownUncertainty
+from ...nduncertainty_var import VarianceUncertainty
+from ...nduncertainty_relstd import RelativeUncertainty
 from ...exceptions import IncompatibleUncertaintiesException
 
 from ... import NDData
@@ -17,15 +19,13 @@ from astropy.units import UnitsError, Quantity
 from astropy.tests.helper import pytest
 from astropy import units as u
 
+import astropy
+from distutils.version import LooseVersion
+astropy_1_2 = LooseVersion(astropy.__version__) >= LooseVersion('1.2')
+
 
 # Alias NDDataAllMixins in case this will be renamed ... :-)
 NDDataArithmetic = NDData
-
-
-class StdDevUncertaintyUncorrelated(StdDevUncertainty):
-    @property
-    def supports_correlated(self):
-        return False
 
 
 # Test with Data covers:
@@ -467,10 +467,52 @@ def test_arithmetics_stddevuncertainty_basic_with_correlation_array():
     nd1.add(nd2, uncertainty_correlation=cor)
 
 
+# Some operations are not possible
+def test_uncertainty_impossible_operation():
+    # Just as example, replace it as soon as it is supported :-D
+    impossible_operation = np.log
+
+    ndd2 = NDDataArithmetic([1, 2, 3], StdDevUncertainty(None))
+    uncert1 = StdDevUncertainty([1, 2, 3])
+    # TODO: One shouldn't call propagate directly but for now I have no
+    # unsupported arithmetic operations that cannot be propagated. So better
+    # to do this than don't test it.
+    with pytest.raises(ValueError):
+        # Parameter 3 and 4 are just stubs... they shouldn't affect the
+        # behaviour in THIS case.
+        uncert1.propagate(impossible_operation, ndd2, np.array([1, 2, 3]), 0)
+
+    ndd2 = NDDataArithmetic([1, 2, 3], VarianceUncertainty(None))
+    uncert1 = VarianceUncertainty([1, 2, 3])
+    with pytest.raises(ValueError):
+        uncert1.propagate(impossible_operation, ndd2, np.array([1, 2, 3]), 0)
+
+    ndd2 = NDDataArithmetic([1, 2, 3], RelativeUncertainty(None))
+    uncert1 = RelativeUncertainty([1, 2, 3])
+    with pytest.raises(ValueError):
+        uncert1.propagate(impossible_operation, ndd2, np.array([1, 2, 3]), 0)
+
+
 # Covering:
 # That propagate throws an exception when correlation is given but the
 # uncertainty does not support correlation.
 def test_arithmetics_with_correlation_unsupported():
+
+    class StdDevUncertaintyUncorrelated(StdDevUncertainty):
+        @property
+        def supports_correlated(self):
+            return False
+
+    class VarianceUncertaintyUncorrelated(VarianceUncertainty):
+        @property
+        def supports_correlated(self):
+            return False
+
+    class RelativeUncertaintyUncorrelated(RelativeUncertainty):
+        @property
+        def supports_correlated(self):
+            return False
+
     data1 = np.array([1, 2, 3])
     data2 = np.array([1, 1, 1])
     uncert1 = np.array([1, 1, 1])
@@ -480,6 +522,22 @@ def test_arithmetics_with_correlation_unsupported():
                            uncertainty=StdDevUncertaintyUncorrelated(uncert1))
     nd2 = NDDataArithmetic(data2,
                            uncertainty=StdDevUncertaintyUncorrelated(uncert2))
+
+    with pytest.raises(ValueError):
+        nd1.add(nd2, uncertainty_correlation=cor)
+
+    unc1 = VarianceUncertaintyUncorrelated(uncert1)
+    unc2 = VarianceUncertaintyUncorrelated(uncert2)
+    nd1 = NDDataArithmetic(data1, uncertainty=unc1)
+    nd2 = NDDataArithmetic(data2, uncertainty=unc2)
+
+    with pytest.raises(ValueError):
+        nd1.add(nd2, uncertainty_correlation=cor)
+
+    unc1 = RelativeUncertaintyUncorrelated(uncert1)
+    unc2 = RelativeUncertaintyUncorrelated(uncert2)
+    nd1 = NDDataArithmetic(data1, uncertainty=unc1)
+    nd2 = NDDataArithmetic(data2, uncertainty=unc2)
 
     with pytest.raises(ValueError):
         nd1.add(nd2, uncertainty_correlation=cor)
@@ -894,18 +952,6 @@ def test_arithmetics_unknown_uncertainties():
     assert ndd4.uncertainty is None
 
 
-def test_uncertainty_impossible_operation():
-    ndd2 = NDDataArithmetic([1, 2, 3], StdDevUncertainty(None))
-    uncert1 = StdDevUncertainty([1, 2, 3])
-    # TODO: One shouldn't call propagate directly but for now I have no
-    # unsupported arithmetic operations that cannot be propagated. So better
-    # to do this than don't test it.
-    with pytest.raises(ValueError):
-        # Parameter 3 and 4 are just stubs... they shouldn't affect the
-        # behaviour in THIS case.
-        uncert1.propagate(np.log, ndd2, np.array([1, 2, 3]), 0)
-
-
 # Power operation.
 
 def test_power_data_unit():
@@ -977,16 +1023,16 @@ def test_power_first_op_uncertainty():
     ndd2 = ndd.power(2)
     assert ndd2.data == 100
     assert ndd2.unit == u.m ** 2
-    assert ndd2.uncertainty.data == 1
-    assert ndd2.uncertainty.unit is None
+    assert ndd2.uncertainty.data == 10000
+    assert ndd2.uncertainty.unit == u.cm ** 2
     # Compare this against converted case
     ndd = NDDataArithmetic(10, unit='m',
                            uncertainty=StdDevUncertainty(0.05))
     ndd3 = ndd.power(2)
     assert ndd2.data == ndd3.data
     assert ndd2.unit == ndd3.unit
-    assert ndd2.uncertainty.data == ndd3.uncertainty.data
-    assert ndd2.uncertainty.unit == ndd3.uncertainty.unit
+    assert ndd2.uncertainty.data == ndd3.uncertainty.data * 10000
+    assert ndd3.uncertainty.unit is None  # the uncertainty should have no unit
 
     # Case 4: Base has different unit for data and uncertainty
     ndd = NDDataArithmetic(10, uncertainty=StdDevUncertainty(500, unit='cm/m'))
@@ -1126,22 +1172,43 @@ def test_power_both_uncertainty_correlation():
         np.testing.assert_almost_equal(ndd_power.uncertainty.data, ref)
 
 
+# Unfortunatly #4770 of astropy is probably not backported so will only
+# be avaiable for astropy 1.2. So this test is marked as skipped.
+@pytest.mark.xfail(not astropy_1_2, strict=True,
+                   reason="dimensionless_scaled base or exponent are only "
+                          "allowed from 1.2 on.")
 def test_power_equivalent_units():
     # These tests are thought to ensure that the result doesn't depend on the
     # units. So 2cm yields the same result as 0.02m.
 
     def compare_results(result1, result2):
-        if result1.unit is None and result2.unit is None:
-            factor = 1
-        elif result1.unit is None:
-            factor = 1 / result2.unit.to(u.dimensionless_unscaled, 1)
-        elif result2.unit is None:
-            factor = result1.unit.to(u.dimensionless_unscaled, 1)
+        if result1.unit is not None:
+            data1 = result1.data * result1.unit
         else:
-            factor = result1.unit.to(result2.unit)
-        np.testing.assert_almost_equal(result1.data * factor, result2.data)
-        np.testing.assert_almost_equal(result1.uncertainty.data * factor,
-                                       result2.uncertainty.data)
+            data1 = result1.data * u.dimensionless_unscaled
+
+        if result2.unit is not None:
+            data2 = result2.data * result2.unit
+        else:
+            data2 = result2.data * u.dimensionless_unscaled
+
+        data1 = data1.to(data2.unit)
+        np.testing.assert_array_almost_equal(data1.value, data2.value)
+
+        if result1.uncertainty.effective_unit is not None:
+            data1 = (result1.uncertainty.data *
+                     result1.uncertainty.effective_unit)
+        else:
+            data1 = result1.uncertainty.data * u.dimensionless_unscaled
+
+        if result2.uncertainty.effective_unit is not None:
+            data2 = (result2.uncertainty.data *
+                     result2.uncertainty.effective_unit)
+        else:
+            data2 = result2.uncertainty.data * u.dimensionless_unscaled
+
+        data1 = data1.to(data2.unit)
+        np.testing.assert_array_almost_equal(data1.value, data2.value)
 
     # TESTS 1
     ndd1 = NDDataArithmetic(2, unit='m', uncertainty=StdDevUncertainty(0.02))
@@ -1264,3 +1331,120 @@ def test_power_not_allowed_things():
     ndd2 = NDDataArithmetic(3, uncertainty=StdDevUncertainty(0.1))
     with pytest.raises(u.UnitConversionError):
         ndd1.power(ndd2)
+
+
+def test_var_uncertainty_correctness():
+
+    # Without units
+    ndd1 = NDDataArithmetic(2, uncertainty=VarianceUncertainty(1))
+    ndd2 = NDDataArithmetic(3, uncertainty=VarianceUncertainty(2))
+    ndd_res = ndd1.add(ndd2)
+    assert ndd_res.uncertainty.data == 3  # simply uncertainties added
+
+    ndd_res = ndd1.subtract(ndd2)
+    assert ndd_res.uncertainty.data == 3  # simply uncertainties added
+
+    ndd_res = ndd1.multiply(ndd2)
+    assert ndd_res.uncertainty.data == (1*3**2 + 2*2**2)
+
+    ndd_res = ndd1.divide(ndd2)
+    assert ndd_res.uncertainty.data == (1/3**2 + 2*2**2/3**4)
+
+    ndd_res = ndd1.power(ndd2)
+    ref_val = 1*(2**3*3/2)**2 + 2*(2**3*np.log(2))**2
+    np.testing.assert_almost_equal(ndd_res.uncertainty.data, ref_val)
+
+    # Correlation test for power here because power is not possible with this
+    # combination of units I chose later.
+    ndd_res = ndd1.power(ndd2, uncertainty_correlation=1)
+    ref_val = (1*(2**3*3/2)**2 + 2*(2**3*np.log(2))**2 + 2 *
+               np.sqrt(1*(2**3*3/2)**2 * 2*(2**3*np.log(2))**2))
+    np.testing.assert_almost_equal(ndd_res.uncertainty.data, ref_val)
+
+    # With correlation and parent_unit
+    ndd1 = NDDataArithmetic(2, unit='m', uncertainty=VarianceUncertainty(1))
+    ndd2 = NDDataArithmetic(3, unit='m', uncertainty=VarianceUncertainty(2))
+    ndd_res = ndd1.add(ndd2, uncertainty_correlation=1)
+    np.testing.assert_almost_equal(ndd_res.uncertainty.data,
+                                   3 + 2 * np.sqrt(2))
+
+    ndd_res = ndd1.subtract(ndd2, uncertainty_correlation=1)
+    np.testing.assert_almost_equal(ndd_res.uncertainty.data,
+                                   3 - 2 * np.sqrt(2))
+
+    ndd_res = ndd1.multiply(ndd2, uncertainty_correlation=1)
+    np.testing.assert_almost_equal(ndd_res.uncertainty.data,
+                                   1*3**2 + 2*2**2 + 2*np.sqrt(9*8))
+
+    ndd_res = ndd1.divide(ndd2, uncertainty_correlation=1)
+    np.testing.assert_almost_equal(ndd_res.uncertainty.data,
+                                   1/3**2 + 2*2**2/3**4 -
+                                   2*np.sqrt(1/3**2 * 2*2**2/3**4))
+
+
+@pytest.mark.parametrize(('op'), ['add', 'subtract', 'multiply', 'divide'])
+@pytest.mark.parametrize(('corr'), [-1, 0.2, 0])
+@pytest.mark.parametrize(('unit_uncert1'), [None, 'km*km'])
+@pytest.mark.parametrize(('unit_uncert2'), [None, 'm*m'])
+def test_var_compare_with_std(op, corr, unit_uncert1, unit_uncert2):
+    # StdDevUncertainty is fully tested as is the converter. So it should
+    # be enough to compare the result with Variance to the same calculation
+    # with standard deviation.
+
+    uncert1 = VarianceUncertainty(np.arange(3), unit=unit_uncert1)
+    uncert2 = VarianceUncertainty(np.arange(2, 5), unit=unit_uncert2)
+    ndd1 = NDDataArithmetic(np.array([7, 2, 6]), unit='m',
+                            uncertainty=uncert1)
+    ndd2 = NDDataArithmetic(np.array([5, 2, 8]), unit='cm',
+                            uncertainty=uncert2)
+
+    # control group
+    ndd3 = NDDataArithmetic(ndd1, uncertainty=StdDevUncertainty(uncert1))
+    ndd4 = NDDataArithmetic(ndd2, uncertainty=StdDevUncertainty(uncert2))
+
+    ndd_var = getattr(ndd1, op)(ndd2, uncertainty_correlation=corr)
+    ndd_std = getattr(ndd3, op)(ndd4, uncertainty_correlation=corr)
+    var_from_var = ndd_var.uncertainty
+    var_from_std = VarianceUncertainty(ndd_std.uncertainty)
+    np.testing.assert_almost_equal(var_from_var.data, var_from_std.data)
+
+
+# Unfortunatly #4770 of astropy is probably not backported so will only
+# be avaiable for astropy 1.2. So this test is marked as skipped.
+#@pytest.mark.xfail(not astropy_1_2,
+#                   reason="dimensionless_scaled base or exponent are only "
+#                         "allowed from 1.2 on.")
+@pytest.mark.parametrize(('corr'), [-0.3, 0])
+@pytest.mark.parametrize(('unit_base'), [None, u.m/u.cm])
+@pytest.mark.parametrize(('unit_base_uncert'), [None, ''])
+@pytest.mark.parametrize(('unit_exp'), [None, u.cm/u.mm])
+@pytest.mark.parametrize(('unit_exp_uncert'), [None, u.cm/u.m])
+@pytest.mark.parametrize(('exponent_has_uncert'), [False, True])
+def test_var_compare_with_std_power(corr, unit_base, unit_base_uncert,
+                                    unit_exp, unit_exp_uncert,
+                                    exponent_has_uncert):
+
+    # some cases only work for astropy >= 1.2. xfail them otherwise
+    if ((unit_base == u.m/u.cm) and
+            unit_exp is None and
+            not exponent_has_uncert and
+            not astropy_1_2):
+        pytest.xfail("failing configuration (but should work)")
+
+    uncert1 = VarianceUncertainty(2, unit=unit_base_uncert)
+    if exponent_has_uncert:
+        uncert2 = VarianceUncertainty(4, unit=unit_exp_uncert)
+    else:
+        uncert2 = None
+    ndd1 = NDDataArithmetic(3.5, unit=unit_base, uncertainty=uncert1)
+    ndd2 = NDDataArithmetic(2.7, unit=unit_exp, uncertainty=uncert2)
+
+    # control group
+    ndd3 = NDDataArithmetic(ndd1, uncertainty=StdDevUncertainty(uncert1))
+    ndd4 = NDDataArithmetic(ndd2, uncertainty=StdDevUncertainty(uncert2))
+
+    ndd_var = ndd1.power(ndd2, uncertainty_correlation=corr)
+    ndd_std = ndd3.power(ndd4, uncertainty_correlation=corr)
+    var_from_var = ndd_var.uncertainty
+    var_from_std = VarianceUncertainty(ndd_std.uncertainty)
+    np.testing.assert_allclose(var_from_var.data, var_from_std.data)

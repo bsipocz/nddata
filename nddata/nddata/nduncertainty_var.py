@@ -5,22 +5,24 @@ from __future__ import (absolute_import, division, print_function,
 
 import numpy as np
 
+from astropy.units import Quantity
 import astropy.units as u
 
 from .meta import NDUncertaintyGaussian
 
-__all__ = ['StdDevUncertainty']
+__all__ = ['VarianceUncertainty']
 
 
-class StdDevUncertainty(NDUncertaintyGaussian):
-    """Standard deviation uncertainty assuming first order gaussian error \
+class VarianceUncertainty(NDUncertaintyGaussian):
+    """Variance uncertainty assuming first order gaussian error \
             propagation.
 
     This class implements uncertainty propagation for ``addition``,
     ``subtraction``, ``multiplication`` and ``division``. The class can handle
     if the uncertainty has a unit that differs from (but is convertible to) the
-    parents `NDData` unit. Also support for correlation is possible but
-    requires the correlation as input. It cannot handle correlation
+    parents `NDData` unit. The unit of the resulting uncertainty will have the
+    same unit as the resulting data. Also support for correlation is possible
+    but requires the correlation as input. It cannot handle correlation
     determination itself.
 
     Parameters
@@ -30,26 +32,26 @@ class StdDevUncertainty(NDUncertaintyGaussian):
 
     Examples
     --------
-    `StdDevUncertainty` should always be associated with an `NDDataBase`-like
+    `VarianceUncertainty` should always be associated with an `NDDataBase`-like
     instance, either by creating it during initialization::
 
-        >>> from nddata.nddata import NDData, StdDevUncertainty
+        >>> from nddata.nddata import NDData, VarianceUncertainty
         >>> ndd = NDData([1,2,3],
-        ...              uncertainty=StdDevUncertainty([0.1, 0.1, 0.1]))
+        ...              uncertainty=VarianceUncertainty([0.1, 0.1, 0.1]))
         >>> ndd.uncertainty
-        StdDevUncertainty([ 0.1,  0.1,  0.1])
+        VarianceUncertainty([ 0.1,  0.1,  0.1])
 
     or by setting it manually on a `NDData` instance::
 
-        >>> ndd.uncertainty = StdDevUncertainty([0.2], unit='m', copy=True)
+        >>> ndd.uncertainty = VarianceUncertainty([0.2], unit='m', copy=True)
         >>> ndd.uncertainty
-        StdDevUncertainty([ 0.2])
+        VarianceUncertainty([ 0.2])
 
     the uncertainty ``data`` can also be set directly::
 
         >>> ndd.uncertainty.data = 2
         >>> ndd.uncertainty
-        StdDevUncertainty(2)
+        VarianceUncertainty(2)
     """
     # propagation methods for one operand operations
     # TODO: Currently no one operand operations are implemented... :-(
@@ -65,20 +67,24 @@ class StdDevUncertainty(NDUncertaintyGaussian):
     @property
     def effective_unit(self):
         """(`~astropy.units.Unit`) The effective unit of the instance is the \
-            ``unit`` of the uncertainty or, if not set, the unit of the parent.
+            ``unit`` of the uncertainty or, if not set, the squared unit of \
+            the parent.
         """
         if self.unit is None:
             # The uncertainty has no unit by itself, check if the parent has a
-            # unit and return it. StdDevUncertainty should have the same
-            # dimension as the data so it's ok to simply return it. If it has
+            # unit and return it. VarianceUncertainty should have the squared
+            # dimension as the data so square it if necessary. If it has
             # no parent let the MissingDataAssociationException bubble up, we
             # would expect to find a unit if this property is accessed.
-            return self.parent_nddata.unit
+            if self.parent_nddata.unit is not None:
+                return self.parent_nddata.unit ** 2
+            else:
+                return None
         return self._unit
 
     @property
     def supports_correlated(self):
-        """(`True`) `StdDevUncertainty` allows to propagate correlated \
+        """(`True`) `VarianceUncertainty` allows to propagate correlated \
                       uncertainties.
 
         ``correlation`` must be given, this class does not implement computing
@@ -88,9 +94,9 @@ class StdDevUncertainty(NDUncertaintyGaussian):
 
     @property
     def uncertainty_type(self):
-        """(``"std"``) `StdDevUncertainty` implements standard deviation.
+        """(``"var"``) `VarianceUncertainty` implements variance deviation.
         """
-        return 'std'
+        return 'var'
 
     def propagate(self, operation, other_nddata, result_data, correlation):
         """Calculate the resulting uncertainty given an operation on the data.
@@ -159,12 +165,12 @@ class StdDevUncertainty(NDUncertaintyGaussian):
             raise ValueError('unsupported operation')
 
         # Check if the unit of the resulting uncertainty is identical to the
-        # on of the result and if so drop it.
+        # on of the result (squared) and if so drop it.
         if isinstance(result, u.Quantity):
             if isinstance(result_data, u.Quantity):
                 # Both are Quantities - we can drop the unit if they have the
                 # same unit.
-                if result.unit == result_data.unit:
+                if result.unit == result_data.unit ** 2:
                     result = result.value
             else:
                 # Only the uncertainty is a Quantity - we can drop the unit of
@@ -176,7 +182,7 @@ class StdDevUncertainty(NDUncertaintyGaussian):
 
     def _propagate_add(self, other_uncert, result_data, correlation):
 
-        # Formula: sigma = sqrt(dA**2 + dB**2 + 2*cor*dA*dB)
+        # Formula: sigma = dA + dB - 2 * cor * sqrt(dA*dB)
 
         # Any uncertainty with None is considered 0
         dA = 0 if self.data is None else self.data
@@ -190,15 +196,15 @@ class StdDevUncertainty(NDUncertaintyGaussian):
 
         # Calculate the result including correlation if necessary
         if isinstance(correlation, np.ndarray) or correlation != 0:
-            result = np.sqrt(dA**2 + dB**2 + 2 * correlation * dA * dB)
+            result = dA + dB + 2 * correlation * np.sqrt(dA * dB)
         else:
-            result = np.sqrt(dA**2 + dB**2)
+            result = dA + dB
 
         return result
 
     def _propagate_subtract(self, other_uncert, result_data, correlation):
 
-        # Formula: sigma = sqrt(dA**2 + dB**2 - 2*cor*dA*dB)
+        # Formula: sigma = dA + dB - 2 * cor * sqrt(dA*dB)
 
         # Same as addition but subtracting the correlation term.
 
@@ -214,20 +220,15 @@ class StdDevUncertainty(NDUncertaintyGaussian):
 
         # Calculate the result including correlation if necessary
         if isinstance(correlation, np.ndarray) or correlation != 0:
-            result = np.sqrt(dA**2 + dB**2 - 2 * correlation * dA * dB)
+            result = dA + dB - 2 * correlation * np.sqrt(dA * dB)
         else:
-            result = np.sqrt(dA**2 + dB**2)
+            result = dA + dB
 
         return result
 
     def _propagate_multiply(self, other_uncert, result_data, correlation):
 
-        # Formula: sigma = |AB|*sqrt((dA/A)**2+(dB/B)**2+2*dA/A*dB/B*cor)
-
-        # This formula is not very handy since it generates NaNs for every
-        # zero in A and B. So we rewrite it:
-
-        # Formula: sigma = sqrt((dA*B)**2 + (dB*A)**2 + (2 * cor * ABdAdB))
+        # Formula: sigma = dA*B**2 + dB*A**2 + 2 * rho * A * B * sqrt(dA dB)
 
         # Any uncertainty or parent with None is considered 0
         A = 0 if self.parent_nddata.data is None else self.parent_nddata.data
@@ -242,49 +243,29 @@ class StdDevUncertainty(NDUncertaintyGaussian):
         if self.effective_unit is not None:
             dA = dA * self.effective_unit
         if other_uncert.parent_nddata.unit is not None:
-            # Simply multiplying B with it's unit would yield incorrect results
-            # in the final uncertainty. The first term in the square root
-            # determines the unit of the result and in this case it's
-            # "B * dA" but to get the right unit ("dA * dB") we convert B
-            # to the unit of dB. This will give the correct unit for the
-            # result. But we only need to do this conversion if the unit of
-            # B and dB are different.
-            if other_uncert.parent_nddata.unit != other_uncert.effective_unit:
-                # We could just do (B * B.unit).to(dB.unit) but strangly
-                # this version is faster for any kind of B and B.unit and so
-                # this is the fast (but unreadable) version:
-                # B.unit.to(dB.unit, B) * dB.unit
-                B = (other_uncert.parent_nddata.unit.to(
-                        other_uncert.effective_unit, B) *
-                     other_uncert.effective_unit)
-            else:
-                B = B * other_uncert.parent_nddata.unit
+            B = B * other_uncert.parent_nddata.unit
+            parent_unit_squared = other_uncert.parent_nddata.unit ** 2
+            if parent_unit_squared != other_uncert.effective_unit:
+                B = B.to(other_uncert.effective_unit ** (1/2))
         if other_uncert.effective_unit is not None:
             dB = dB * other_uncert.effective_unit
 
         # Calculate some intermediate values so they will not computed twice
         # in case correlation is given.
-        BdA = B * dA
-        AdB = A * dB
+        dAB2 = dA * B ** 2
+        dBA2 = dB * A ** 2
 
         # Calculate the result with or without correlation
         if isinstance(correlation, np.ndarray) or correlation != 0:
-            result = np.sqrt(BdA**2 + AdB**2 + 2*correlation*AdB*BdA)
+            result = dAB2 + dBA2 + 2 * correlation * np.sqrt(dAB2 * dBA2)
         else:
-            result = np.sqrt(BdA**2 + AdB**2)
+            result = dAB2 + dBA2
 
         return result
 
     def _propagate_divide(self, other_uncert, result_data, correlation):
 
-        # Formula: sigma = |A/B|*sqrt((dA/A)**2+(dB/B)**2-2*dA/A*dB/B*cor)
-
-        # As with multiplication this formula creates NaNs where A is zero.
-        # So I'll rewrite it again:
-        # => sigma = sqrt((dA/B)**2 + (AdB/B**2)**2 - 2*cor*AdAdB/B**3)
-
-        # This creates Inf or NaN where B is zero but so does the result of
-        # the parents data, so don't bother about it. :-)
+        # Formula: sigma = dA/B**2 + dBA**2/B**4 - 2 rho A / B**3 * sqrt(dA dB)
 
         # Any uncertainty or parent with None is considered 0
         A = 0 if self.parent_nddata.data is None else self.parent_nddata.data
@@ -299,38 +280,30 @@ class StdDevUncertainty(NDUncertaintyGaussian):
         if self.effective_unit is not None:
             dA = dA * self.effective_unit
         if other_uncert.parent_nddata.unit is not None:
-            # See the note in multiplication why this is different from the
-            # others.
-            if other_uncert.parent_nddata.unit != other_uncert.effective_unit:
-                B = (other_uncert.parent_nddata.unit.to(
-                        other_uncert.effective_unit, B) *
-                     other_uncert.effective_unit)
-            else:
-                B = B * other_uncert.parent_nddata.unit
+            B = B * other_uncert.parent_nddata.unit
+            parent_unit_squared = other_uncert.parent_nddata.unit ** 2
+            if parent_unit_squared != other_uncert.effective_unit:
+                B = B.to(other_uncert.effective_unit ** (1/2))
         if other_uncert.effective_unit is not None:
             dB = dB * other_uncert.effective_unit
 
         # Calculate some intermediate values so they will not computed twice
         # in case correlation is given.
-        dA_B = dA / B
-        AdB_B2 = A * dB / B ** 2
+        dA_B2 = dA / B ** 2
+        A2dB_B4 = dB * A ** 2 / B ** 4
 
         # Calculate the result with or without correlation
         if isinstance(correlation, np.ndarray) or correlation != 0:
-            result = np.sqrt(dA_B**2 + AdB_B2**2 - 2*correlation*dA_B*AdB_B2)
+            result = dA_B2 + A2dB_B4 - 2*correlation*np.sqrt(dA_B2*A2dB_B4)
         else:
-            result = np.sqrt(dA_B**2 + AdB_B2**2)
+            result = dA_B2 + A2dB_B4
 
         return result
 
     def _propagate_power(self, other_uncert, result_data, correlation):
         # Formula:
-        # sigma = |A**B|*sqrt((BdA/A)**2+(ln(A)dB)**2+2Bln(A)dAdB*rho/A)
-
-        # to allow for results where an element of A is zero we can
-        # also write:
-        # sigma = sqrt((BdAA**(B-1))**2 + (ln(A)dBA**B)**2 +
-        #              2ln(A)BdAdBA**(2B-1)*rho)
+        # sigma = dA(B*A**(B-1))**2 + dB*(ln(A)A**B)**2 +
+        #              2ln(A)B*A**(2B-1)*rho*sqrt(dAdB)
 
         # Any uncertainty or parent with None is considered 0
         A = (0 if self.parent_nddata.data is None
@@ -367,8 +340,8 @@ class StdDevUncertainty(NDUncertaintyGaussian):
                 # Here we again convert the unit of A so that the final result
                 # will have the expected unit. This is not necessary in the
                 # "if" part!
-                if self.parent_nddata.unit != self.effective_unit:
-                    A = A.to(self.effective_unit)
+                if self.parent_nddata.unit ** 2 != self.effective_unit:
+                    A = A.to(self.effective_unit ** (1/2))
                 lnA = 0
         else:
             lnA = np.log(A)
@@ -390,15 +363,16 @@ class StdDevUncertainty(NDUncertaintyGaussian):
 
         # Calculate some intermediate values so they will not computed twice
         # in case correlation is given.
-        dBlnAA_B = A ** B * lnA * dB
+        dBlnAA_B = dB * (A ** B * lnA) ** 2
 
-        BdAA_Bm1 = B * dA * A ** (B - 1)
+        BdAA_Bm1 = dA * (B * A ** (B - 1)) ** 2
 
         # Calculate the result with or without correlation
         if isinstance(correlation, np.ndarray) or correlation != 0:
-            result = np.sqrt(dBlnAA_B**2 + BdAA_Bm1**2 +
-                             2 * correlation * dBlnAA_B * BdAA_Bm1)
+            result = (dBlnAA_B + BdAA_Bm1 + 2 * correlation *
+                      np.sqrt(dBlnAA_B * BdAA_Bm1))
         else:
-            result = np.sqrt(dBlnAA_B**2 + BdAA_Bm1**2)
+            result = dBlnAA_B + BdAA_Bm1
 
         return result
+

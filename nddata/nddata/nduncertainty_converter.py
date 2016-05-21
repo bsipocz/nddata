@@ -3,13 +3,19 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+import numpy as np
+
 from astropy import log
+import astropy.units as u
 
 from .exceptions import IncompatibleUncertaintiesException
 from .exceptions import MissingDataAssociationException
 
-from .nduncertainty_stddev import StdDevUncertainty
 from .nduncertainty_unknown import UnknownUncertainty
+from .nduncertainty_stddev import StdDevUncertainty
+from .nduncertainty_relstd import RelativeUncertainty
+from .nduncertainty_var import VarianceUncertainty
+
 
 __all__ = ['UncertaintyConverter']
 
@@ -26,6 +32,15 @@ class UncertaintyConverter(object):
     @classmethod
     def register(cls, source, target, forward, backward):
         """Register another conversion.
+
+        .. note::
+            The conversions are implicitly done when creating uncertainties
+            with :meth:`~.NDUncertainty.from_uncertainty` or directly inside
+            the constructor. The converter is only relevant if you want to
+            register other uncertainty types. If you use the existing
+            uncertainty types you don't need to call the converter directly!
+            See :meth:`get_converter_func` if you want to know which
+            conversions are possible.
 
         Parameters
         ----------
@@ -73,7 +88,8 @@ class UncertaintyConverter(object):
 
         .. warning::
             You can overwrite existing conversions if you need to customize the
-            behaviour. But be careful you do not overwrite by accident.
+            behaviour. But be careful that you do not overwrite them by
+            accident.
         """
         cls._converter[(source, target)] = forward
         cls._converter[(target, source)] = backward
@@ -82,12 +98,6 @@ class UncertaintyConverter(object):
     def get_converter_func(cls, source, target):
         """Returns the appropriate conversion function for the specified \
                 source and target.
-
-        .. note::
-            This method is called by the function
-            :meth:`~.NDUncertainty.from_uncertainty` and during initialization
-            of a `~.NDUncertainty`-like class. So normally you don't need to
-            use this method directly.
 
         Parameters
         ----------
@@ -104,11 +114,21 @@ class UncertaintyConverter(object):
         -----
         Possible conversions:
 
-        +----------------------+-----------------------+---------+----------+
-        | Source               | Target                | Forward | Backward |
-        +======================+=======================+=========+==========+
-        | `UnknownUncertainty` | `StdDevUncertainty`   | Yes     | Yes      |
-        +----------------------+-----------------------+---------+----------+
+        +-----------------------+-----------------------+---------+----------+
+        | Source                | Target                | Forward | Backward |
+        +=======================+=======================+=========+==========+
+        | `UnknownUncertainty`  | `StdDevUncertainty`   | Yes     | Yes      |
+        +-----------------------+-----------------------+---------+----------+
+        | `UnknownUncertainty`  | `VarianceUncertainty` | Yes     | Yes      |
+        +-----------------------+-----------------------+---------+----------+
+        | `UnknownUncertainty`  | `RelativeUncertainty` | Yes     | Yes      |
+        +-----------------------+-----------------------+---------+----------+
+        | `StdDevUncertainty`   | `VarianceUncertainty` | Yes     | Yes      |
+        +-----------------------+-----------------------+---------+----------+
+        | `StdDevUncertainty`   | `RelativeUncertainty` | Yes     | Yes      |
+        +-----------------------+-----------------------+---------+----------+
+        | `VarianceUncertainty` | `RelativeUncertainty` | Yes     | Yes      |
+        +-----------------------+-----------------------+---------+----------+
 
         Examples
         --------
@@ -137,6 +157,7 @@ to or from an UnknownUncertainty. [nddata.nddata.nduncertainty_converter]
 def _convert_unknown_to_something(val):
     log.info('Assume the uncertainty values stay the same when converting '
              'to or from an UnknownUncertainty.')
+    # Just take the values from the original and use them for the target.
     data = val.data
     unit = val.unit
     try:
@@ -149,3 +170,199 @@ def _convert_unknown_to_something(val):
 UncertaintyConverter.register(UnknownUncertainty, StdDevUncertainty,
                               _convert_unknown_to_something,
                               _convert_unknown_to_something)
+UncertaintyConverter.register(UnknownUncertainty, VarianceUncertainty,
+                              _convert_unknown_to_something,
+                              _convert_unknown_to_something)
+UncertaintyConverter.register(UnknownUncertainty, RelativeUncertainty,
+                              _convert_unknown_to_something,
+                              _convert_unknown_to_something)
+
+
+def _convert_std_to_var(val):
+    # Take the values from the original
+    data = val.data
+    unit = val.unit
+    try:
+        parent_nddata = val.parent_nddata
+    except MissingDataAssociationException:
+        parent_nddata = None
+
+    # If the original had any data square it, same for the unit.
+    if data is not None:
+        data = data ** 2
+    if unit is not None:
+        unit = unit ** 2
+
+    return {'data': data, 'unit': unit, 'parent_nddata': parent_nddata}
+
+
+def _convert_var_to_std(val):
+    # Take the values from the original
+    data = val.data
+    unit = val.unit
+    try:
+        parent_nddata = val.parent_nddata
+    except MissingDataAssociationException:
+        parent_nddata = None
+
+    # If the original had any data or a unit take the square root of it.
+    if data is not None:
+        data = data ** (1/2)
+    if unit is not None:
+        unit = unit ** (1/2)
+
+    return {'data': data, 'unit': unit, 'parent_nddata': parent_nddata}
+
+
+UncertaintyConverter.register(StdDevUncertainty, VarianceUncertainty,
+                              _convert_std_to_var,
+                              _convert_var_to_std)
+
+
+def _convert_std_to_rel(val):
+    # Take the values from the original (the cases where the unit becomes
+    # important come later, for now just ignore it)
+    data = val.data
+    try:
+        parent_nddata = val.parent_nddata
+    except MissingDataAssociationException:
+        parent_nddata = None
+
+    # If there was some data we need to convert it
+    if data is not None:
+        # We really need the data of the parent, so abort if no parent was
+        # found.
+        if parent_nddata is None:
+            msg = ('converting from relative uncertainty requires the parents '
+                   'data.')
+            raise MissingDataAssociationException(msg)
+
+        # The relative uncertainty is just stddev / parent. Of course we need
+        # to take the units into consideration:
+        if parent_nddata.unit is None:
+            data_p = parent_nddata.data
+        else:
+            data_p = parent_nddata.data * parent_nddata.unit
+
+        if val.effective_unit is None:
+            data_u = data
+        else:
+            data_u = data * val.effective_unit
+
+        data = data_u / data_p
+
+        # As a last step convert it to a dimensionless value relative
+        # uncertainty expects that.
+        if isinstance(data, u.Quantity):
+            data = data.to(u.dimensionless_unscaled).value
+
+    return {'data': data, 'unit': None, 'parent_nddata': parent_nddata}
+
+
+def _convert_rel_to_std(val):
+    # Take the values from the original (the cases where the unit becomes
+    # important come later, for now just ignore it)
+    data = val.data
+    try:
+        parent_nddata = val.parent_nddata
+    except MissingDataAssociationException:
+        parent_nddata = None
+
+    # If there was some data we need to convert it
+    if data is not None:
+        # We really need the data of the parent, so abort if no parent was
+        # found.
+        if parent_nddata is None:
+            msg = ('converting from relative uncertainty requires the parents '
+                   'data.')
+            raise MissingDataAssociationException(msg)
+
+        # The stddev is just rel_uncertainty * parent uncertainty. No need to
+        # check the units here because the relative uncertainty doesn't have
+        # a unit.
+        data_p = parent_nddata.data
+
+        data_u = val.data
+
+        data = data_p * data_u
+
+    return {'data': data, 'unit': None, 'parent_nddata': parent_nddata}
+
+
+UncertaintyConverter.register(StdDevUncertainty, RelativeUncertainty,
+                              _convert_std_to_rel,
+                              _convert_rel_to_std)
+
+
+def _convert_var_to_rel(val):
+    # Take the values from the original (the cases where the unit becomes
+    # important come later, for now just ignore it)
+    data = val.data
+    try:
+        parent_nddata = val.parent_nddata
+    except MissingDataAssociationException:
+        parent_nddata = None
+
+    # If there was some data we need to convert it
+    if data is not None:
+        # We really need the data of the parent, so abort if no parent was
+        # found.
+        if parent_nddata is None:
+            msg = ('converting from relative uncertainty requires the parents '
+                   'data.')
+            raise MissingDataAssociationException(msg)
+
+        # The relative uncertainty is just sqrt(variance / parent**2). Of
+        # course we need to take the units into consideration:
+        if parent_nddata.unit is not None:
+            data_p = (parent_nddata.data * parent_nddata.unit)**2
+        else:
+            data_p = parent_nddata.data ** 2
+
+        if val.effective_unit is not None:
+            data_u = val.data * val.effective_unit
+        else:
+            data_u = val.data
+
+        data = np.sqrt(data_u / data_p)
+
+        # As a last step convert it to a dimensionless value relative
+        # uncertainty expects that.
+        if isinstance(data, u.Quantity):
+            data = data.to(u.dimensionless_unscaled).value
+    return {'data': data, 'unit': None, 'parent_nddata': parent_nddata}
+
+
+def _convert_rel_to_var(val):
+    # Take the values from the original (the cases where the unit becomes
+    # important come later, for now just ignore it)
+    data = val.data
+    try:
+        parent_nddata = val.parent_nddata
+    except MissingDataAssociationException:
+        parent_nddata = None
+
+    # If there was some data we need to convert it
+    if data is not None:
+        # We really need the data of the parent, so abort if no parent was
+        # found.
+        if parent_nddata is None:
+            msg = ('converting from relative uncertainty requires the parents '
+                   'data.')
+            raise MissingDataAssociationException(msg)
+
+        # The variance is just (rel_uncertainty * parent uncertainty)**2. No
+        # need to check the units here because the relative uncertainty doesn't
+        # have a unit.
+        data_p = parent_nddata.data
+
+        data_u = val.data
+
+        data = (data_p * data_u)**2
+
+    return {'data': data, 'unit': None, 'parent_nddata': parent_nddata}
+
+
+UncertaintyConverter.register(VarianceUncertainty, RelativeUncertainty,
+                              _convert_var_to_rel,
+                              _convert_rel_to_var)

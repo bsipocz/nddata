@@ -553,6 +553,9 @@ uncertainty using these propagations:
     ...         result = this._propagate_add(other, *args, **kwargs)
     ...
     ...         # Return the square of it
+    ...         # Special case: Return is already an Uncertainty
+    ...         if isinstance(result, NDUncertainty):
+    ...             return np.square(result.data)
     ...         return np.square(result)
 
     >>> from nddata.nddata import NDData

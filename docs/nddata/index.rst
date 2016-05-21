@@ -154,7 +154,7 @@ deviation and can propagate these using the arithmetic methods of
 
     >>> doubled_ndd = ndd.multiply(2)  # multiply by 2
     >>> doubled_ndd.uncertainty
-    StdDevUncertainty([0, 2, 4, 6, 8])
+    StdDevUncertainty([ 0.,  2.,  4.,  6.,  8.])
 
     >>> ndd2 = ndd.add(doubled_ndd)    # add the doubled to the original
     >>> ndd2.uncertainty
