@@ -1333,6 +1333,49 @@ def test_power_not_allowed_things():
         ndd1.power(ndd2)
 
 
+def test_relstd_uncertainty_correctness():
+
+    # Without units
+    ndd1 = NDDataArithmetic(10, uncertainty=RelativeUncertainty(0.1))
+    ndd2 = NDDataArithmetic(20, uncertainty=RelativeUncertainty(0.1))
+    ndd_res = ndd1.add(ndd2)
+    np.testing.assert_allclose(ndd_res.uncertainty.data, np.sqrt(1**2+2**2)/30)
+
+    ndd_res = ndd1.subtract(ndd2)
+    np.testing.assert_allclose(ndd_res.uncertainty.data,
+                               np.sqrt(1**2+2**2)/-10)
+
+    ndd_res = ndd1.multiply(ndd2)
+    np.testing.assert_allclose(ndd_res.uncertainty.data, np.sqrt(0.02))
+
+    ndd_res = ndd1.divide(ndd2)
+    np.testing.assert_allclose(ndd_res.uncertainty.data, np.sqrt(0.02))
+
+    # With correlation
+    ndd_res = ndd1.multiply(ndd2, uncertainty_correlation=1)
+    np.testing.assert_allclose(ndd_res.uncertainty.data,
+                               np.sqrt(0.02 + 2*0.1*0.1))
+
+    ndd_res = ndd1.divide(ndd2, uncertainty_correlation=1)
+    np.testing.assert_allclose(ndd_res.uncertainty.data, 0)
+
+    # With units should be exactly the same
+    ndd1 = NDDataArithmetic(10, unit='m', uncertainty=RelativeUncertainty(0.1))
+    ndd2 = NDDataArithmetic(20, unit='m', uncertainty=RelativeUncertainty(0.1))
+    ndd_res = ndd1.add(ndd2)
+    np.testing.assert_allclose(ndd_res.uncertainty.data, np.sqrt(1**2+2**2)/30)
+
+    ndd_res = ndd1.subtract(ndd2)
+    np.testing.assert_allclose(ndd_res.uncertainty.data,
+                               np.sqrt(1**2+2**2)/-10)
+
+    ndd_res = ndd1.multiply(ndd2)
+    np.testing.assert_allclose(ndd_res.uncertainty.data, np.sqrt(0.02))
+
+    ndd_res = ndd1.divide(ndd2)
+    np.testing.assert_allclose(ndd_res.uncertainty.data, np.sqrt(0.02))
+
+
 def test_var_uncertainty_correctness():
 
     # Without units
