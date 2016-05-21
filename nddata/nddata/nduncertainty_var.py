@@ -375,4 +375,3 @@ class VarianceUncertainty(NDUncertaintyGaussian):
             result = dBlnAA_B + BdAA_Bm1
 
         return result
-

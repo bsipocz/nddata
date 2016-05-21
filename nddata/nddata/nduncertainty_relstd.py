@@ -7,6 +7,7 @@ import numpy as np
 
 import astropy.units as u
 
+from .nduncertainty_stddev import StdDevUncertainty
 from .meta import NDUncertaintyGaussian
 
 __all__ = ['RelativeUncertainty']
@@ -173,27 +174,61 @@ class RelativeUncertainty(NDUncertaintyGaussian):
             raise ValueError('unsupported operation')
 
         # Other uncertainties check if they can drop the unit for relative
-        # uncertainty this must be done ... maybe.
-        # Because we can only accept dimensionless relative uncertainties.
-        if isinstance(result, u.Quantity):
-            if result.unit != u.dimensionless_unscaled:
-                # It's a Quantity with a unit. Convert it to dimensionless so
-                # it will be accepted as result.
-                result = result.to(u.dimensionless_unscaled).value
+        # uncertainty there is no need for it. It's checked during unit setting
+        # if the unit is allowed.
 
         return self.__class__(result, copy=False)
 
     def _propagate_add(self, other_uncert, result_data, correlation):
-        pass
+        # TODO: I found no satisfactory way to rewrite the formula that would
+        # not convert it manually to standard deviations. So instead of doing
+        # that convert them explicitly and let the standard deviation figure
+        # out what the result is. The steps are the same.
+        dA = StdDevUncertainty.from_uncertainty(self)
+        dB = StdDevUncertainty.from_uncertainty(other_uncert)
+        res = dA._propagate_add(dB, result_data, correlation)
+        return res / result_data
 
     def _propagate_subtract(self, other_uncert, result_data, correlation):
-        pass
+        # TODO: See add.
+        dA = StdDevUncertainty.from_uncertainty(self)
+        dB = StdDevUncertainty.from_uncertainty(other_uncert)
+        res = dA._propagate_subtract(dB, result_data, correlation)
+        return res / result_data
 
     def _propagate_multiply(self, other_uncert, result_data, correlation):
-        pass
+
+        # Formula: sigma = sqrt(dA**2+dB**2+2*cor*dA*dB)
+
+        # Any uncertainty or parent with None is considered 0
+        dA = 0 if self.data is None else self.data
+        dB = 0 if other_uncert.data is None else other_uncert.data
+
+        if isinstance(correlation, np.ndarray) or correlation != 0:
+            result = np.sqrt(dA**2 + dB**2 + 2*correlation*dA*dB)
+        else:
+            result = np.hypot(dA, dB)
+
+        return result
 
     def _propagate_divide(self, other_uncert, result_data, correlation):
-        pass
+
+        # Formula: sigma = sqrt(dA**2+dB**2-2*cor*dA*dB)
+
+        # Any uncertainty or parent with None is considered 0
+        dA = 0 if self.data is None else self.data
+        dB = 0 if other_uncert.data is None else other_uncert.data
+
+        if isinstance(correlation, np.ndarray) or correlation != 0:
+            result = np.sqrt(dA**2 + dB**2 - 2*correlation*dA*dB)
+        else:
+            result = np.hypot(dA, dB)
+
+        return result
 
     def _propagate_power(self, other_uncert, result_data, correlation):
-        pass
+        # TODO: See add.
+        dA = StdDevUncertainty.from_uncertainty(self)
+        dB = StdDevUncertainty.from_uncertainty(other_uncert)
+        res = dA._propagate_power(dB, result_data, correlation)
+        return res / result_data
