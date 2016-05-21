@@ -56,10 +56,6 @@ matrix:
           env: ASTROPY_VERSION=development
         - python: 3.5
           env: ASTROPY_VERSION=development
-        - python: 2.7
-          env: ASTROPY_VERSION=lts
-        - python: 3.5
-          env: ASTROPY_VERSION=lts
 
         # Try older numpy versions
         - python: 2.7
@@ -78,6 +74,12 @@ matrix:
         # Try numpy pre-release
         - python: 3.5
           env: NUMPY_VERSION=prerelease
+
+        # Try the LTS astropy versions
+        - python: 2.7
+          env: ASTROPY_VERSION=lts
+        - python: 3.5
+          env: ASTROPY_VERSION=lts
 
         # Do a PEP8 test
         # - python: 2.7
