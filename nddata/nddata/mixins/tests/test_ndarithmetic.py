@@ -11,6 +11,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from ...nduncertainty_stddev import StdDevUncertainty
 from ...nduncertainty_unknown import UnknownUncertainty
 from ...nduncertainty_var import VarianceUncertainty
+from ...nduncertainty_relstd import RelativeUncertainty
 from ...exceptions import IncompatibleUncertaintiesException
 
 from ... import NDData
@@ -466,6 +467,32 @@ def test_arithmetics_stddevuncertainty_basic_with_correlation_array():
     nd1.add(nd2, uncertainty_correlation=cor)
 
 
+# Some operations are not possible
+def test_uncertainty_impossible_operation():
+    # Just as example, replace it as soon as it is supported :-D
+    impossible_operation = np.log
+
+    ndd2 = NDDataArithmetic([1, 2, 3], StdDevUncertainty(None))
+    uncert1 = StdDevUncertainty([1, 2, 3])
+    # TODO: One shouldn't call propagate directly but for now I have no
+    # unsupported arithmetic operations that cannot be propagated. So better
+    # to do this than don't test it.
+    with pytest.raises(ValueError):
+        # Parameter 3 and 4 are just stubs... they shouldn't affect the
+        # behaviour in THIS case.
+        uncert1.propagate(impossible_operation, ndd2, np.array([1, 2, 3]), 0)
+
+    ndd2 = NDDataArithmetic([1, 2, 3], VarianceUncertainty(None))
+    uncert1 = VarianceUncertainty([1, 2, 3])
+    with pytest.raises(ValueError):
+        uncert1.propagate(impossible_operation, ndd2, np.array([1, 2, 3]), 0)
+
+    ndd2 = NDDataArithmetic([1, 2, 3], RelativeUncertainty(None))
+    uncert1 = RelativeUncertainty([1, 2, 3])
+    with pytest.raises(ValueError):
+        uncert1.propagate(impossible_operation, ndd2, np.array([1, 2, 3]), 0)
+
+
 # Covering:
 # That propagate throws an exception when correlation is given but the
 # uncertainty does not support correlation.
@@ -477,6 +504,11 @@ def test_arithmetics_with_correlation_unsupported():
             return False
 
     class VarianceUncertaintyUncorrelated(VarianceUncertainty):
+        @property
+        def supports_correlated(self):
+            return False
+
+    class RelativeUncertaintyUncorrelated(RelativeUncertainty):
         @property
         def supports_correlated(self):
             return False
@@ -496,6 +528,14 @@ def test_arithmetics_with_correlation_unsupported():
 
     unc1 = VarianceUncertaintyUncorrelated(uncert1)
     unc2 = VarianceUncertaintyUncorrelated(uncert2)
+    nd1 = NDDataArithmetic(data1, uncertainty=unc1)
+    nd2 = NDDataArithmetic(data2, uncertainty=unc2)
+
+    with pytest.raises(ValueError):
+        nd1.add(nd2, uncertainty_correlation=cor)
+
+    unc1 = RelativeUncertaintyUncorrelated(uncert1)
+    unc2 = RelativeUncertaintyUncorrelated(uncert2)
     nd1 = NDDataArithmetic(data1, uncertainty=unc1)
     nd2 = NDDataArithmetic(data2, uncertainty=unc2)
 
@@ -910,25 +950,6 @@ def test_arithmetics_unknown_uncertainties():
 
     ndd4 = ndd1.add(ndd2, propagate_uncertainties=None)
     assert ndd4.uncertainty is None
-
-
-def test_uncertainty_impossible_operation():
-    impossible_operation = np.log
-
-    ndd2 = NDDataArithmetic([1, 2, 3], StdDevUncertainty(None))
-    uncert1 = StdDevUncertainty([1, 2, 3])
-    # TODO: One shouldn't call propagate directly but for now I have no
-    # unsupported arithmetic operations that cannot be propagated. So better
-    # to do this than don't test it.
-    with pytest.raises(ValueError):
-        # Parameter 3 and 4 are just stubs... they shouldn't affect the
-        # behaviour in THIS case.
-        uncert1.propagate(impossible_operation, ndd2, np.array([1, 2, 3]), 0)
-
-    ndd2 = NDDataArithmetic([1, 2, 3], VarianceUncertainty(None))
-    uncert1 = VarianceUncertainty([1, 2, 3])
-    with pytest.raises(ValueError):
-        uncert1.propagate(impossible_operation, ndd2, np.array([1, 2, 3]), 0)
 
 
 # Power operation.

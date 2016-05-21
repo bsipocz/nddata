@@ -82,8 +82,11 @@ class RelativeUncertainty(NDUncertaintyGaussian):
     def effective_unit(self):
         """(`~astropy.units.Unit`) relative uncertainties have no unit.
         """
-        if self.unit is not None:
-            raise ValueError('relative uncertainties can\'t have units.')
+        # Just return None, I thought it might be safer to check if self.unit
+        # is None but if someone subclasses RelativeUncertainty and let it have
+        # a Unit - so be it.
+        # if self.unit is not None:
+        #     raise ValueError('relative uncertainties can\'t have units.')
         return None
 
     @property
