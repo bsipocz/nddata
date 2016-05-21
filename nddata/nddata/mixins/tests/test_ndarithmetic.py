@@ -1364,3 +1364,27 @@ def test_var_compare_with_std(op, corr, unit_uncert1, unit_uncert2):
     var_from_var = ndd_var.uncertainty
     var_from_std = VarianceUncertainty(ndd_std.uncertainty)
     np.testing.assert_almost_equal(var_from_var.data, var_from_std.data)
+
+
+@pytest.mark.parametrize(('corr'), [-1, 0.2, 0, 1])
+@pytest.mark.parametrize(('unit_base'), [u.m/u.cm, '', u.m/u.m])
+@pytest.mark.parametrize(('unit_base_uncert'), [u.m/u.cm, '', u.m/u.m])
+@pytest.mark.parametrize(('unit_exp'), [u.m/u.m])
+@pytest.mark.parametrize(('unit_exp_uncert'), [u.cm/u.m])
+def test_var_compare_with_std_power(corr, unit_base, unit_base_uncert,
+                                    unit_exp, unit_exp_uncert):
+
+    uncert1 = VarianceUncertainty(2, unit=unit_base_uncert)
+    uncert2 = VarianceUncertainty(4, unit=unit_exp_uncert)
+    ndd1 = NDDataArithmetic(3.5, unit=unit_base, uncertainty=uncert1)
+    ndd2 = NDDataArithmetic(2.7, unit=unit_exp, uncertainty=uncert2)
+
+    # control group
+    ndd3 = NDDataArithmetic(ndd1, uncertainty=StdDevUncertainty(uncert1))
+    ndd4 = NDDataArithmetic(ndd2, uncertainty=StdDevUncertainty(uncert2))
+
+    ndd_var = ndd1.power(ndd2, uncertainty_correlation=corr)
+    ndd_std = ndd3.power(ndd4, uncertainty_correlation=corr)
+    var_from_var = ndd_var.uncertainty
+    var_from_std = VarianceUncertainty(ndd_std.uncertainty)
+    np.testing.assert_allclose(var_from_var.data, var_from_std.data)

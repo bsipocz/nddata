@@ -301,4 +301,78 @@ class VarianceUncertainty(NDUncertaintyGaussian):
         return result
 
     def _propagate_power(self, other_uncert, result_data, correlation):
-        pass
+        # Formula:
+        # sigma = dA(B*A**(B-1))**2 + dB*(ln(A)A**B)**2 +
+        #              2ln(A)B*A**(2B-1)*rho*sqrt(dAdB)
+
+        # Any uncertainty or parent with None is considered 0
+        A = (0 if self.parent_nddata.data is None
+             else self.parent_nddata.data)
+        dA = 0 if self.data is None else self.data
+        B = (0 if other_uncert.parent_nddata.data is None
+             else other_uncert.parent_nddata.data)
+        dB = np.array(0) if other_uncert.data is None else other_uncert.data
+
+        # dB is a numpy array so we can find out if something is a
+        # scalar by checking how many elements it contains.
+        # exponent_scalar = B.size == 1
+        exponent_uncertainty = dB.size > 1 or dB != 0
+
+        # Then apply the units if necessary.
+
+        # Power is a bit special with units. But it boils down to:
+        # 1) Exponent must be dimensionless or convertible to dimensionless
+        # 2) Base can only hava a unit if the exponent is a scalar and has no
+        #    uncertainty.
+
+        # I also calculate the result of np.log(A) already in here because in
+        # case the exponent has no uncertainty - it can be immediatly set to 0.
+        if self.parent_nddata.unit is not None:
+            # See 2)
+            # A must have a unit, so we do not lose the connection to the unit
+            # of the result of the parent. Cost me a lot of time finding THAT
+            # out ... the hard way ;-)
+            A = A * self.parent_nddata.unit
+            if exponent_uncertainty:
+                A = A.to(u.dimensionless_unscaled)
+                lnA = np.log(A)
+            else:
+                # Here we again convert the unit of A so that the final result
+                # will have the expected unit. This is not necessary in the
+                # "if" part!
+                if self.parent_nddata.unit ** 2 != self.effective_unit:
+                    A = A.to(self.effective_unit ** (1/2))
+                lnA = 0
+        else:
+            lnA = np.log(A)
+
+        if self.effective_unit is not None:
+            # see 2)
+            if exponent_uncertainty:
+                dA = self.effective_unit.to(u.dimensionless_unscaled, dA)
+            else:
+                dA = dA * self.effective_unit
+
+        if other_uncert.parent_nddata.unit is not None:
+            # see 1)
+            B = other_uncert.parent_nddata.unit.to(u.dimensionless_unscaled, B)
+
+        if other_uncert.effective_unit is not None:
+            # see 1)
+            dB = other_uncert.effective_unit.to(u.dimensionless_unscaled, dB)
+
+        # Calculate some intermediate values so they will not computed twice
+        # in case correlation is given.
+        dBlnAA_B = dB * (A ** B * lnA) ** 2
+
+        BdAA_Bm1 = dA * (B * A ** (B - 1)) ** 2
+
+        # Calculate the result with or without correlation
+        if isinstance(correlation, np.ndarray) or correlation != 0:
+            result = (dBlnAA_B + BdAA_Bm1 + 2 * correlation *
+                      np.sqrt(dBlnAA_B * BdAA_Bm1))
+        else:
+            result = dBlnAA_B + BdAA_Bm1
+
+        return result
+
