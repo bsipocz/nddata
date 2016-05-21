@@ -27,12 +27,6 @@ astropy_1_2 = LooseVersion(astropy.__version__) >= LooseVersion('1.2')
 NDDataArithmetic = NDData
 
 
-class StdDevUncertaintyUncorrelated(StdDevUncertainty):
-    @property
-    def supports_correlated(self):
-        return False
-
-
 # Test with Data covers:
 # scalars, 1D, 2D and 3D
 # broadcasting between them
@@ -476,6 +470,17 @@ def test_arithmetics_stddevuncertainty_basic_with_correlation_array():
 # That propagate throws an exception when correlation is given but the
 # uncertainty does not support correlation.
 def test_arithmetics_with_correlation_unsupported():
+
+    class StdDevUncertaintyUncorrelated(StdDevUncertainty):
+        @property
+        def supports_correlated(self):
+            return False
+
+    class VarianceUncertaintyUncorrelated(VarianceUncertainty):
+        @property
+        def supports_correlated(self):
+            return False
+
     data1 = np.array([1, 2, 3])
     data2 = np.array([1, 1, 1])
     uncert1 = np.array([1, 1, 1])
@@ -485,6 +490,14 @@ def test_arithmetics_with_correlation_unsupported():
                            uncertainty=StdDevUncertaintyUncorrelated(uncert1))
     nd2 = NDDataArithmetic(data2,
                            uncertainty=StdDevUncertaintyUncorrelated(uncert2))
+
+    with pytest.raises(ValueError):
+        nd1.add(nd2, uncertainty_correlation=cor)
+
+    unc1 = VarianceUncertaintyUncorrelated(uncert1)
+    unc2 = VarianceUncertaintyUncorrelated(uncert2)
+    nd1 = NDDataArithmetic(data1, uncertainty=unc1)
+    nd2 = NDDataArithmetic(data2, uncertainty=unc2)
 
     with pytest.raises(ValueError):
         nd1.add(nd2, uncertainty_correlation=cor)
@@ -1367,15 +1380,20 @@ def test_var_compare_with_std(op, corr, unit_uncert1, unit_uncert2):
 
 
 @pytest.mark.parametrize(('corr'), [-1, 0.2, 0, 1])
-@pytest.mark.parametrize(('unit_base'), [u.m/u.cm, '', u.m/u.m])
+@pytest.mark.parametrize(('unit_base'), [None, u.m/u.cm, '', u.m/u.m])
 @pytest.mark.parametrize(('unit_base_uncert'), [u.m/u.cm, '', u.m/u.m])
 @pytest.mark.parametrize(('unit_exp'), [u.m/u.m])
 @pytest.mark.parametrize(('unit_exp_uncert'), [u.cm/u.m])
+@pytest.mark.parametrize(('exponent_has_uncert'), [False, True])
 def test_var_compare_with_std_power(corr, unit_base, unit_base_uncert,
-                                    unit_exp, unit_exp_uncert):
+                                    unit_exp, unit_exp_uncert,
+                                    exponent_has_uncert):
 
     uncert1 = VarianceUncertainty(2, unit=unit_base_uncert)
-    uncert2 = VarianceUncertainty(4, unit=unit_exp_uncert)
+    if exponent_has_uncert:
+        uncert2 = VarianceUncertainty(4, unit=unit_exp_uncert)
+    else:
+        uncert2 = None
     ndd1 = NDDataArithmetic(3.5, unit=unit_base, uncertainty=uncert1)
     ndd2 = NDDataArithmetic(2.7, unit=unit_exp, uncertainty=uncert2)
 
