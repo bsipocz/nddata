@@ -1329,6 +1329,17 @@ def test_var_uncertainty_correctness():
     ndd_res = ndd1.divide(ndd2)
     assert ndd_res.uncertainty.data == (1/3**2 + 2*2**2/3**4)
 
+    ndd_res = ndd1.power(ndd2)
+    ref_val = 1*(2**3*3/2)**2 + 2*(2**3*np.log(2))**2
+    np.testing.assert_almost_equal(ndd_res.uncertainty.data, ref_val)
+
+    # Correlation test for power here because power is not possible with this
+    # combination of units I chose later.
+    ndd_res = ndd1.power(ndd2, uncertainty_correlation=1)
+    ref_val = (1*(2**3*3/2)**2 + 2*(2**3*np.log(2))**2 + 2 *
+               np.sqrt(1*(2**3*3/2)**2 * 2*(2**3*np.log(2))**2))
+    np.testing.assert_almost_equal(ndd_res.uncertainty.data, ref_val)
+
     # With correlation and parent_unit
     ndd1 = NDDataArithmetic(2, unit='m', uncertainty=VarianceUncertainty(1))
     ndd2 = NDDataArithmetic(3, unit='m', uncertainty=VarianceUncertainty(2))
@@ -1379,18 +1390,25 @@ def test_var_compare_with_std(op, corr, unit_uncert1, unit_uncert2):
 
 # Unfortunatly #4770 of astropy is probably not backported so will only
 # be avaiable for astropy 1.2. So this test is marked as skipped.
-@pytest.mark.xfail(not astropy_1_2,
-                   reason="dimensionless_scaled base or exponent are only "
-                          "allowed from 1.2 on.")
+#@pytest.mark.xfail(not astropy_1_2,
+#                   reason="dimensionless_scaled base or exponent are only "
+#                         "allowed from 1.2 on.")
 @pytest.mark.parametrize(('corr'), [-0.3, 0])
-@pytest.mark.parametrize(('unit_base'), [None, u.m/u.cm, ''])
-@pytest.mark.parametrize(('unit_base_uncert'), [None, u.m/u.cm, ''])
-@pytest.mark.parametrize(('unit_exp'), [None, u.m/u.m])
+@pytest.mark.parametrize(('unit_base'), [None, u.m/u.cm])
+@pytest.mark.parametrize(('unit_base_uncert'), [None, ''])
+@pytest.mark.parametrize(('unit_exp'), [None, u.cm/u.mm])
 @pytest.mark.parametrize(('unit_exp_uncert'), [None, u.cm/u.m])
 @pytest.mark.parametrize(('exponent_has_uncert'), [False, True])
 def test_var_compare_with_std_power(corr, unit_base, unit_base_uncert,
                                     unit_exp, unit_exp_uncert,
                                     exponent_has_uncert):
+
+    # some cases only work for astropy >= 1.2. xfail them otherwise
+    if ((unit_base == u.m/u.cm) and
+            unit_exp is None and
+            not exponent_has_uncert and
+            not astropy_1_2):
+        pytest.xfail("failing configuration (but should work)")
 
     uncert1 = VarianceUncertainty(2, unit=unit_base_uncert)
     if exponent_has_uncert:
