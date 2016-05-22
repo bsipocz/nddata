@@ -11,6 +11,7 @@ import astropy.units as u
 from ..nddata_base import NDDataBase
 from ..nddata import NDData
 from ..nduncertainty_stddev import StdDevUncertainty
+from ..nduncertainty_unknown import UnknownUncertainty
 
 
 def create_wcs(disturb=False):
@@ -98,6 +99,11 @@ def test_not_identical_unit():
     assert not ndd1.is_identical(ndd2)
     assert ndd1.is_identical(ndd2, strict=False)
 
+    ndd1 = NDDataBase([1], unit='m')
+    ndd2 = NDDataBase([1], unit='cm')
+    assert not ndd1.is_identical(ndd2)
+    assert not ndd1.is_identical(ndd2, strict=False)
+
 
 def test_not_identical_mask():
     # Case 1: One mask is None, the other isn't
@@ -119,6 +125,10 @@ def test_not_identical_mask():
 def test_not_identical_flags():
     # Case 1: One flags is None, the other isn't
     ndd1 = NDDataBase(1, flags=1)
+    ndd2 = NDDataBase(1)
+    assert not ndd1.is_identical(ndd2)
+
+    ndd1 = NDDataBase(1, flags=np.array(1))
     ndd2 = NDDataBase(1)
     assert not ndd1.is_identical(ndd2)
 
@@ -185,12 +195,29 @@ def test_not_identical_uncertainty():
     ndd2 = NDDataBase(1, uncertainty=10)
     assert ndd1.is_identical(ndd2)
 
+    ndd1 = NDDataBase(1, uncertainty=10*u.m)
+    ndd2 = NDDataBase(1, uncertainty=10*u.cm)
+    assert not ndd1.is_identical(ndd2)
+
+    ndd1 = NDDataBase(1, uncertainty=2)
+    ndd2 = NDDataBase(1, uncertainty=10)
+    assert not ndd1.is_identical(ndd2)
+
     # Test directly two uncertainties for equality - identity test doesn't work
     # when setting it on NDData because we explicitly made sure that it creates
     # a new class when the uncertainty already has a parent.
     uncert1 = StdDevUncertainty(10)
     uncert2 = uncert1
     assert uncert1.is_identical(uncert2)
+
+    # One is None, the other isn't
+    ndd1 = NDDataBase(1, uncertainty=UnknownUncertainty(None))
+    ndd2 = NDDataBase(1, uncertainty=np.array([102]))
+    assert not ndd1.is_identical(ndd2)
+
+    ndd1 = NDDataBase(1, uncertainty=None)
+    ndd2 = NDDataBase(1, uncertainty=np.array([102]))
+    assert not ndd1.is_identical(ndd2)
 
     # Case 2: both uncertainties are np.ndarray but differ in shape
     ndd1 = NDDataBase(1, uncertainty=np.array([102, 15]))
@@ -215,3 +242,23 @@ def test_not_identical_uncertainty():
     assert not ndd1.is_identical(ndd2)
     assert ndd1.is_identical(ndd2, strict=False)
     assert ndd2.is_identical(ndd1, strict=False)
+
+    ndd1 = NDDataBase(1, uncertainty=np.array(10))
+    ndd2 = NDDataBase(1, uncertainty=StdDevUncertainty(10, unit='cm'))
+    assert not ndd1.is_identical(ndd2)
+    assert not ndd1.is_identical(ndd2, strict=False)
+
+
+def test_not_identical_uncertainty_2():
+    # Now we need to test what happens in the theoretical case that the
+    # uncertainty is not a NDUncertainty. So we need something that passes
+    # without getting converted to one:
+    class Fake(object):
+        uncertainty_type = 'fake'
+
+        def __eq__(self, other):
+            return False
+
+    ndd1 = NDDataBase(10, uncertainty=Fake())
+    ndd2 = NDDataBase(10, uncertainty=Fake())
+    assert not ndd1.is_identical(ndd2)

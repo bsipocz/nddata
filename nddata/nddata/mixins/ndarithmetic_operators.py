@@ -16,6 +16,10 @@ class NDArithmeticPyOpsMixin(NDArithmeticMixin):
             Python operators like ``+``, ``-``, ...
 
     .. warning::
+        If you are using numpy 1.9 or earlier you should avoid any calculations
+        where the first operand is a `numpy.ma.MaskedArray`.
+
+    .. warning::
         You cannot use this mixin together with `~nddata.nddata.NDData`. You
         need to create a subclass of `~nddata.nddata.NDDataBase`!
 

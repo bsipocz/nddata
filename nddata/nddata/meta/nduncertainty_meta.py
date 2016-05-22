@@ -213,7 +213,7 @@ class NDUncertainty(object):
         # Wrap everything in a try/except so AttributeErrors can be catched
         try:
             if self.data is None or other.data is None:
-                if self.data != other.data:
+                if not (self.data is None and other.data is None):
                     return False
             else:
                 if strict:

@@ -412,7 +412,7 @@ class NDDataBase(NDDataMeta):
         try:
             # If any of both data is None compare them in a direct manner
             if self.data is None or other.data is None:
-                if self.data != other.data:
+                if not (self.data is None and other.data is None):
                     return False
             else:
                 # numpy arrays, make sure their shape is identical
