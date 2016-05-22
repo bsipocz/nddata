@@ -197,6 +197,39 @@ class NDUncertainty(object):
         # data is a NDUncertainty instance just call it.
         return self.__class__(self, copy=True)
 
+    def is_identical(self, other):
+        """Compares if two uncertainties are identical.
+
+        See also :meth:`nddata.nddata.NDDataBase.is_identical` for more
+        information.
+        """
+        if self is other:
+            return True
+
+        if self.__class__ is not other.__class__:
+            return False
+
+        # Wrap everything in a try/except so AttributeErrors can be catched
+        try:
+            # The uncertainty has 2 values we would like to compare: data and
+            # unit. The data can be a numpy.ndarray so special case this:
+            if isinstance(self.data, np.ndarray):
+                if self.data.shape != other.data.shape:
+                    return False
+                if np.any(self.data != other.data):
+                    return False
+            else:
+                if self.data != other.data:
+                    return False
+
+            if self.unit != other.unit:
+                return False
+        except AttributeError:
+            return False
+
+        #We made it, it's identical :-)
+        return True
+
     # Representation and casting to string
     def __repr__(self):
         prefix = self.__class__.__name__ + '('
