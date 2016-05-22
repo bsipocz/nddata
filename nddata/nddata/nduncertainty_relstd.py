@@ -107,6 +107,12 @@ class RelativeUncertainty(NDUncertaintyGaussian):
         """
         return 'rel_std'
 
+    def convert_unit_to(self, unit, equivalencies=[]):
+        """Relative uncertainties should have no unit so this will return a \
+                copy.
+        """
+        return self.copy()
+
     def propagate(self, operation, other_nddata, result_data, correlation):
         """Calculate the resulting uncertainty given an operation on the data.
 
