@@ -153,3 +153,21 @@ def test_arithmetic_boring_ops():
 
     ndd2.data = np.abs(ndd2.data)
     compare_ndd_identical(ndd2, abs(ndd))
+
+
+def test_arithmetic_boring_ops_copy():
+    ndd = create_ndd()
+    ndd2 = -ndd
+    ndd3 = +ndd
+    ndd4 = abs(ndd)
+
+    orig = ndd.data[0]
+    ndd.data[0] = orig * 10
+    assert ndd2.data[0] == - orig
+    assert ndd3.data[0] == orig
+    assert ndd4.data[0] == abs(orig)
+
+    ndd.meta['a'] = 10
+    assert 'a' not in ndd2.meta
+    assert 'a' not in ndd3.meta
+    assert 'a' not in ndd4.meta

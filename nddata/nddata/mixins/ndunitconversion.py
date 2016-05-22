@@ -11,15 +11,16 @@ __all__ = ['NDUnitConvMixin']
 
 
 class NDUnitConvMixin(object):
-    """Mixin class to add unit conversions to an `~.NDDataBase` object.
+    """Mixin class to add unit conversions to an `~nddata.nddata.NDDataBase` \
+            object.
 
     The :meth:`convert_unit_to` will convert the appropriate attributes and
     return a new class containing them and the unaffected attributes as copy.
     """
 
     def convert_unit_to(self, unit, equivalencies=[]):
-        """Returns a new `NDDataBase` object whose values have been converted
-        to a new unit.
+        """Returns a new `~nddata.nddata.NDDataBase` object whose values have \
+            been converted to a new unit.
 
         Parameters
         ----------
@@ -33,13 +34,31 @@ class NDUnitConvMixin(object):
         Returns
         -------
         result : `~nddata.nddata.NDDataBase`
-            The converted dataset. The from the conversion unaffected
-            attributes like ``meta`` and ``mask`` are copied.
+            The converted dataset. The attributes of the result are copies of
+            the initial attributes, even for unchanged attributes like
+            ``meta``.
 
         Raises
         ------
         UnitConversionError
             If units are inconsistent.
+
+        TypeError
+            If the NDData has no unit.
+
+        Examples
+        --------
+        This Mixin is already implemented in `~nddata.nddata.NDData`, so to
+        use it just create an instance with a unit::
+
+            >>> from nddata.nddata import NDData
+            >>> ndd = NDData(100, unit='cm')
+            >>> ndd.convert_unit_to('m')
+            NDData(1.0)
+
+        For further information about equivalencies checkout the `astropy
+        documentation
+        <http://docs.astropy.org/en/stable/units/equivalencies.html>`_.
         """
         # First check if the instance has a unit. It would fail if we tried to
         # convert None to anything.
@@ -85,9 +104,10 @@ class NDUnitConvMixin(object):
     def _convert_unit_uncertainty(self, unit, equivalencies):
         if self.uncertainty is None:
             return None
-        elif hasattr(self.uncertainty, 'convert_unit_to'):
+        try:
             return self.uncertainty.convert_unit_to(unit=unit,
                                                     equivalencies=equivalencies)
-        else:
-            # just return it, they don't support this API. :-)
+        except AttributeError:
+            # Either it has no "convert_unit_to" method OR it is an Unknown-
+            # uncertainty without unit.
             return deepcopy(self.uncertainty)

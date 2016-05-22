@@ -92,16 +92,14 @@ class NDArithmeticPyOpsMixin(NDArithmeticMixin):
         return self.power(other, self)
 
     def __neg__(self):
-        res = self.copy()
-        # TODO: This will copy the data twice...
-        res.data = res.data * -1
+        res = self._copy_without_data()
+        res.data = self.data * -1
         return res
 
     def __pos__(self):
         return self.copy()
 
     def __abs__(self):
-        res = self.copy()
-        # TODO: This will copy the data twice...
-        res.data = np.abs(res.data)
+        res = self._copy_without_data()
+        res.data = np.abs(self.data)
         return res
