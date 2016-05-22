@@ -13,8 +13,9 @@ The ``nddata`` package provides a uniform interface to N-dimensional datasets
 + `~nddata.nddata.NDDataBase`: a basic container for `numpy.ndarray`-like data.
 + `~nddata.nddata.NDData`: like NDDataBase but with additional functionality
   like an reading/writing, simple arithmetic operations and slicing.
-+ `~nddata.nddata.StdDevUncertainty` a class that can store and propagate
-  uncertainties for a NDData object.
++ `~nddata.nddata.StdDevUncertainty`, `~nddata.nddata.VarianceUncertainty`,
+  `~nddata.nddata.RelativeUncertainty` and `~nddata.nddata.UnknownUncertainty`:
+  classes that can store and propagate uncertainties for a NDData object.
 + :ref:`nddata_utils`: General utility functions for operations on these
   classes, including a decorator to facilitate writing functions for such
   classes.

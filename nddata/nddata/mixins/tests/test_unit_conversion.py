@@ -27,6 +27,7 @@ def test_data():
     ndd2 = ndd.convert_unit_to('m')
     assert ndd2.data == 1
     assert ndd2.unit == u.m
+    assert ndd.is_identical(ndd2, strict=False)
 
 
 def test_data_with_attributes():
@@ -50,6 +51,7 @@ def test_data_with_attributes():
     assert ndd.wcs == ndd2.wcs
     assert ndd.flags == ndd2.flags
     assert ndd2.unit == u.mm
+    assert ndd.is_identical(ndd2, strict=False)
 
 
 def test_copies():
@@ -58,6 +60,8 @@ def test_copies():
     ndd = NDData(np.arange(5), unit='m')
     ndd2 = ndd.convert_unit_to('m')
     ndd3 = ndd.convert_unit_to(u.m)
+    assert ndd.is_identical(ndd2, strict=False)
+    assert ndd.is_identical(ndd3, strict=False)
 
     ndd.data[0] = 10
     assert ndd2.data[0] == 0
@@ -72,6 +76,7 @@ def test_uncertainties_rel():
     ndd2 = ndd.convert_unit_to('cm')
     np.testing.assert_array_equal(ndd.uncertainty.data,
                                   ndd2.uncertainty.data)
+    assert ndd.is_identical(ndd2, strict=False)
     # make sure it's a copy!
     ndd.uncertainty.data[0] = 50
     assert ndd2.uncertainty.data[0] == 0.2
@@ -86,6 +91,7 @@ def test_uncertainties_var():
     np.testing.assert_array_equal(ndd.uncertainty.data,
                                   ndd2.uncertainty.data)
     assert ndd2.uncertainty.effective_unit == u.cm * u.cm
+    assert ndd.is_identical(ndd2, strict=False)
     # make sure it's a copy!
     ndd.uncertainty.data[0] = 50
     assert ndd2.uncertainty.data[0] == 100
@@ -97,6 +103,7 @@ def test_uncertainties_var():
     np.testing.assert_array_equal(ndd.uncertainty.data * 100 * 100,
                                   ndd2.uncertainty.data)
     assert ndd2.uncertainty.effective_unit == u.cm * u.cm
+    assert ndd.is_identical(ndd2, strict=False)
 
     # same unit (implicit)
     ndd = NDData([100], unit='m',
@@ -105,6 +112,7 @@ def test_uncertainties_var():
     np.testing.assert_array_equal(ndd.uncertainty.data * 100 * 100,
                                   ndd2.uncertainty.data)
     assert ndd2.uncertainty.effective_unit == u.cm * u.cm
+    assert ndd.is_identical(ndd2, strict=False)
 
 
 def test_uncertainties_stddev():
@@ -115,6 +123,7 @@ def test_uncertainties_stddev():
     np.testing.assert_array_equal(ndd.uncertainty.data,
                                   ndd2.uncertainty.data)
     assert ndd2.uncertainty.effective_unit == u.cm
+    assert ndd.is_identical(ndd2, strict=False)
     # make sure it's a copy!
     ndd.uncertainty.data[0] = 50
     assert ndd2.uncertainty.data[0] == 100
@@ -126,6 +135,7 @@ def test_uncertainties_stddev():
     np.testing.assert_array_equal(ndd.uncertainty.data * 100,
                                   ndd2.uncertainty.data)
     assert ndd2.uncertainty.effective_unit == u.cm
+    assert ndd.is_identical(ndd2, strict=False)
 
     # same unit (implicit)
     ndd = NDData([100], unit='m',
@@ -134,6 +144,7 @@ def test_uncertainties_stddev():
     np.testing.assert_array_equal(ndd.uncertainty.data * 100,
                                   ndd2.uncertainty.data)
     assert ndd2.uncertainty.effective_unit == u.cm
+    assert ndd.is_identical(ndd2, strict=False)
 
 
 def test_uncertainties_unknown():
@@ -145,6 +156,7 @@ def test_uncertainties_unknown():
     ndd2 = ndd.convert_unit_to('cm')
     np.testing.assert_array_equal(ndd.uncertainty.data,
                                   ndd2.uncertainty.data)
+    assert ndd.is_identical(ndd2, strict=False)
     # make sure it's a copy!
     ndd.uncertainty.data[0] = 50
     assert ndd2.uncertainty.data[0] == 100
@@ -156,6 +168,7 @@ def test_uncertainties_unknown():
     ndd2 = ndd.convert_unit_to('cm')
     np.testing.assert_array_equal(ndd.uncertainty.data * 100,
                                   ndd2.uncertainty.data)
+    assert ndd.is_identical(ndd2, strict=False)
 
     # THIS case differs from stddev because we don't know what uncertainty
     # is set, so we don't know how the unit relates to the parent, we expect
@@ -165,6 +178,7 @@ def test_uncertainties_unknown():
     ndd2 = ndd.convert_unit_to('cm')
     np.testing.assert_array_equal(ndd.uncertainty.data,
                                   ndd2.uncertainty.data)
+    assert ndd.is_identical(ndd2, strict=False)
     # make sure it's a copy!
     ndd.uncertainty.data[0] = 50
     assert ndd2.uncertainty.data[0] == 100

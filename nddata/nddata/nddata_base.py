@@ -8,7 +8,8 @@ from copy import deepcopy
 import numpy as np
 
 from astropy import log
-from astropy.units import Quantity
+import astropy.units as u
+from astropy.wcs import WCS
 
 from .meta.nddata_meta import NDDataMeta
 from ..utils import descriptors
@@ -171,7 +172,7 @@ class NDDataBase(NDDataMeta):
 
             # It is intentional that here is no "elif" because we might have
             # a masked Quantity here.
-            if isinstance(data, Quantity):
+            if isinstance(data, u.Quantity):
                 # It is an astropy Quantity, we can use the unit and the value.
                 # Maybe it would be better to check for "value" and "unit"
                 # attribute...
@@ -339,6 +340,158 @@ class NDDataBase(NDDataMeta):
         return self.__class__(None, unit=self.unit, mask=self.mask,
                               flags=self.flags, uncertainty=self.uncertainty,
                               meta=self.meta, wcs=self.wcs, copy=True)
+
+    def is_identical(self, other, strict=True):
+        """Checks if two `NDDataBase`-like objects are identical.
+
+        Parameters
+        ----------
+        other : `NDDataBase`-like
+            The other object to compare it with.
+
+        strict : `bool`, optional
+            Should the comparison be strict or relaxed. If ``True`` the data
+            and unit are compared seperatly and the class of both NDData and
+            meta are compared. Setting strict to ``False`` will compare the
+            unit and data together and don't compare the classes.
+            Default is ``True``.
+
+        Returns
+        -------
+        identical : `bool`
+            ``True`` if both are identical and ``False`` if not.
+
+        Examples
+        --------
+        Different subclasses even if the contain the same values are not
+        considered identical::
+
+            >>> from nddata.nddata import NDData, NDDataBase
+            >>> ndd1 = NDData(10)
+            >>> ndd2 = NDDataBase(ndd1)
+            >>> ndd1.is_identical(ndd2)
+            False
+
+        Same values only in other units are also considered not-equal::
+
+            >>> ndd3 = NDData(1, unit='m')
+            >>> ndd4 = ndd3.convert_unit_to('cm')
+            >>> ndd3.is_identical(ndd4)
+            False
+
+        The two objects really must contain the same values or point to the
+        same object to be considered equal. One exception is the
+        ``parent_nddata`` attribute of the uncertainty. That is allowed to
+        differ.
+
+        Setting ``strict=False`` will only apply less strict restrictions and
+        the outcome of the above comparisons will be ``True``::
+
+            >>> ndd1.is_identical(ndd2, strict=False)
+            True
+
+            >>> ndd3.is_identical(ndd4, strict=False)
+            True
+        """
+        # If they point to the same memory object just return True
+        if self is other:
+            return True
+        # Make sure they have the same class if we compare them strictly
+        if strict:
+            if self.__class__ is not other.__class__:
+                return False
+
+        # Wrap everything from here on in an try to catch attributerrors.
+        # We don't want the comparison to exit ungracefully because the types
+        # differ.
+        try:
+            # If any of both data is None compare them in a direct manner
+            if self.data is None or other.data is None:
+                if not (self.data is None and other.data is None):
+                    return False
+            else:
+                # numpy arrays, make sure their shape is identical
+                if self.data.shape != other.data.shape:
+                    return False
+
+                # Now branch of in strict and not-strict. Strict compares data
+                # and unit seperatly while non-strict compares them as
+                # Quantities
+                if strict:
+                    if np.any(self.data != other.data):
+                        return False
+
+                    if self.unit != other.unit:
+                        return False
+                else:
+                    if self.unit is None:
+                        data1 = self.data * u.dimensionless_unscaled
+                    else:
+                        data1 = self.data * self.unit
+
+                    if other.unit is None:
+                        data2 = other.data * u.dimensionless_unscaled
+                    else:
+                        data2 = other.data * other.unit
+
+                    if np.any(data1 != data2):
+                        return False
+
+            # Mask has no restrictions but make sure it's compared different
+            # if it is a numpy array
+            if isinstance(self.mask, np.ndarray):
+                if self.mask.shape != other.mask.shape:
+                    return False
+                if np.any(self.mask != other.mask):
+                    return False
+            else:
+                if self.mask != other.mask:
+                    return False
+
+            if strict:
+                if self.meta.__class__ != other.meta.__class__:
+                    return False
+            if self.meta != other.meta:
+                return False
+
+            # WCS is a bit like the mask - special case np.ndarray but also
+            # astropy.wcs.WCS
+            if isinstance(self.wcs, np.ndarray):
+                if self.wcs.shape != other.wcs.shape:
+                    return False
+                if np.any(self.wcs != other.wcs):
+                    return False
+            elif isinstance(self.wcs, WCS):
+                if not self.wcs.wcs.compare(other.wcs.wcs):
+                    return False
+            else:
+                if self.wcs != other.wcs:
+                    return False
+
+            # Flags are exactly like the mask - could be numpy.ndarray
+            if isinstance(self.flags, np.ndarray):
+                if self.flags.shape != other.flags.shape:
+                    return False
+                if np.any(self.flags != other.flags):
+                    return False
+            else:
+                if self.flags != other.flags:
+                    return False
+
+            # uncertainty should compare itself, just make sure it's set.
+            from .meta.nduncertainty_meta import NDUncertainty
+            if isinstance(self.uncertainty, NDUncertainty):
+                if not self.uncertainty.is_identical(other.uncertainty,
+                                                     strict=strict):
+                    return False
+            else:
+                if self.uncertainty != other.uncertainty:
+                    return False
+
+        except AttributeError:
+            return False
+
+        return True
 
     # Define the attributes. The body of each of these attributes is empty
     # because the complete logic is inside the descriptors (used as decorators

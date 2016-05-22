@@ -12,7 +12,7 @@ import numpy as np
 from astropy.extern import six
 
 from astropy import log
-from astropy.units import Quantity
+import astropy.units as u
 
 from ...utils import descriptors
 from ...utils.sentinels import ParameterNotSpecified
@@ -87,7 +87,7 @@ class NDUncertainty(object):
             unit2 = data.unit
             data = data.data
 
-        elif isinstance(data, Quantity):
+        elif isinstance(data, u.Quantity):
             # The data is a Quantity, so we extract the unit and value
             unit2 = data.unit
             data = data.value
@@ -196,6 +196,77 @@ class NDUncertainty(object):
         # Since the __init__ is capable of doing a complete copy in case the
         # data is a NDUncertainty instance just call it.
         return self.__class__(self, copy=True)
+
+    def is_identical(self, other, strict=True):
+        """Compares if two uncertainties are identical.
+
+        See also :meth:`nddata.nddata.NDDataBase.is_identical` for more
+        information.
+        """
+        if self is other:
+            return True
+
+        if strict:
+            if self.__class__ is not other.__class__:
+                return False
+
+        # Wrap everything in a try/except so AttributeErrors can be catched
+        try:
+            if self.data is None or other.data is None:
+                if not (self.data is None and other.data is None):
+                    return False
+            else:
+                if strict:
+                    # The uncertainty has 2 values we would like to compare:
+                    # data and unit. The data can be a numpy.ndarray so special
+                    # case this:
+                    if isinstance(self.data, np.ndarray):
+                        if self.data.shape != other.data.shape:
+                            return False
+                        if np.any(self.data != other.data):
+                            return False
+                    else:
+                        if self.data != other.data:
+                            return False
+
+                    if self.unit != other.unit:
+                        return False
+                else:
+                    # Not strict compares them as quantities:
+
+                    # First check if they have an effective unit and only then
+                    # default to normal unit.
+                    try:
+                        unit1 = self.effective_unit
+                    except (AttributeError, MissingDataAssociationException):
+                        # Either it has no effective_unit (only gaussian
+                        # uncertainties have one) or it has it but had no
+                        # parent...
+                        unit1 = self.unit
+
+                    try:
+                        unit2 = other.effective_unit
+                    except (AttributeError, MissingDataAssociationException):
+                        unit2 = other.unit
+
+                    if unit1 is None:
+                        data1 = self.data * u.dimensionless_unscaled
+                    else:
+                        data1 = self.data * unit1
+
+                    if unit2 is None:
+                        data2 = other.data * u.dimensionless_unscaled
+                    else:
+                        data2 = other.data * unit2
+
+                    if np.any(data1 != data2):
+                        return False
+
+        except AttributeError:
+            return False
+
+        #We made it, it's identical :-)
+        return True
 
     # Representation and casting to string
     def __repr__(self):
