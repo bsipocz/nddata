@@ -62,6 +62,23 @@ class ContextArithmeticDefaults(DictionaryContext):
         You can also globally change the defaults by using
         ``ContextArithmeticDefaults.dct['parameter_name'] = new_default`` but
         these will be set permanently, if not reset manually.
+
+    With the `~nddata.nddata.mixins.NDArithmeticPyOpsMixin` this context
+    manager becomes important if you want to give any parameters to your
+    operations::
+
+        >>> from nddata.nddata import NDDataBase
+        >>> from nddata.nddata.mixins import NDArithmeticPyOpsMixin
+        >>> class NDData2(NDArithmeticPyOpsMixin, NDDataBase): pass
+
+        >>> ndd = NDData2([1,2,3], meta={'something_very_important': 100})
+        >>> with ContextArithmeticDefaults(handle_meta='ff') as defaults:
+        ...     res = (2 + ndd * 5) / 7
+        >>> res
+        NDData2([ 1.        ,  1.71428571,  2.42857143])
+
+        >>> res.meta
+        {'something_very_important': 100}
     """
     dct = {'propagate_uncertainties': True,
            'handle_mask': np.logical_or,
