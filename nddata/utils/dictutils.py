@@ -131,6 +131,9 @@ def dict_merge(dict1, *dicts, **foldfunc):
         If the ``foldfunc`` was a string that wasn't registered as valid
         synonym for a predefined fold function.
 
+    TypeError
+        If the ``foldfunc`` did not take two arguments.
+
     Examples
     --------
     The examples are using `collections.OrderedDict` so the order of the
