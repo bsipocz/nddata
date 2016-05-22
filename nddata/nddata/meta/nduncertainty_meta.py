@@ -233,15 +233,31 @@ class NDUncertainty(object):
                         return False
                 else:
                     # Not strict compares them as quantities:
-                    if self.unit is None:
+
+                    # First check if they have an effective unit and only then
+                    # default to normal unit.
+                    try:
+                        unit1 = self.effective_unit
+                    except (AttributeError, MissingDataAssociationException):
+                        # Either it has no effective_unit (only gaussian
+                        # uncertainties have one) or it has it but had no
+                        # parent...
+                        unit1 = self.unit
+
+                    try:
+                        unit2 = other.effective_unit
+                    except (AttributeError, MissingDataAssociationException):
+                        unit2 = other.unit
+
+                    if unit1 is None:
                         data1 = self.data * u.dimensionless_unscaled
                     else:
-                        data1 = self.data * self.unit
+                        data1 = self.data * unit1
 
-                    if other.unit is None:
+                    if unit2 is None:
                         data2 = other.data * u.dimensionless_unscaled
                     else:
-                        data2 = other.data * other.unit
+                        data2 = other.data * unit2
 
                     if np.any(data1 != data2):
                         return False

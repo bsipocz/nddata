@@ -211,5 +211,7 @@ def test_not_identical_uncertainty():
 
     # and both have the same values but different classes
     ndd1 = NDDataBase(1, uncertainty=np.array(10))
-    ndd2 = NDDataBase(1, uncertainty=StdDevUncertainty(10))
+    ndd2 = NDDataBase(1, uncertainty=StdDevUncertainty(10, unit=''))
     assert not ndd1.is_identical(ndd2)
+    assert ndd1.is_identical(ndd2, strict=False)
+    assert ndd2.is_identical(ndd1, strict=False)
