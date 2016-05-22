@@ -6,6 +6,8 @@ from __future__ import (absolute_import, division, print_function,
 import numpy as np
 from collections import OrderedDict
 
+import astropy.units as u
+
 from ..nddata_base import NDDataBase
 from ..nddata import NDData
 from ..nduncertainty_stddev import StdDevUncertainty
@@ -55,6 +57,7 @@ def test_not_identical_class():
     ndd = NDDataBase(10)
     ndd2 = NDData(ndd)
     assert not ndd.is_identical(ndd2)
+    assert ndd.is_identical(ndd2, strict=False)
 
 
 def test_not_identical_data():
@@ -76,6 +79,24 @@ def test_not_identical_data():
     ndd1 = NDDataBase([10])
     ndd2 = NDDataBase([11])
     assert not ndd1.is_identical(ndd2)
+
+
+def test_not_identical_unit():
+    # Case 3: One value differs
+    ndd1 = NDDataBase([100], unit='cm')
+    ndd2 = NDDataBase([1], unit='m')
+    assert not ndd1.is_identical(ndd2)
+    assert ndd1.is_identical(ndd2, strict=False)
+
+    ndd1 = NDDataBase([1])
+    ndd2 = NDDataBase([1], unit=u.dimensionless_unscaled)
+    assert not ndd1.is_identical(ndd2)
+    assert ndd1.is_identical(ndd2, strict=False)
+
+    ndd1 = NDDataBase([1], unit='')
+    ndd2 = NDDataBase([1])
+    assert not ndd1.is_identical(ndd2)
+    assert ndd1.is_identical(ndd2, strict=False)
 
 
 def test_not_identical_mask():
@@ -150,10 +171,12 @@ def test_not_identical_meta():
     ndd1 = NDDataBase(1, meta=meta)
     ndd2 = NDDataBase(1, meta=OrderedDict(meta))
     assert not ndd1.is_identical(ndd2)
+    assert ndd1.is_identical(ndd2, strict=False)
 
     # Case 2: Both have the same class but different content
     ndd1 = NDDataBase(1, meta={'a': 1})
     ndd2 = NDDataBase(1, meta={'a': 2})
+    assert not ndd1.is_identical(ndd2)
 
 
 def test_not_identical_uncertainty():

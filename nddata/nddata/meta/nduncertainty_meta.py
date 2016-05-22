@@ -12,7 +12,7 @@ import numpy as np
 from astropy.extern import six
 
 from astropy import log
-from astropy.units import Quantity
+import astropy.units as u
 
 from ...utils import descriptors
 from ...utils.sentinels import ParameterNotSpecified
@@ -87,7 +87,7 @@ class NDUncertainty(object):
             unit2 = data.unit
             data = data.data
 
-        elif isinstance(data, Quantity):
+        elif isinstance(data, u.Quantity):
             # The data is a Quantity, so we extract the unit and value
             unit2 = data.unit
             data = data.value
@@ -197,7 +197,7 @@ class NDUncertainty(object):
         # data is a NDUncertainty instance just call it.
         return self.__class__(self, copy=True)
 
-    def is_identical(self, other):
+    def is_identical(self, other, strict=True):
         """Compares if two uncertainties are identical.
 
         See also :meth:`nddata.nddata.NDDataBase.is_identical` for more
@@ -206,24 +206,46 @@ class NDUncertainty(object):
         if self is other:
             return True
 
-        if self.__class__ is not other.__class__:
-            return False
+        if strict:
+            if self.__class__ is not other.__class__:
+                return False
 
         # Wrap everything in a try/except so AttributeErrors can be catched
         try:
-            # The uncertainty has 2 values we would like to compare: data and
-            # unit. The data can be a numpy.ndarray so special case this:
-            if isinstance(self.data, np.ndarray):
-                if self.data.shape != other.data.shape:
-                    return False
-                if np.any(self.data != other.data):
-                    return False
-            else:
+            if self.data is None or other.data is None:
                 if self.data != other.data:
                     return False
+            else:
+                if strict:
+                    # The uncertainty has 2 values we would like to compare:
+                    # data and unit. The data can be a numpy.ndarray so special
+                    # case this:
+                    if isinstance(self.data, np.ndarray):
+                        if self.data.shape != other.data.shape:
+                            return False
+                        if np.any(self.data != other.data):
+                            return False
+                    else:
+                        if self.data != other.data:
+                            return False
 
-            if self.unit != other.unit:
-                return False
+                    if self.unit != other.unit:
+                        return False
+                else:
+                    # Not strict compares them as quantities:
+                    if self.unit is None:
+                        data1 = self.data * u.dimensionless_unscaled
+                    else:
+                        data1 = self.data * self.unit
+
+                    if other.unit is None:
+                        data2 = other.data * u.dimensionless_unscaled
+                    else:
+                        data2 = other.data * other.unit
+
+                    if np.any(data1 != data2):
+                        return False
+
         except AttributeError:
             return False
 

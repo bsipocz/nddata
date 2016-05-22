@@ -8,7 +8,7 @@ from copy import deepcopy
 import numpy as np
 
 from astropy import log
-from astropy.units import Quantity
+import astropy.units as u
 from astropy.wcs import WCS
 
 from .meta.nddata_meta import NDDataMeta
@@ -172,7 +172,7 @@ class NDDataBase(NDDataMeta):
 
             # It is intentional that here is no "elif" because we might have
             # a masked Quantity here.
-            if isinstance(data, Quantity):
+            if isinstance(data, u.Quantity):
                 # It is an astropy Quantity, we can use the unit and the value.
                 # Maybe it would be better to check for "value" and "unit"
                 # attribute...
@@ -341,7 +341,7 @@ class NDDataBase(NDDataMeta):
                               flags=self.flags, uncertainty=self.uncertainty,
                               meta=self.meta, wcs=self.wcs, copy=True)
 
-    def is_identical(self, other):
+    def is_identical(self, other, strict=True):
         """Checks if two `NDDataBase`-like objects are identical.
 
         This check also fails if the two objects have a different class or if
@@ -353,6 +353,13 @@ class NDDataBase(NDDataMeta):
         ----------
         other : `NDDataBase`-like
             The other object to compare it with.
+
+        strict : `bool`, optional
+            Should the comparison be strict or relaxed. If ``True`` the data
+            and unit are compared seperatly and the class of both NDData and
+            meta are compared. Setting strict to ``False`` will compare the
+            unit and data together and don't compare the classes.
+            Default is ``True``.
 
         Returns
         -------
@@ -372,36 +379,68 @@ class NDDataBase(NDDataMeta):
 
         Same values only in other units are also considered not-equal::
 
-            >>> ndd1 = NDData(1, unit='m')
-            >>> ndd2 = ndd1.convert_unit_to('cm')
-            >>> ndd1.is_identical(ndd2)
+            >>> ndd3 = NDData(1, unit='m')
+            >>> ndd4 = ndd3.convert_unit_to('cm')
+            >>> ndd3.is_identical(ndd4)
             False
 
         The two objects really must contain the same values or point to the
         same object to be considered equal. One exception is the
         ``parent_nddata`` attribute of the uncertainty. That is allowed to
         differ.
+
+        Setting ``strict=False`` will only apply less strict restrictions and
+        the outcome of the above comparisons will be ``True``::
+
+            >>> ndd1.is_identical(ndd2, strict=False)
+            True
+
+            >>> ndd3.is_identical(ndd4, strict=False)
+            True
         """
         # If they point to the same memory object just return True
         if self is other:
             return True
-        # Make sure they have the same class
-        if self.__class__ is not other.__class__:
-            return False
+        # Make sure they have the same class if we compare them strictly
+        if strict:
+            if self.__class__ is not other.__class__:
+                return False
 
         # Wrap everything from here on in an try to catch attributerrors.
         # We don't want the comparison to exit ungracefully because the types
         # differ.
         try:
-            # The data is always a numpy array so use np.all to compare them
-            if isinstance(self.data, np.ndarray):
-                if self.data.shape != other.data.shape:
-                    return False
-                if np.any(self.data != other.data):
-                    return False
-            else:
+            # If any of both data is None compare them in a direct manner
+            if self.data is None or other.data is None:
                 if self.data != other.data:
                     return False
+            else:
+                # numpy arrays, make sure their shape is identical
+                if self.data.shape != other.data.shape:
+                    return False
+
+                # Now branch of in strict and not-strict. Strict compares data
+                # and unit seperatly while non-strict compares them as
+                # Quantities
+                if strict:
+                    if np.any(self.data != other.data):
+                        return False
+
+                    if self.unit != other.unit:
+                        return False
+                else:
+                    if self.unit is None:
+                        data1 = self.data * u.dimensionless_unscaled
+                    else:
+                        data1 = self.data * self.unit
+
+                    if other.unit is None:
+                        data2 = other.data * u.dimensionless_unscaled
+                    else:
+                        data2 = other.data * other.unit
+
+                    if np.any(data1 != data2):
+                        return False
 
             # Mask has no restrictions but make sure it's compared different
             # if it is a numpy array
@@ -414,11 +453,9 @@ class NDDataBase(NDDataMeta):
                 if self.mask != other.mask:
                     return False
 
-            if self.unit != other.unit:
-                return False
-
-            if self.meta.__class__ != other.meta.__class__:
-                return False
+            if strict:
+                if self.meta.__class__ != other.meta.__class__:
+                    return False
             if self.meta != other.meta:
                 return False
 
@@ -449,7 +486,8 @@ class NDDataBase(NDDataMeta):
             # uncertainty should compare itself, just make sure it's set.
             from .meta.nduncertainty_meta import NDUncertainty
             if isinstance(self.uncertainty, NDUncertainty):
-                if not self.uncertainty.is_identical(other.uncertainty):
+                if not self.uncertainty.is_identical(other.uncertainty,
+                                                     strict=strict):
                     return False
             else:
                 if self.uncertainty != other.uncertainty:
