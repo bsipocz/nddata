@@ -7,12 +7,15 @@ from .nddata_base import NDDataBase
 from .mixins.ndarithmetic import NDArithmeticMixin
 from .mixins.ndio import NDIOMixin
 from .mixins.ndslicing import NDSlicingMixin
+from .mixins.ndunitconversion import NDUnitConvMixin
 
 
 __all__ = ['NDData']
 
 
-class NDData(NDArithmeticMixin, NDIOMixin, NDSlicingMixin, NDDataBase):
+# The base class must be last in the bases!
+class NDData(NDUnitConvMixin, NDArithmeticMixin, NDIOMixin, NDSlicingMixin,
+             NDDataBase):
     """Implements `NDDataBase` with all Mixins.
 
     This class implements a `NDDataBase`-like container that supports reading
