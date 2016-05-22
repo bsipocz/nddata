@@ -787,7 +787,7 @@ def test_arithmetics_meta_func():
     assert nd4.meta['a'] == 3
     assert nd4.meta['b'] == 2
 
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError):
         nd1.add(nd2, handle_meta=meta_fun_func, take='second')
 
 
@@ -855,7 +855,7 @@ def test_arithmetics_wcs_func():
     with pytest.raises(ValueError):
         nd1.add(nd2, compare_wcs=wcs_comp_func, wcs_tolerance=0.00001)
 
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError):
         nd1.add(nd2, compare_wcs=wcs_comp_func, tolerance=1)
 
 
@@ -888,7 +888,7 @@ def test_arithmetics_mask_func():
     nd4 = nd1.add(nd2, handle_mask=mask_sad_func, mask_fun=1)
     assert_array_equal(nd4.mask, nd2.mask)
 
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError):
         nd1.add(nd2, handle_mask=mask_sad_func, fun=1)
 
 
