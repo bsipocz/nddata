@@ -639,7 +639,7 @@ class NDArithmeticMixin(object):
                 # Convert the first operand to the class of this method.
                 # This is important so that always the correct _arithmetics is
                 # invoked.
-                operand = cls(operand)
+                operand = cls(operand, copy=False)
 
         else:
             # It was used as classmethod so self_or_cls represents the cls
@@ -651,7 +651,7 @@ class NDArithmeticMixin(object):
                                 "called on an instance.")
 
             # Convert to this class. See above comment why.
-            operand = cls(operand)
+            operand = cls(operand, copy=False)
 
         # At this point operand, operand2, kwargs and cls are determined.
 
@@ -659,7 +659,7 @@ class NDArithmeticMixin(object):
         # arithmetic operations with numbers, lists, numpy arrays, numpy masked
         # arrays, astropy quantities, masked quantities and of other subclasses
         # of NDData.
-        operand2 = cls(operand2)
+        operand2 = cls(operand2, copy=False)
 
         # Now call the _arithmetics method to do the arithmetics.
         result, init_kwds = operand._arithmetic(operation, operand2, **kwargs)
