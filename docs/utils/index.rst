@@ -33,6 +33,14 @@ properties but they allow to reuse common attribute requirements.
 .. automodapi:: nddata.utils.descriptors
 
 
+Dictionary Utilities
+====================
+
+Some dictionary utility functions
+
+.. automodapi:: nddata.utils.dictutils
+
+
 Garbagecollector
 ================
 

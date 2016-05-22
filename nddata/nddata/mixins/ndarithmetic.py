@@ -14,6 +14,7 @@ from ..meta.nduncertainty_meta import NDUncertaintyPropagatable
 from ..contexts import ContextArithmeticDefaults
 from ...utils.decorators import format_doc
 from ...utils.sentinels import ParameterNotSpecified
+from ...utils.dictutils import dict_split
 
 
 __all__ = ['NDArithmeticMixin']
@@ -243,17 +244,11 @@ class NDArithmeticMixin(object):
             if uncertainty_correlation is ParameterNotSpecified:
                 uncertainty_correlation = d.get('uncertainty_correlation', 0)
 
-        # Find the appropriate keywords for the appropriate method (not sure
-        # if data and uncertainty are ever used ...)
-        kwds2 = {'mask': {}, 'meta': {}, 'wcs': {},
-                 'data': {}, 'uncertainty': {}, 'flags': {}}
-        for i in kwds:
-            splitted = i.split('_', 1)
-            try:
-                kwds2[splitted[0]][splitted[1]] = kwds[i]
-            except KeyError:
-                raise KeyError('Unknown prefix {0} for parameter {1}'
-                               ''.format(splitted[0], i))
+        # Find the appropriate keywords for the appropriate methods. This
+        # function returns an defaultdict creating empty dicts if the key does
+        # not exist. Very handy for this case because we don't need to care
+        # if the keywords exist before passing them to the other methods.
+        kwds2 = dict_split(kwds)
 
         kwargs = {}
 

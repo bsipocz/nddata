@@ -31,10 +31,9 @@ class DictionaryContext(object):
 
     Examples
     --------
-    In case you have some values that can be saved as `dict`-like object you
-    could alter them globally, but this needs you to keep track of when you
-    changed it and if you want to reset them again. Using it as context manager
-    unburdens you, but you still can use it to modify values globally::
+    By itself it is just a dictionary that can be modified globally but also
+    set and reset in a local context. For example if you want to create a
+    custom set of defaults and reset them afterwards::
 
         >>> from nddata.utils.contextmanager import DictionaryContext
         >>> with DictionaryContext(a=10, b=2) as d:
@@ -42,6 +41,7 @@ class DictionaryContext(object):
         ...     print(d['b'])
         10
         2
+
         >>> 'a' in DictionaryContext.dct
         False
         >>> 'b' in DictionaryContext.dct
