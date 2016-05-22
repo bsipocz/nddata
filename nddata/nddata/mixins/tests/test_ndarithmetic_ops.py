@@ -25,7 +25,7 @@ from astropy.wcs import WCS
 
 import astropy
 from distutils.version import LooseVersion
-astropy_1_2 = LooseVersion(astropy.__version__) >= LooseVersion('1.2')
+numpy_1_10 = LooseVersion(np.__version__) >= LooseVersion('1.10')
 
 
 class NDDataArithmetic(NDArithmeticMixinPyOps, NDDataBase):
@@ -94,6 +94,9 @@ def compare_ndd_identical(ndd1, ndd2):
                                    np.ma.array(2, mask=False),
                                    5 * u.dimensionless_unscaled])
 def test_arithmetic_ops(op2):
+    if not numpy_1_10 and isinstance(op2, np.ma.MaskedArray):
+        pytest.xfail("masked arrays didn't respect numpy priority yet...")
+
     ndd = create_ndd()
     compare_ndd_identical(ndd.add(op2),      ndd + op2)
     compare_ndd_identical(ndd.subtract(op2), ndd - op2)
@@ -113,6 +116,9 @@ def test_arithmetic_ops(op2):
                                    np.ma.array(2, mask=False),
                                    5 * u.dimensionless_unscaled])
 def test_arithmetic_ops_optional_kwargs(op2):
+    if not numpy_1_10 and isinstance(op2, np.ma.MaskedArray):
+        pytest.xfail("masked arrays didn't respect numpy priority yet...")
+
     ndd = create_ndd()
     # FIXME: Save the defaults so we can reset them later.
     defaults_before = deepcopy(ndd.defaults)
