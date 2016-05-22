@@ -85,8 +85,9 @@ class NDUnitConvMixin(object):
     def _convert_unit_uncertainty(self, unit, equivalencies):
         if self.uncertainty is None:
             return None
-        elif isinstance(self.uncertainty, NDUncertainty):
-            # do something here
-            pass
+        elif hasattr(self.uncertainty, 'convert_unit_to'):
+            return self.uncertainty.convert_unit_to(unit=unit,
+                                                    equivalencies=equivalencies)
         else:
+            # just return it, they don't support this API. :-)
             return deepcopy(self.uncertainty)

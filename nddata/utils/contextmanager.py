@@ -15,10 +15,19 @@ class DictionaryContext(object):
     The context manager allows to modify the dictionary values and after
     exiting it resets them to the original state.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     kwargs :
         Initial values for the contained dictionary.
+
+    Attributes
+    ----------
+    dct : dict
+        The `dict` containing the key-value pairs
+
+    See also
+    --------
+    nddata.nddata.ContextArithmeticDefaults
 
     Examples
     --------

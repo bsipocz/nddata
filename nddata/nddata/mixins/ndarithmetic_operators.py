@@ -8,19 +8,43 @@ import numpy as np
 from .ndarithmetic import NDArithmeticMixin
 
 
-__all__ = ['NDArithmeticMixinPyOps']
+__all__ = ['NDArithmeticPyOpsMixin']
 
 
-class NDArithmeticMixinPyOps(NDArithmeticMixin):
+class NDArithmeticPyOpsMixin(NDArithmeticMixin):
     """This mixin builds on `NDArithmeticMixin` by allowing also the use of \
             Python operators like ``+``, ``-``, ...
+
+    .. warning::
+        You cannot use this mixin together with `~nddata.nddata.NDData`. You
+        need to create a subclass of `~nddata.nddata.NDDataBase`!
+
+    Examples
+    --------
+    To create a class with this mixin you must create a subclass yourself. The
+    reason why the arithmetic operators are not allowed is because there are a
+    lot of optional arguments regulating how arithmetic is handled on a
+    `~nddata.nddata.NDDataBase`-object and forcing you (the user) to use the
+    methods gives you complete control over the arithmetic operation while
+    ``+`` simply hides what options there are::
+
+        >>> from nddata.nddata import NDDataBase
+        >>> from nddata.nddata.mixins import NDArithmeticPyOpsMixin
+        >>> class NDData2(NDArithmeticPyOpsMixin, NDDataBase):
+        ...     pass
+
+        >>> ndd = NDData2(100, unit='m')
+
+        >>> ndd + ndd
+        NDData2(200.0)
+
+        >>> 5 * ndd
+        NDData2(500.0)
+
+    The default parameters are used see
+    `~nddata.nddata.ContextArithmeticDefaults` if you want to change them
+    temporarly or permanently.
     """
-    defaults = {'propagate_uncertainties': True,
-                'handle_mask': np.logical_or,
-                'handle_meta': None,
-                'handle_flags': None,
-                'compare_wcs': 'first_found',
-                'uncertainty_correlation': 0}
 
     # To avoid that np.ndarrays mess up the result if they are the first
     # argument this should be higher than any other np.ndarray including
@@ -28,40 +52,44 @@ class NDArithmeticMixinPyOps(NDArithmeticMixin):
     __array_priority__ = 10000000
 
     def __add__(self, other):
-        return self.add(other, **self.defaults)
+        return self.add(other)
 
     def __radd__(self, other):
-        return self.add(other, self, **self.defaults)
+        return self.add(other, self)
 
     def __sub__(self, other):
-        return self.subtract(other, **self.defaults)
+        return self.subtract(other)
 
     def __rsub__(self, other):
-        return self.subtract(other, self, **self.defaults)
+        return self.subtract(other, self)
 
     def __mul__(self, other):
-        return self.multiply(other, **self.defaults)
+        return self.multiply(other)
 
     def __rmul__(self, other):
-        return self.multiply(other, self, **self.defaults)
-
-    def __div__(self, other):
-        return self.divide(other, **self.defaults)
-
-    def __rdiv__(self, other):
-        return self.divide(other, self, **self.defaults)
+        return self.multiply(other, self)
 
     def __truediv__(self, other):
-        return self.divide(other, **self.defaults)
+        return self.divide(other)
 
     def __rtruediv__(self, other):
-        return self.divide(other, self, **self.defaults)
+        return self.divide(other, self)
+
+    # The __div__ and __rdiv__ shouldn't be necessary since I imported
+    # __future__.division but I don't know in which contexts someone might
+    # happen to get into those (maybe with operator.__div__?!) so better leave
+    # them in here.
+    def __div__(self, other):  # pragma: no cover
+        return self.divide(other)
+
+    def __rdiv__(self, other):  # pragma: no cover
+        return self.divide(other, self)
 
     def __pow__(self, other):
-        return self.power(other, **self.defaults)
+        return self.power(other)
 
     def __rpow__(self, other):
-        return self.power(other, self, **self.defaults)
+        return self.power(other, self)
 
     def __neg__(self):
         res = self.copy()
