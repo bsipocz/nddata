@@ -344,11 +344,6 @@ class NDDataBase(NDDataMeta):
     def is_identical(self, other, strict=True):
         """Checks if two `NDDataBase`-like objects are identical.
 
-        This check also fails if the two objects have a different class or if
-        they nominally contain the same values but with different units. For
-        example ``NDData(1, unit='m').is_identical(NDData(100, unit='cm'))``
-        will return ``False``.
-
         Parameters
         ----------
         other : `NDDataBase`-like
@@ -369,7 +364,7 @@ class NDDataBase(NDDataMeta):
         Examples
         --------
         Different subclasses even if the contain the same values are not
-        equal::
+        considered identical::
 
             >>> from nddata.nddata import NDData, NDDataBase
             >>> ndd1 = NDData(10)
