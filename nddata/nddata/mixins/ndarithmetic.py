@@ -11,7 +11,9 @@ from astropy.units import dimensionless_unscaled
 from astropy.utils import sharedmethod
 
 from ..meta.nduncertainty_meta import NDUncertaintyPropagatable
+from ..contexts import ContextArithmeticDefaults
 from ...utils.decorators import format_doc
+from ...utils.sentinels import ParameterNotSpecified
 
 
 __all__ = ['NDArithmeticMixin']
@@ -165,9 +167,12 @@ class NDArithmeticMixin(object):
     """
 
     def _arithmetic(self, operation, operand,
-                    propagate_uncertainties=True, handle_mask=np.logical_or,
-                    handle_meta=None, handle_flags=None,
-                    uncertainty_correlation=0, compare_wcs='first_found',
+                    propagate_uncertainties=ParameterNotSpecified,
+                    handle_mask=ParameterNotSpecified,
+                    handle_meta=ParameterNotSpecified,
+                    handle_flags=ParameterNotSpecified,
+                    uncertainty_correlation=ParameterNotSpecified,
+                    compare_wcs=ParameterNotSpecified,
                     **kwds):
         """
         Base method which calculates the result of the arithmetic operation.
@@ -221,6 +226,23 @@ class NDArithmeticMixin(object):
             :meth:`add`.
 
         """
+        # Get the defaults if no explicit parameter was given using the
+        # context manager to get the values.
+        with ContextArithmeticDefaults() as d:
+            if propagate_uncertainties is ParameterNotSpecified:
+                propagate_uncertainties = d.get('propagate_uncertainties',
+                                                True)
+            if handle_mask is ParameterNotSpecified:
+                handle_mask = d.get('handle_mask', np.logical_or)
+            if handle_meta is ParameterNotSpecified:
+                handle_meta = d.get('handle_meta', None)
+            if handle_flags is ParameterNotSpecified:
+                handle_flags = d.get('handle_flags', True)
+            if compare_wcs is ParameterNotSpecified:
+                compare_wcs = d.get('compare_wcs', 'first_found')
+            if uncertainty_correlation is ParameterNotSpecified:
+                uncertainty_correlation = d.get('uncertainty_correlation', 0)
+
         # Find the appropriate keywords for the appropriate method (not sure
         # if data and uncertainty are ever used ...)
         kwds2 = {'mask': {}, 'meta': {}, 'wcs': {},
@@ -378,7 +400,8 @@ class NDArithmeticMixin(object):
             raise TypeError("Uncertainty propagation is only defined for "
                             "subclasses of NDUncertaintyPropagation.")
         if (operand.uncertainty is not None and
-                not isinstance(operand.uncertainty, NDUncertaintyPropagatable)):
+                not isinstance(operand.uncertainty,
+                               NDUncertaintyPropagatable)):
             raise TypeError("Uncertainty propagation is only defined for "
                             "subclasses of NDUncertaintyPropagation.")
 

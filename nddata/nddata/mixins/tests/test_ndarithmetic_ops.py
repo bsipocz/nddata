@@ -16,8 +16,11 @@ from ...nduncertainty_relstd import RelativeUncertainty
 from ...exceptions import IncompatibleUncertaintiesException
 from ...meta.nduncertainty_meta import NDUncertaintyPropagatable, NDUncertainty
 
+from ...contexts import ContextArithmeticDefaults
+
 from ... import NDDataBase
-from .. import NDArithmeticMixinPyOps
+from .. import NDArithmeticPyOpsMixin
+
 from astropy.units import UnitsError, Quantity
 from astropy.tests.helper import pytest
 from astropy import units as u
@@ -25,10 +28,11 @@ from astropy.wcs import WCS
 
 import astropy
 from distutils.version import LooseVersion
-astropy_1_2 = LooseVersion(astropy.__version__) >= LooseVersion('1.2')
+
+numpy_1_10 = LooseVersion(np.__version__) >= LooseVersion('1.10')
 
 
-class NDDataArithmetic(NDArithmeticMixinPyOps, NDDataBase):
+class NDDataArithmetic(NDArithmeticPyOpsMixin, NDDataBase):
     pass
 
 
@@ -94,6 +98,9 @@ def compare_ndd_identical(ndd1, ndd2):
                                    np.ma.array(2, mask=False),
                                    5 * u.dimensionless_unscaled])
 def test_arithmetic_ops(op2):
+    if not numpy_1_10 and isinstance(op2, np.ma.MaskedArray):
+        pytest.xfail("masked arrays didn't respect numpy priority yet...")
+
     ndd = create_ndd()
     compare_ndd_identical(ndd.add(op2),      ndd + op2)
     compare_ndd_identical(ndd.subtract(op2), ndd - op2)
@@ -113,29 +120,29 @@ def test_arithmetic_ops(op2):
                                    np.ma.array(2, mask=False),
                                    5 * u.dimensionless_unscaled])
 def test_arithmetic_ops_optional_kwargs(op2):
+    if not numpy_1_10 and isinstance(op2, np.ma.MaskedArray):
+        pytest.xfail("masked arrays didn't respect numpy priority yet...")
+
     ndd = create_ndd()
-    # FIXME: Save the defaults so we can reset them later.
-    defaults_before = deepcopy(ndd.defaults)
-    ndd.defaults['handle_mask'] = None
-    ndd.defaults['propagate_uncertainties'] = None
 
-    opkwargs = {'handle_mask': None, 'propagate_uncertainties': None}
-    compare_ndd_identical(ndd.add(op2, **opkwargs),      ndd + op2)
-    compare_ndd_identical(ndd.subtract(op2, **opkwargs), ndd - op2)
-    compare_ndd_identical(ndd.multiply(op2, **opkwargs), ndd * op2)
-    compare_ndd_identical(ndd.divide(op2, **opkwargs),   ndd / op2)
-    compare_ndd_identical(ndd.power(op2, **opkwargs),    ndd ** op2)
+    # Let us test the context manager ... to change the defaults.
+    with ContextArithmeticDefaults() as d:
+        d['handle_mask'] = None
+        d['propagate_uncertainties'] = None
 
-    # and reverse
-    compare_ndd_identical(ndd.add(op2, ndd, **opkwargs),      op2 + ndd)
-    compare_ndd_identical(ndd.subtract(op2, ndd, **opkwargs), op2 - ndd)
-    compare_ndd_identical(ndd.multiply(op2, ndd, **opkwargs), op2 * ndd)
-    compare_ndd_identical(ndd.divide(op2, ndd, **opkwargs),   op2 / ndd)
-    compare_ndd_identical(ndd.power(op2, ndd, **opkwargs),    op2 ** ndd)
+        opkwargs = {'handle_mask': None, 'propagate_uncertainties': None}
+        compare_ndd_identical(ndd.add(op2, **opkwargs),      ndd + op2)
+        compare_ndd_identical(ndd.subtract(op2, **opkwargs), ndd - op2)
+        compare_ndd_identical(ndd.multiply(op2, **opkwargs), ndd * op2)
+        compare_ndd_identical(ndd.divide(op2, **opkwargs),   ndd / op2)
+        compare_ndd_identical(ndd.power(op2, **opkwargs),    ndd ** op2)
 
-    # FIXME: Reset the defaults
-    ndd.defaults.clear()
-    ndd.defaults.update(defaults_before)
+        # and reverse
+        compare_ndd_identical(ndd.add(op2, ndd, **opkwargs),      op2 + ndd)
+        compare_ndd_identical(ndd.subtract(op2, ndd, **opkwargs), op2 - ndd)
+        compare_ndd_identical(ndd.multiply(op2, ndd, **opkwargs), op2 * ndd)
+        compare_ndd_identical(ndd.divide(op2, ndd, **opkwargs),   op2 / ndd)
+        compare_ndd_identical(ndd.power(op2, ndd, **opkwargs),    op2 ** ndd)
 
 
 def test_arithmetic_boring_ops():
@@ -149,3 +156,21 @@ def test_arithmetic_boring_ops():
 
     ndd2.data = np.abs(ndd2.data)
     compare_ndd_identical(ndd2, abs(ndd))
+
+
+def test_arithmetic_boring_ops_copy():
+    ndd = create_ndd()
+    ndd2 = -ndd
+    ndd3 = +ndd
+    ndd4 = abs(ndd)
+
+    orig = ndd.data[0]
+    ndd.data[0] = orig * 10
+    assert ndd2.data[0] == - orig
+    assert ndd3.data[0] == orig
+    assert ndd4.data[0] == abs(orig)
+
+    ndd.meta['a'] = 10
+    assert 'a' not in ndd2.meta
+    assert 'a' not in ndd3.meta
+    assert 'a' not in ndd4.meta

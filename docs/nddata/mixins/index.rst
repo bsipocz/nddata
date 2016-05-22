@@ -6,4 +6,5 @@ Mixins for added functionality
 
     ndslicing.rst
     ndarithmetic.rst
+    ndunitconversion.rst
     ndio.rst

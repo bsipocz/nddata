@@ -2,6 +2,15 @@
 Utility functions and classes
 *****************************
 
+
+Context Managers
+================
+
+Classes that can be used with ``with``.
+
+.. automodapi:: nddata.utils.contextmanager
+    :no-inheritance-diagram:
+
 Decorators
 ==========
 

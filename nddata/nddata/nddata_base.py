@@ -330,6 +330,16 @@ class NDDataBase(NDDataMeta):
         # data is a NDData instance just call it.
         return self.__class__(self, copy=True)
 
+    def _copy_without_data(self):
+        """Like copy but it will set the data of the new instance to ``None``.
+
+        This method is for internal use, where an operation needs to copy
+        everything but does an operation on the data that would copy it again.
+        """
+        return self.__class__(None, unit=self.unit, mask=self.mask,
+                              flags=self.flags, uncertainty=self.uncertainty,
+                              meta=self.meta, wcs=self.wcs, copy=True)
+
     # Define the attributes. The body of each of these attributes is empty
     # because the complete logic is inside the descriptors (used as decorators
     # here).

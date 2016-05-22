@@ -12,6 +12,12 @@ Introduction
 - subtraction: :meth:`~nddata.nddata.mixins.NDArithmeticMixin.subtract`
 - multiplication: :meth:`~nddata.nddata.mixins.NDArithmeticMixin.multiply`
 - division: :meth:`~nddata.nddata.mixins.NDArithmeticMixin.divide`
+- exponentation: :meth:`~nddata.nddata.mixins.NDArithmeticMixin.power`
+
+.. warning::
+    If you are using objects with ``unit`` then you need to be careful with
+    :meth:`~nddata.nddata.mixins.NDArithmeticMixin.power` especially if also
+    ``uncertainty`` is used.
 
 Using basic arithmetic methods
 ------------------------------
@@ -86,6 +92,11 @@ Advanced options
 
 The normal python operators ``+``, ``-``, ... are not implemented because
 the methods provide several options how to process the additional attributes.
+
+.. note::
+    if you are interested in the experimental functionality including pythons
+    operators, have a look at `~nddata.nddata.mixins.NDArithmeticPyOpsMixin`
+    and `~nddata.nddata.ContextArithmeticDefaults`.
 
 data, unit
 ^^^^^^^^^^

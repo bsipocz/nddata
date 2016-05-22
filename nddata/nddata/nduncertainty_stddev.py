@@ -92,6 +92,16 @@ class StdDevUncertainty(NDUncertaintyGaussian):
         """
         return 'std'
 
+    def convert_unit_to(self, unit, equivalencies=[]):
+        """Returns an uncertainty converted to the new unit.
+
+        This method requires that the `effective_unit` is not ``None``.
+
+        See also :meth:`~nddata.nddata.mixins.NDUnitConvMixin.convert_unit_to`.
+        """
+        conv_data = self.effective_unit.to(unit, self.data, equivalencies)
+        return self.__class__(conv_data, unit, copy=False)
+
     def propagate(self, operation, other_nddata, result_data, correlation):
         """Calculate the resulting uncertainty given an operation on the data.
 
