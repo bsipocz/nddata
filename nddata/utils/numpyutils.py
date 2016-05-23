@@ -47,21 +47,24 @@ def is_numeric_array(array):
 def mode(data, decimals=0):
     """Calculate the mode (most common value) of an rounded array.
 
+    This function is more limited but also a lot faster than
+    :func:`scipy.stats.mode`.
+
     .. warning::
-        This function requires NumPy version 1.9 or newer. For older versions
-        of Numpy please use :func:`~nddata.utils.numpyutils.mode2`.
+        This function requires NumPy version 1.9 or newer. If you use an older
+        version refer to :func:`~nddata.utils.numpyutils.mode2`.
 
     Parameters
     ----------
-    data : `np.ndarray`-like
+    data : `numpy.ndarray`-like
         The data in which to look for the mode.
 
     decimals : `int` or None, optional
         The number of decimal places to round the data before calculating the
         mode.
 
-        - **None** no rounding (this can be extremly slow).
-        - **integer** : see :func:`numpy.around`.
+        - `None` no rounding (this can be extremly slow).
+        - `int` : see :func:`numpy.around`.
 
         Default is ``0`` (rounding to integer).
 
@@ -105,7 +108,7 @@ def mode(data, decimals=0):
     if not NUMPY_1_9:  # pragma: no cover
         if decimals != 0:
             log.info('numpy < 1.9 doesn\'t allow giving "decimals".')
-        return mode(data)
+        return mode2(data)
 
     data = np.asarray(data)
 

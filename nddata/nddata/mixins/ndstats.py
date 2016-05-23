@@ -118,17 +118,10 @@ class NDStatsMixin(object):
         stats['max'] = [np.amax(data)]
         stats['mean'] = [np.mean(data)]
         stats['median'] = [np.median(data)]
-        # Mode is a bit special, by default it wants to get the mode along
-        # axis=0 this wouldn't make a difference here because we have the
-        # data in 1D (because of masking operations) but I think it's more
-        # clearer giving it explicitly.
-        # Another point is that the return is a tuple containing two arrays.
-        # The first are the modes (along the axis) and the second is the count
-        # of the mode-value. We have the mode along all elements so each array
-        # only contains one value. Take the mode-value and discard the counts.
-        # The next problematic thing with mode is floats ... we wouldn't expect
-        # many floats to have the same value, so keep this purly integer!
-        # TODO: Maybe add a parameter for mode to control rounding here...
+        # Use custom mode defined in this package because scipy.stats.mode is
+        # very, very slow and by default tries to calculate the mode along
+        # axis=0 and not for the whole array.
+        # Take the first element since the second is the number of occurences.
         stats['mode'] = [mode(data)[0]]
         stats['std'] = [np.std(data)]
         stats['var'] = [np.var(data)]
