@@ -8,15 +8,12 @@ import numpy as np
 from astropy import log
 
 from distutils.version import LooseVersion
-if LooseVersion(np.__version__) < LooseVersion('1.9'):
-    NUMPY_1_9 = False
-else:
-    NUMPY_1_9 = True
+NUMPY_1_9 = LooseVersion(np.__version__) >= LooseVersion('1.9')
 
 
 __all__ = ['is_numeric_array', 'mode', 'mode2']
 
-if not NUMPY_1_9:
+if not NUMPY_1_9:  # pragma: no cover
     __doctest_skip__ = ['mode2']
 
 # Boolean, unsigned integer, signed integer, float, complex.
@@ -48,7 +45,7 @@ def is_numeric_array(array):
 
 
 def mode(data):
-    """An alternative to the slow `scipy.stats.mode` function.
+    """An alternative to :func:`scipy.stats.mode`.
 
     This is not an replacement, it's a fast and specialized function which
     doesn't offer as much options and applying much harder restrictions.
@@ -86,7 +83,11 @@ def mode(data):
         >>> mode([0.1, 0.1, 0.2])
         (0, 3)
 
-    Because they were all rounded to 0.
+    Because they were all rounded to 0. Also it will flatten the array - which
+    is not done by :func:`scipy.stats.mode`::
+
+        >>> mode([[1,1],[2,3],[4,5]])
+        (1, 2)
     """
     # Convert to integer numpy array and flatten it if necessary.
     data = np.asarray(data)
@@ -153,7 +154,7 @@ def mode2(data, decimals=0):
     That this isn't exactly ``0.1`` is because of the precision of floating
     point values.
     """
-    if not NUMPY_1_9:
+    if not NUMPY_1_9:  # pragma: no cover
         if decimals != 0:
             log.info('numpy < 1.9 doesn\'t allow "decimals".')
         return mode(data)
