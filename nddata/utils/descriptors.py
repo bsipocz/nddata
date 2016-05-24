@@ -298,8 +298,8 @@ class AdvancedDescriptor(BaseDescriptor):
         Examples
         --------
         An example for subclassing it, for example we want the value to be
-        converted to a numpy-array (see also `Data` for a more advanced version
-        of this descriptor)::
+        converted to a numpy-array (see also `ArrayData` which essentially does
+        just that)::
 
             >>> from nddata.utils.descriptors import AdvancedDescriptor
             >>> import numpy as np

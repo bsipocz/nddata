@@ -18,8 +18,8 @@ class NDDataMeta(object):
 
     See also
     --------
-    NDDataBase
-    NDData
+    .NDDataBase
+    .NDData
     """
     @abstractmethod
     def __init__(self):
