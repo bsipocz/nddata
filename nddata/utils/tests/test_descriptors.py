@@ -381,7 +381,7 @@ def test_mask_array_descriptor():
 
     class MaskArrayDescriptorTest(object):
         mask1 = descriptors.ArrayMask('mask1', doc='test', copy=True)
-        mask2 = descriptors.ArrayMask('mask2', doc='test', copy=True)
+        mask2 = descriptors.ArrayMask('mask2', doc='test', copy=False)
 
     assert MaskArrayDescriptorTest.mask1.__doc__ == 'test'
     assert MaskArrayDescriptorTest.mask2.__doc__ == 'test'
@@ -415,8 +415,8 @@ def test_mask_array_descriptor():
 
     # Test that this copies only when specified
     mask[1] = True
-    assert t.mask1[1] is False
-    assert t.mask2[1] is True
+    assert not t.mask1[1]
+    assert t.mask2[1]
 
     # Test with integer array input
     mask = np.array([1, 0, 1, 0])
@@ -427,8 +427,8 @@ def test_mask_array_descriptor():
 
     # Test that this always copies because of the conversion of dtype
     mask[1] = True
-    assert t.mask1[1] is False
-    assert t.mask2[1] is False
+    assert not t.mask1[1]
+    assert not t.mask2[1]
 
 
 def test_meta_descriptor():

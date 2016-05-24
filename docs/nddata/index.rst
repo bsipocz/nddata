@@ -32,6 +32,7 @@ Further reading
    interface.rst
    utils.rst
    decorator.rst
+   experimental.rst
 
 Getting started
 ===============

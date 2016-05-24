@@ -175,6 +175,12 @@ class AdvancedDescriptor(BaseDescriptor):
     extendable attribute. But make sure you read the comments on the
     methods carefully when extending it.
 
+    .. note::
+        The methods `create_default` and `process_value` are public but
+        normally they shouldn't be called directly. These should only serve
+        documentation purposes to explain when and how the descriptor
+        internally works.
+
     Examples
     --------
     Apart from small differences this descriptor works exactly like
@@ -569,6 +575,50 @@ class ArrayMask(AdvancedDescriptor):
     ----------
     args, kwargs :
         see :class:`AdvancedDescriptor`.
+
+    Examples
+    --------
+
+    Creating a class using this descriptor is mostly identical to assigning a
+    `property`, even though the setter and deleter are created automatically
+    and cannot be overriden with the property syntax ``@mask.setter``. Note
+    that like all `AdvancedDescriptor` the body of the attribute is ignored so
+    leave it empty or insert a ``pass``::
+
+        >>> from nddata.utils.descriptors import ArrayMask
+        >>> class Test(object):
+        ...     @ArrayMask
+        ...     def mask(self):
+        ...         '''Some documentation of the masks purpose.'''
+
+    The documentation is kept::
+
+        >>> Test.mask.__doc__
+        'Some documentation of the masks purpose.'
+
+    The setter will now always convert the input to a `numpy.ndarray` with
+    dtype `bool`::
+
+        >>> t = Test()
+        >>> t.mask = True
+        >>> t.mask
+        array(True, dtype=bool)
+
+    Notice that every Python object can be evaluated as boolean, but see for
+    yourself::
+
+        >>> t.mask = [True, False, 1, 'a']
+        >>> t.mask
+        array([ True, False,  True,  True], dtype=bool)
+
+    .. note::
+        One use would be to override the ``mask`` of `~nddata.nddata.NDData`
+        or `~nddata.nddata.NDDataBase` if you want a more
+        `numpy.ma.MaskedArray`-like behaviour and don't want to convert the
+        mask yourself. Just import ``NDData`` (or ``NDDataBase``) and set the
+        descriptor: `NDData.mask = ArrayMask('mask', 'docstring', copy=False)`
+        But be aware that this will change will affect all your ``NDData``
+        instances in the current session!
     """
     def create_default(self):
         """No default value, this returns ``None``.
