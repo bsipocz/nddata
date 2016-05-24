@@ -377,6 +377,60 @@ def test_subclassing_advanced3():
 # base descriptor...
 
 
+def test_mask_array_descriptor():
+
+    class MaskArrayDescriptorTest(object):
+        mask1 = descriptors.ArrayMask('mask1', doc='test', copy=True)
+        mask2 = descriptors.ArrayMask('mask2', doc='test', copy=False)
+
+    assert MaskArrayDescriptorTest.mask1.__doc__ == 'test'
+    assert MaskArrayDescriptorTest.mask2.__doc__ == 'test'
+
+    t = MaskArrayDescriptorTest()
+
+    # No default value
+    assert t.mask1 is None
+    assert t.mask2 is None
+
+    # Test with boolean list input
+    mask = [True, False, True, False]
+    t.mask1 = mask
+    t.mask2 = mask
+    np.testing.assert_array_equal(t.mask1, np.array(mask))
+    np.testing.assert_array_equal(t.mask2, np.array(mask))
+
+    # Test with integer list input
+    mask = [1, 0, 1, 0]
+    t.mask1 = mask
+    t.mask2 = mask
+    np.testing.assert_array_equal(t.mask1, np.array(mask, dtype=bool))
+    np.testing.assert_array_equal(t.mask2, np.array(mask, dtype=bool))
+
+    # Test with numpy array input
+    mask = np.array([True, False, True, False])
+    t.mask1 = mask
+    t.mask2 = mask
+    np.testing.assert_array_equal(t.mask1, mask)
+    np.testing.assert_array_equal(t.mask2, mask)
+
+    # Test that this copies only when specified
+    mask[1] = True
+    assert not t.mask1[1]
+    assert t.mask2[1]
+
+    # Test with integer array input
+    mask = np.array([1, 0, 1, 0])
+    t.mask1 = mask
+    t.mask2 = mask
+    np.testing.assert_array_equal(t.mask1, np.array(mask, dtype=bool))
+    np.testing.assert_array_equal(t.mask2, np.array(mask, dtype=bool))
+
+    # Test that this always copies because of the conversion of dtype
+    mask[1] = True
+    assert not t.mask1[1]
+    assert not t.mask2[1]
+
+
 def test_meta_descriptor():
 
     class MetaDescriptorTest(object):
