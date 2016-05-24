@@ -9,7 +9,7 @@ import numpy as np
 
 from astropy.table import Table
 
-from ...utils.numpyutils import mode
+from ...utils.stats import mode
 
 __all__ = ['NDStatsMixin']
 
@@ -34,28 +34,26 @@ class NDStatsMixin(object):
 
             and the results of the statistical computations:
 
-            - **min** : `numpy.amin`
-            - **max** : `numpy.amax`
-            - **mean** : `numpy.mean`
-            - **median** : `numpy.median`
-            - **mode** : `~nddata.utils.numpyutils.mode` the mode of the \
+            - **min** : :func:`numpy.amin`
+            - **max** : :func:`numpy.amax`
+            - **mean** : :func:`numpy.mean`
+            - **median** : :func:`numpy.median`
+            - **mode** : :func:`~nddata.utils.stats.mode` the mode of the \
                 ``data`` rounded to the nearest integer.
-            - **std** : `numpy.std`
-            - **var** : `numpy.var`
-
-            The **mode** is only returned if scipy is installed.
+            - **std** : :func:`numpy.std`
+            - **var** : :func:`numpy.var`
 
         Examples
         --------
         This mixin is already included in `~nddata.nddata.NDData`::
 
             >>> from nddata.nddata import NDData
-            >>> ndd1 = NDData([1,2,3,4,5])
+            >>> ndd1 = NDData([1.0,2,3,4,5])
             >>> stats1 = ndd1.stats()
             >>> print(stats1)
             elements min max mean median mode      std      var masked invalid
             -------- --- --- ---- ------ ---- ------------- --- ------ -------
-                   5   1   5  3.0    3.0    1 1.41421356237 2.0      0       0
+                   5 1.0 5.0  3.0    3.0  1.0 1.41421356237 2.0      0       0
 
         And it also takes a mask into account::
 
@@ -66,7 +64,7 @@ class NDStatsMixin(object):
             >>> print(stats2)
             elements min max mean median mode      std      var  masked invalid
             -------- --- --- ---- ------ ---- ------------- ---- ------ -------
-                   4   2   5  3.5    3.5    2 1.11803398875 1.25      1       0
+                   4 2.0 5.0  3.5    3.5  2.0 1.11803398875 1.25      1       0
 
         Invalid elements like ``NaN`` or ``Inf`` are removed as well::
 
@@ -76,7 +74,7 @@ class NDStatsMixin(object):
             >>> print(stats3)
             elements min max mean median mode      std      var  masked invalid
             -------- --- --- ---- ------ ---- ------------- ---- ------ -------
-                   4 1.0 4.0  2.5    2.5    1 1.11803398875 1.25      0       1
+                   4 1.0 4.0  2.5    2.5  1.0 1.11803398875 1.25      0       1
 
         the returned tables are :class:`~astropy.table.Table` instances so they
         can you can treat them as such. For example stack them::
@@ -85,9 +83,9 @@ class NDStatsMixin(object):
             >>> print(vstack([stats1, stats2, stats3]))
             elements min max mean median mode      std      var  masked invalid
             -------- --- --- ---- ------ ---- ------------- ---- ------ -------
-                   5 1.0 5.0  3.0    3.0    1 1.41421356237  2.0      0       0
-                   4 2.0 5.0  3.5    3.5    2 1.11803398875 1.25      1       0
-                   4 1.0 4.0  2.5    2.5    1 1.11803398875 1.25      0       1
+                   5 1.0 5.0  3.0    3.0  1.0 1.41421356237  2.0      0       0
+                   4 2.0 5.0  3.5    3.5  2.0 1.11803398875 1.25      1       0
+                   4 1.0 4.0  2.5    2.5  1.0 1.11803398875 1.25      0       1
         """
         if self.data is None:
             raise TypeError('cannot do statistics on the data if the data is '

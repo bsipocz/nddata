@@ -68,3 +68,12 @@ factory to create them.
 
 .. automodapi:: nddata.utils.sentinels
     :no-inheritance-diagram:
+
+
+Statistics
+==========
+
+Some very simple statistical tools.
+
+.. automodapi:: nddata.utils.stats
+    :no-inheritance-diagram:
