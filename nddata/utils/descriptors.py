@@ -16,8 +16,8 @@ from .numpyutils import is_numeric_array
 
 
 __all__ = ['BaseDescriptor', 'AdvancedDescriptor',
-           'Meta', 'ArrayData', 'Unit', 'Mask', 'WCS', 'Uncertainty', 'Flags',
-           'UncertaintyData', 'ArrayMask']
+           'ArrayData', 'Mask', 'ArrayMask', 'Meta', 'Unit', 'WCS',
+           'Flags', 'Uncertainty', 'UncertaintyData']
 
 
 class BaseDescriptor(object):
@@ -616,7 +616,8 @@ class ArrayMask(AdvancedDescriptor):
         or `~nddata.nddata.NDDataBase` if you want a more
         `numpy.ma.MaskedArray`-like behaviour and don't want to convert the
         mask yourself. Just import ``NDData`` (or ``NDDataBase``) and set the
-        descriptor: `NDData.mask = ArrayMask('mask', 'docstring', copy=False)`
+        descriptor:
+        ``NDData.mask = ArrayMask('mask', 'docstring', copy=False)``
         But be aware that this will change will affect all your ``NDData``
         instances in the current session!
     """
