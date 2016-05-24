@@ -561,6 +561,41 @@ class ArrayData(AdvancedDescriptor):
         return value
 
 
+class ArrayMask(AdvancedDescriptor):
+    """An `AdvancedDescriptor` which checks if the value looks like \
+            boolean `numpy.ndarray` or converts it to one.
+
+    Parameters
+    ----------
+    args, kwargs :
+        see :class:`AdvancedDescriptor`.
+    """
+    def create_default(self):
+        """No default value, this returns ``None``.
+        """
+
+    def process_value(self, instance, value):
+        """Checks if the value is a `numpy.ndarray` of boolean type or casts \
+                it to one.
+
+        Parameters
+        ----------
+        args, kwargs :
+            see :meth:`AdvancedDescriptor.process_value`.
+
+        Returns
+        -------
+        value : `numpy.ndarray`-like
+            The value that is being set as private attribute.
+        """
+        # Very simple, if it's already a numpy.ndarray with dtype bool return
+        # it.
+        if isinstance(value, np.ndarray) and value.dtype == bool:
+            return value
+        # If it wasn't convert it to one explicitly.
+        return np.array(value, dtype=bool, copy=False, subok=False)
+
+
 class Unit(AdvancedDescriptor):
     """An `AdvancedDescriptor` which converts the value to an \
             `~astropy.units.Unit`.
