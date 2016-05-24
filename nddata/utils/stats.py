@@ -13,7 +13,7 @@ NUMPY_1_9 = LooseVersion(np.__version__) >= LooseVersion('1.9')
 
 __all__ = ['mode']
 
-if not NUMPY_1_9:
+if not NUMPY_1_9:  # pragma: no cover
     __doctest_skip__ = ['mode']
 
 
