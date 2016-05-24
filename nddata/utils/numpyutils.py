@@ -5,7 +5,6 @@ from __future__ import (absolute_import, division, print_function,
 
 import numpy as np
 
-
 __all__ = ['is_numeric_array']
 
 # Boolean, unsigned integer, signed integer, float, complex.

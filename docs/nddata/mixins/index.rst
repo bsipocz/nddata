@@ -7,4 +7,5 @@ Mixins for added functionality
     ndslicing.rst
     ndarithmetic.rst
     ndunitconversion.rst
+    ndstats.rst
     ndio.rst
