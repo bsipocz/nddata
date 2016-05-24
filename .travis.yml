@@ -32,7 +32,8 @@ env:
         # For this package-template, we include examples of Cython modules,
         # so Cython is required for testing. If your package does not include
         # Cython code, you can set CONDA_DEPENDENCIES=''
-        - CONDA_DEPENDENCIES='Cython'
+        - CONDA_DEPENDENCIES=''
+        - CONDA_ALL_DEPENDENCIES='scipy'
     matrix:
         # Make sure that egg_info works without dependencies
         - SETUP_CMD='egg_info'
@@ -45,17 +46,21 @@ matrix:
         # Do a coverage test in Python 2.
         - python: 2.7
           env: SETUP_CMD='test --coverage'
+               CONDA_DEPENDENCIES=$CONDA_ALL_DEPENDENCIES
 
         # Check for sphinx doc build warnings - we do this first because it
         # may run for a long time
         - python: 2.7
           env: SETUP_CMD='build_sphinx -w'
+               CONDA_DEPENDENCIES=$CONDA_ALL_DEPENDENCIES
 
-        # Try Astropy development version
+        # Try Astropy development version with all dependencies
         - python: 2.7
           env: ASTROPY_VERSION=development
+               CONDA_DEPENDENCIES=$CONDA_ALL_DEPENDENCIES
         - python: 3.5
           env: ASTROPY_VERSION=development
+               CONDA_DEPENDENCIES=$CONDA_ALL_DEPENDENCIES
 
         # Try older numpy versions
         - python: 2.7

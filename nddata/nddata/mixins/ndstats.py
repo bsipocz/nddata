@@ -13,10 +13,10 @@ from astropy.stats import mad_std, biweight_location, biweight_midvariance
 
 from ...utils.stats import mode
 
-try:
+try:  # pragma: no cover
     from scipy.stats import skew, kurtosis
     SCIPY = True
-except ImportError:
+except ImportError:  # pragma: no cover
     SCIPY = False
 
 __all__ = ['NDStatsMixin']
