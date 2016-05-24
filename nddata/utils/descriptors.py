@@ -17,7 +17,7 @@ from .numpyutils import is_numeric_array
 
 __all__ = ['BaseDescriptor', 'AdvancedDescriptor',
            'Meta', 'ArrayData', 'Unit', 'Mask', 'WCS', 'Uncertainty', 'Flags',
-           'UncertaintyData']
+           'UncertaintyData', 'ArrayMask']
 
 
 class BaseDescriptor(object):
