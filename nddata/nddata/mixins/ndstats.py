@@ -26,7 +26,7 @@ class NDStatsMixin(object):
     """Mixin class to add methods to get statistics about the \
             `nddata.nddata.NDDataBase` class.
     """
-    def stats(self, scipy=False, astropy=False):
+    def stats(self, scipy=False, astropy=False, decimals_mode=0):
         """Gives some statistical properties of the data saved in the instance.
 
         .. note::
@@ -48,6 +48,12 @@ class NDStatsMixin(object):
             :func:`astropy.stats.biweight_midvariance`) are included in the
             returned table.
             Default is ``False``
+
+        decimals_mode : `int`, optional
+            The number of digits relevant **only** for calculating the
+            **mode**. See also the parameter description of the function:
+            :func:`~nddata.utils.stats.mode`.
+            Default is ``0``.
 
         Returns
         -------
@@ -128,32 +134,40 @@ class NDStatsMixin(object):
         if self.data is None:
             raise TypeError('cannot do statistics on the data if the data is '
                             'None.')
-        return Table(self._stats(scipy=scipy, astropy=astropy))
+        return Table(self._stats(scipy=scipy, astropy=astropy,
+                                 decimals_mode=decimals_mode))
 
-    def _stats(self, scipy, astropy):
+    def _stats(self, scipy, astropy, decimals_mode):
         """If someone wants to include some more attributes that contribute
         to the returned statistics one can add a function here.
         """
         # Create the ordered dict that will be converted to the table later.
-        # It also allows that we don't need to return from the methods because
-        # they can simply include their values and since it's passed by
-        # reference it will be updated everywhere.
         stats = OrderedDict()
-        self._stats_data(stats, scipy=scipy, astropy=astropy)
-        self._stats_mask(stats)
-        self._stats_meta(stats)
-        self._stats_wcs(stats)
-        self._stats_flags(stats)
+        # Get the mask, the standard is just checking if it's a boolean array
+        # and returning it or if it's something else it returns None. But
+        # subclasses can modify this method to also evaluate other masks.
+        mask = self._stats_get_mask()
+        # No need to return anything here, the statistics are inserted in the
+        # dictionary and are updated in-place
+        self._stats_data(stats, mask, scipy=scipy, astropy=astropy,
+                         decimals_mode=decimals_mode)
         return stats
 
-    def _stats_data(self, stats, scipy, astropy):
+    def _stats_data(self, stats, mask, scipy, astropy, decimals_mode):
         data = self.data
+
+        # The original data size, for computation of valid elements and how
+        # many are masked/invalid.
+        size_initial = data.size
+
         # Delete masked values, this will directly convert it to a 1D array
         # if the mask is not appropriate then ravel it.
-        size_initial = data.size
-        if isinstance(self.mask, np.ndarray) and self.mask.dtype == bool:
+        if mask is not None:
             data = data[~self.mask]
         size_masked = data.size
+
+        # Delete invalid (NaN, Inf) values. This should ensure that the result
+        # is always a 1D array
         data = data[np.isfinite(data)]
         size_valid = data.size
         stats['elements'] = [size_valid]
@@ -166,7 +180,7 @@ class NDStatsMixin(object):
         # very, very slow and by default tries to calculate the mode along
         # axis=0 and not for the whole array.
         # Take the first element since the second is the number of occurences.
-        stats['mode'] = [mode(data)[0]]
+        stats['mode'] = [mode(data, decimals=decimals_mode)[0]]
 
         if astropy:
             stats['biweight_location'] = [biweight_location(data)]
@@ -194,14 +208,11 @@ class NDStatsMixin(object):
 
         return data
 
-    def _stats_mask(self, stats):
-        pass
-
-    def _stats_meta(self, stats):
-        pass
-
-    def _stats_wcs(self, stats):
-        pass
-
-    def _stats_flags(self, stats):
-        pass
+    def _stats_get_mask(self):
+        """Mostly for subclasses that don't use numpy bool masks as "mask".
+        These only need to override this method and evaluate their mask here
+        so it can be applied to the "data".
+        """
+        if isinstance(self.mask, np.ndarray) and self.mask.dtype == bool:
+            return self.mask
+        return None
