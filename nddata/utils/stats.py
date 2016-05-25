@@ -7,13 +7,12 @@ import numpy as np
 
 from astropy import log
 
-from distutils.version import LooseVersion
-NUMPY_1_9 = LooseVersion(np.__version__) >= LooseVersion('1.9')
+from .. import MIN_VERSIONS
 
 
 __all__ = ['mode']
 
-if not NUMPY_1_9:  # pragma: no cover
+if not MIN_VERSIONS['NUMPY_1_9']:  # pragma: no cover
     __doctest_skip__ = ['mode']
 
 
@@ -117,7 +116,7 @@ def mode(data, decimals=0):
     """
     # If someone calls it from numpy 1.8 and lower drop the decimals and send
     # them to the normal mode.
-    if not NUMPY_1_9:  # pragma: no cover
+    if not MIN_VERSIONS['NUMPY_1_9']:  # pragma: no cover
         if decimals != 0:
             log.info('numpy < 1.9 doesn\'t allow giving "decimals".')
         return _mode_fallback_numpy_lt_1_9(data)

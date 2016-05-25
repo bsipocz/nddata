@@ -59,6 +59,16 @@ NumPy related utilities.
     :no-inheritance-diagram:
 
 
+Numba
+=====
+
+`Numba <http://numba.pydata.org/>`_ related utilities. They are only
+useable if that package is installed.
+
+.. automodapi:: nddata.utils.numbautils
+    :no-inheritance-diagram:
+
+
 Sentinels
 =========
 
