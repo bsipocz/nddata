@@ -3,3 +3,6 @@ matplotlib
 Cython
 git+https://github.com/astropy/astropy-helpers.git@master
 astropy
+scipy
+scikit-image
+numba
