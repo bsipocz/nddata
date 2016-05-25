@@ -115,7 +115,7 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
 
         return elements, sum, mean, minimum, maximum, stddev, variance
 
-else:
+else:  # pragma: no cover
 
     def _numba_stats_one_pass(array):
         raise ImportError('you need numba to use this function.')
