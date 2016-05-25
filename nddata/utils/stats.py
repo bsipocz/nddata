@@ -24,6 +24,12 @@ def mode(data, decimals=0):
     :func:`scipy.stats.mode` because it rounds the values to a specified
     decimal place.
 
+    .. note::
+        ``SciPy`` version 18 will contain an optimized mode function. It is
+        still a bit slower than this one but not by a factor of 100-1000 but
+        more a factor of 1.5-2. Which might be worth it considering that the
+        :func:`scipy.stats.mode` has a lot more options.
+
     Parameters
     ----------
     data : `numpy.ndarray`-like
