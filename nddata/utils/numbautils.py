@@ -72,7 +72,9 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
         # Initialize the values
         cur_min = array[0]            # Minimum value
         cur_max = array[0]            # Maximum value
+
         cur_sum = 0.                  # Sum of the elements processed
+
         cur_rmean = array[0]          # Corrected mean for variance computation
         cur_rsum = 0.                 # Corrected sum for variance computation
         cur_rsum2 = 0.                # Corrected sum squared.

@@ -44,9 +44,10 @@ matrix:
     include:
 
         # Do a coverage test in Python 2.
-        - python: 3.5
+        - python: 2.7
           env: SETUP_CMD='test --coverage'
                CONDA_DEPENDENCIES=$CONDA_ALL_DEPENDENCIES
+        # Weirdly no data could be fetched with 3.5 so leaving this as 2.7
 
         # Check for sphinx doc build warnings - we do this first because it
         # may run for a long time
