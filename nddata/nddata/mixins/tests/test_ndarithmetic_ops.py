@@ -27,9 +27,8 @@ from astropy import units as u
 from astropy.wcs import WCS
 
 import astropy
-from distutils.version import LooseVersion
 
-numpy_1_10 = LooseVersion(np.__version__) >= LooseVersion('1.10')
+from .... import MIN_VERSIONS
 
 
 class NDDataArithmetic(NDArithmeticPyOpsMixin, NDDataBase):
@@ -98,7 +97,7 @@ def compare_ndd_identical(ndd1, ndd2):
                                    np.ma.array(2, mask=False),
                                    5 * u.dimensionless_unscaled])
 def test_arithmetic_ops(op2):
-    if not numpy_1_10 and isinstance(op2, np.ma.MaskedArray):
+    if not MIN_VERSIONS['NUMPY_1_10'] and isinstance(op2, np.ma.MaskedArray):
         pytest.xfail("masked arrays didn't respect numpy priority yet...")
 
     ndd = create_ndd()
@@ -120,7 +119,7 @@ def test_arithmetic_ops(op2):
                                    np.ma.array(2, mask=False),
                                    5 * u.dimensionless_unscaled])
 def test_arithmetic_ops_optional_kwargs(op2):
-    if not numpy_1_10 and isinstance(op2, np.ma.MaskedArray):
+    if not MIN_VERSIONS['NUMPY_1_10'] and isinstance(op2, np.ma.MaskedArray):
         pytest.xfail("masked arrays didn't respect numpy priority yet...")
 
     ndd = create_ndd()

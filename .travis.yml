@@ -33,7 +33,7 @@ env:
         # so Cython is required for testing. If your package does not include
         # Cython code, you can set CONDA_DEPENDENCIES=''
         - CONDA_DEPENDENCIES=''
-        - CONDA_ALL_DEPENDENCIES='scipy'
+        - CONDA_ALL_DEPENDENCIES='scipy numba scikit-image'
     matrix:
         # Make sure that egg_info works without dependencies
         - SETUP_CMD='egg_info'
@@ -47,12 +47,14 @@ matrix:
         - python: 2.7
           env: SETUP_CMD='test --coverage'
                CONDA_DEPENDENCIES=$CONDA_ALL_DEPENDENCIES
+        # Weirdly no data could be fetched with 3.5 so leaving this as 2.7
 
         # Check for sphinx doc build warnings - we do this first because it
         # may run for a long time
         - python: 2.7
           env: SETUP_CMD='build_sphinx -w'
                CONDA_DEPENDENCIES=$CONDA_ALL_DEPENDENCIES
+        # python 3.5 has other links to collections.abc so no switch yet.
 
         # Try Astropy development version with all dependencies
         - python: 2.7
@@ -61,30 +63,30 @@ matrix:
         - python: 3.5
           env: ASTROPY_VERSION=development
                CONDA_DEPENDENCIES=$CONDA_ALL_DEPENDENCIES
-
-        # Try older numpy versions
-        - python: 2.7
-          env: NUMPY_VERSION=dev
         - python: 3.5
           env: NUMPY_VERSION=dev
-        - python: 2.7
-          env: NUMPY_VERSION=1.10
-        - python: 2.7
-          env: NUMPY_VERSION=1.9
-        - python: 2.7
-          env: NUMPY_VERSION=1.8
-        - python: 2.7
-          env: NUMPY_VERSION=1.7
+               CONDA_DEPENDENCIES=$CONDA_ALL_DEPENDENCIES
+
+        # Try the LTS astropy versions
+        - python: 3.5
+          env: ASTROPY_VERSION=lts
 
         # Try numpy pre-release
         - python: 3.5
           env: NUMPY_VERSION=prerelease
 
-        # Try the LTS astropy versions
-        - python: 2.7
-          env: ASTROPY_VERSION=lts
+        # Try older numpy versions
         - python: 3.5
-          env: ASTROPY_VERSION=lts
+          env: NUMPY_VERSION=1.10
+        # some weird test failure here with python 3, therefore python 2
+        - python: 2.7
+          env: NUMPY_VERSION=1.9
+
+        # Older numpy versions which aren't build against python 3.5
+        - python: 2.7
+          env: NUMPY_VERSION=1.8
+        - python: 2.7
+          env: NUMPY_VERSION=1.7
 
         # Do a PEP8 test
         # - python: 2.7

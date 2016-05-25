@@ -13,11 +13,9 @@ from astropy.stats import mad_std, biweight_location, biweight_midvariance
 
 from ...utils.stats import mode
 
-try:  # pragma: no cover
+from ... import OPT_DEPS
+if OPT_DEPS['SCIPY']:  # pragma: no cover
     from scipy.stats import skew, kurtosis
-    SCIPY = True
-except ImportError:  # pragma: no cover
-    SCIPY = False
 
 __all__ = ['NDStatsMixin']
 
@@ -172,6 +170,10 @@ class NDStatsMixin(object):
         size_valid = data.size
         stats['elements'] = [size_valid]
 
+        # TODO: elements, min, max, mean, sum, std and var can also be "faster"
+        # computed by nddata.utils.numbautils.
+        # But the really slow functions are skew, mad, kurtosis and the
+        # biweights. Not necessary for now.
         stats['min'] = [np.amin(data)]
         stats['max'] = [np.amax(data)]
         stats['mean'] = [np.mean(data)]
@@ -194,7 +196,7 @@ class NDStatsMixin(object):
         stats['var'] = [np.var(data)]
 
         if scipy:  # pragma: no cover
-            if not SCIPY:
+            if not OPT_DEPS['SCIPY']:
                 log.info('SciPy is not installed.')
             else:
                 # Passing axis=None should not be important since we already

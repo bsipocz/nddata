@@ -4,7 +4,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from ..stats import mode
-from ..stats import NUMPY_1_9
+from ... import MIN_VERSIONS
 
 
 def test_mode():
@@ -24,7 +24,7 @@ def test_mode_decimals():
     assert mode([0.5, 0.5, 0.7]) == (0.0, 2)  # 0.5 rounds down
     assert mode([1.5, 1.5, 1.7]) == (2.0, 3)  # 1.5 rounds up
 
-    if NUMPY_1_9:
+    if MIN_VERSIONS['NUMPY_1_9']:
         assert mode([0.5, 0.5, 0.7], decimals=1) == (0.5, 2)
         assert mode([0.5, 0.5, 0.7], decimals=None) == (0.5, 2)
         assert mode([1.5, 1.5, 1.7], decimals=1) == (1.5, 2)

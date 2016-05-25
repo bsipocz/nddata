@@ -20,8 +20,8 @@ from astropy.tests.helper import pytest
 from astropy import units as u
 
 import astropy
-from distutils.version import LooseVersion
-astropy_1_2 = LooseVersion(astropy.__version__) >= LooseVersion('1.2')
+
+from .... import MIN_VERSIONS
 
 
 # Alias NDDataAllMixins in case this will be renamed ... :-)
@@ -1174,7 +1174,7 @@ def test_power_both_uncertainty_correlation():
 
 # Unfortunatly #4770 of astropy is probably not backported so will only
 # be avaiable for astropy 1.2. So this test is marked as skipped.
-@pytest.mark.xfail(not astropy_1_2, strict=True,
+@pytest.mark.xfail(not MIN_VERSIONS['ASTROPY_1_2'], strict=True,
                    reason="dimensionless_scaled base or exponent are only "
                           "allowed from 1.2 on.")
 def test_power_equivalent_units():
@@ -1486,7 +1486,7 @@ def test_var_compare_with_std_power(corr, unit_base, unit_base_uncert,
     if ((unit_base == u.m/u.cm) and
             unit_exp is None and
             not exponent_has_uncert and
-            not astropy_1_2):
+            not MIN_VERSIONS['ASTROPY_1_2']):
         pytest.xfail("failing configuration (but should work)")
 
     uncert1 = VarianceUncertainty(2, unit=unit_base_uncert)

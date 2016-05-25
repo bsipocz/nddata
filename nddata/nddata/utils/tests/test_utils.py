@@ -12,11 +12,8 @@ from astropy.wcs import WCS
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 
-try:
-    import skimage  # pylint: disable=W0611
-    HAS_SKIMAGE = True
-except ImportError:
-    HAS_SKIMAGE = False
+
+from .... import OPT_DEPS
 
 
 test_positions = [(10.52, 3.12), (5.62, 12.97), (31.33, 31.77),
@@ -217,7 +214,8 @@ def test_subpixel_indices(position, subpixel_index):
     assert np.all(subpixel_indices(position, subsampling) == subpixel_index)
 
 
-@pytest.mark.skipif('not HAS_SKIMAGE')
+@pytest.mark.skipif(not OPT_DEPS['SCIKIT-IMAGE'],
+                    reason='compare against skimage requires scikit-image')
 class TestBlockReduce(object):
     def test_1d(self):
         """Test 1D array."""
@@ -276,7 +274,8 @@ class TestBlockReduce(object):
             block_reduce(data, (2, 2, 2))
 
 
-@pytest.mark.skipif('not HAS_SKIMAGE')
+@pytest.mark.skipif(not OPT_DEPS['SCIKIT-IMAGE'],
+                    reason='compare against skimage requires scikit-image')
 class TestBlockReplicate(object):
     def test_1d(self):
         """Test 1D array."""
