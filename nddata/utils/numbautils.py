@@ -13,7 +13,7 @@ if OPT_DEPS['NUMBA']:
     import numba as nb
 
 
-__all__ = ['stats_one_pass', 'stats_two_pass']
+__all__ = ['stats_one_pass']
 
 
 def stats_one_pass(array):
