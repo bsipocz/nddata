@@ -62,8 +62,11 @@ NumPy related utilities.
 Numba
 =====
 
-`Numba <http://numba.pydata.org/>`_ related utilities. They are only
-useable if that package is installed.
+`Numba <http://numba.pydata.org/>`_ related utilities.
+
+.. warning::
+        These function require that `Numba <http://numba.pydata.org/>`_ is
+        installed.
 
 .. automodapi:: nddata.utils.numbautils
     :no-inheritance-diagram:

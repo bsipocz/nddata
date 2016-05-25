@@ -37,12 +37,6 @@ except ImportError:
     OPT_DEPS['SCIPY'] = False
 
 try:
-    import numba as nb
-    OPT_DEPS['NUMBA'] = True
-except ImportError:
-    OPT_DEPS['NUMBA'] = False
-
-try:
     import skimage
     OPT_DEPS['SCIKIT-IMAGE'] = True
 except ImportError:

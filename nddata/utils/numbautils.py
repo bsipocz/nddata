@@ -20,10 +20,6 @@ def stats_one_pass(array):
     """Calculate several statistical properties in one (or two, not sure yet) \
             over the ``array``.
 
-    .. warning::
-        This function requires that `Numba <http://numba.pydata.org/>`_ is
-        installed.
-
     Parameters
     ----------
     array : `numpy.ndarray`-like
@@ -57,8 +53,8 @@ def stats_one_pass(array):
     # Special cases: array only has one element - we could also return a lot
     # of trivial values but it's more likely someone did this by accident.
     # Therefore I let him know!
-    if array.size == 1:
-        return TypeError('cannot determine statistics with only one element.')
+    if array.size <= 1:
+        raise TypeError('cannot determine statistics with only one element.')
     # Numba requires much explicit loops and since we don't allow an axis
     # argument we can ravel it if it's multidimensional
     if array.ndim > 1:
@@ -69,7 +65,7 @@ def stats_one_pass(array):
     return _numba_stats_one_pass(array)
 
 
-if OPT_DEPS['NUMBA']:
+if OPT_DEPS['NUMBA']:  # pragma: no cover
 
     @nb.njit
     def _numba_stats_one_pass(array):
