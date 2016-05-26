@@ -28,6 +28,34 @@ class NDClippingMixin(object):
         None and will overwrite the current mask with the resulting mask.
     """
 
+    def _clipping_get_mask(self):
+        """Mostly for subclasses that don't use numpy bool masks as "mask".
+
+        This function should return ``None`` or a `numpy.ndarray` of boolean
+        type that can be used for boolean indexing. This function takes no
+        arguments but can use every attribute of the instance it wants.
+
+        See also
+        --------
+        NDStatsMixin._stats_get_mask
+
+        Notes
+        -----
+        It is very important that you do not return "None" here because
+        np.ma.array(self.data, mask=None) is MUCH MUCH MUCH more slower than
+        np.ma.array(self.data, mask=np.zeros(self.data.shape, dtype=bool)).
+        I measured 800 ms for a (100, 100, 100) array with None vs. 450 us with
+        np.zeros. This is more than a factor of 1000!
+        See also:
+        http://stackoverflow.com/questions/37468069/why-is-np-ma-array-so-slow-with-mask-none-or-mask-0
+        """
+        if isinstance(self.mask, np.ndarray) and self.mask.dtype == bool:
+            return self.mask
+        return np.zeros(self.data.shape, dtype=bool)
+        # numpy 1.11 also special cases False and True but not before, so this
+        # function is awfully slow then.
+        # return False
+
     def clip_extrema(self, nlow=0, nhigh=0, axis=None):
         """Clip the lowest and/or highest values along an axis.
 
@@ -196,7 +224,8 @@ class NDClippingMixin(object):
         self.mask = marr.mask
         return None  # explicitly return None, could also be omitted.
 
-    def _clip_extrema_old(self, nlow=0, nhigh=0, axis=None):
+    def _clip_extrema_old(self, nlow=0, nhigh=0,
+                          axis=None):  # pragma: no cover
         """This is the original version of the "clip_extrema" method. In case
         some weird constellation shows that this is faster than the new method
         I'll leave it in here for now.
@@ -268,31 +297,3 @@ class NDClippingMixin(object):
         self.mask = marr.mask
 
         return None
-
-    def _clipping_get_mask(self):
-        """Mostly for subclasses that don't use numpy bool masks as "mask".
-
-        This function should return ``None`` or a `numpy.ndarray` of boolean
-        type that can be used for boolean indexing. This function takes no
-        arguments but can use every attribute of the instance it wants.
-
-        See also
-        --------
-        NDStatsMixin._stats_get_mask
-
-        Notes
-        -----
-        It is very important that you do not return "None" here because
-        np.ma.array(self.data, mask=None) is MUCH MUCH MUCH more slower than
-        np.ma.array(self.data, mask=np.zeros(self.data.shape, dtype=bool)).
-        I measured 800 ms for a (100, 100, 100) array with None vs. 450 us with
-        np.zeros. This is more than a factor of 1000!
-        See also:
-        http://stackoverflow.com/questions/37468069/why-is-np-ma-array-so-slow-with-mask-none-or-mask-0
-        """
-        if isinstance(self.mask, np.ndarray) and self.mask.dtype == bool:
-            return self.mask
-        return np.zeros(self.data.shape, dtype=bool)
-        # numpy 1.11 also special cases False and True but not before, so this
-        # function is awfully slow then.
-        # return False

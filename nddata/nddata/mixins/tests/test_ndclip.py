@@ -16,6 +16,23 @@ def test_extremaclip_axis_not_exist():
         ndd.clip_extrema(nlow=1, axis=1)
 
 
+def test_extremaclip_no_clip():
+    data = np.array([5, 2, 1, 3, 3])
+
+    # no initial mask will stay None when clipped without nlow/nhigh
+    ndd = NDData(data)
+    ndd2 = ndd.copy()
+    ndd2.clip_extrema()
+    assert ndd2.mask is None
+
+    # with initial mask it will also stay the same when clipped without
+    # nlow/nhigh
+    ndd = NDData(data, mask=(data > 2))
+    ndd2 = ndd.copy()
+    ndd2.clip_extrema()
+    np.testing.assert_array_equal(ndd.mask, ndd2.mask)
+
+
 def test_extremaclip_one_d_nlow():
     data = np.array([5, 2, 1, 3, 3])
     ndd = NDData(data)
