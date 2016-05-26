@@ -30,7 +30,16 @@ class NDStatsMixin(object):
         .. note::
             If the ``mask`` should be taken into account it is needed to be
             a `numpy.ndarray` with a boolean dtype. Otherwise the mask is
-            ignored.
+            ignored. Subclasses can override ``_stats_get_mask`` to calculate
+            an appropriate mask if it doesn't satisfy these conditions.
+
+        .. note::
+            The only statistical property that cannot be computed with an
+            ``axis`` argument is the **mode**. Maybe that will change with
+            ``SciPy 0.18`` when their mode function is finally as fast as it
+            should be. But for now: No ``axis`` argument possible but I've
+            linked all relevant functions in the returns sections so it's easy
+            to do.
 
         Parameters
         ----------
@@ -208,8 +217,10 @@ class NDStatsMixin(object):
 
     def _stats_get_mask(self):
         """Mostly for subclasses that don't use numpy bool masks as "mask".
-        These only need to override this method and evaluate their mask here
-        so it can be applied to the "data".
+
+        This function should return ``None`` or a `numpy.ndarray` of boolean
+        type that can be used for boolean indexing. This function takes no
+        arguments but can use every attribute of the instance it wants.
         """
         if isinstance(self.mask, np.ndarray) and self.mask.dtype == bool:
             return self.mask
