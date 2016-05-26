@@ -25,7 +25,7 @@ class NDClippingMixin(object):
 
     .. warning::
         These methods do require the mask to be a boolean `numpy.ndarray` or
-        None and will produce such masks.
+        None and will overwrite the current mask with the resulting mask.
     """
 
     def clip_extrema(self, nlow=0, nhigh=0, axis=None):
@@ -113,7 +113,7 @@ class NDClippingMixin(object):
         # to create one. Get the mask from a customizable function so
         # subclasses can override it.
         marr = np.ma.array(self.data, mask=self._clipping_get_mask(),
-                           copy=False, hard_mask=False)
+                           copy=False)
 
         # If the axis is None the procedure differs from integer axis cases
         # because we don't need the expand dims and comparison array, so handle
@@ -144,7 +144,88 @@ class NDClippingMixin(object):
         if axis >= marr.ndim:
             raise IndexError('cannot clip along non-existent axis.')
 
-        # TODO: Maybe make axis=None work as well, but keep it like is for now.
+        # This approach uses advanced indexing like it is used if you index
+        # with the result of a np.where() call. We create mgrids for each axis
+        # except the one we compute along and insert the computed indices at
+        # the appropriate place when we look for the highest/lowest elements.
+
+        # Create a grid to index the elements. The indexes for the highest
+        # value will be inserted later so we need only setup the other axis.
+        # It is crucial that we special case 1 and 2 dimensions here because
+        # the iteration would otherwise go over the grid and not over the axis.
+        if marr.ndim == 1:
+            # Empty indexes, because we only need to index along the axis
+            # we compute the positions of the maxima.
+            idx = []
+        elif marr.ndim == 2:
+            # This case is special because we create a 1D grid and the
+            # iteration I've used for 3d+ would iterate over the 1D grid
+            # and yield a wrong result. So we just create a list containing
+            # the one grid and insert the grid of the axis that WAS NOT
+            # specified.
+            idx = [np.mgrid[slice(marr.shape[0 if axis == 1 else 1])]]
+        else:
+            # Create a list of the grids over all axis except the one that was
+            # specified.
+            idx = [i for i in np.mgrid[[slice(marr.shape[ax])
+                                        for ax in range(marr.ndim)
+                                        if ax != axis]]]
+
+        # Start finding and clipping the lowest values
+        for i in range(nlow):
+            # Finding the coordinates with np.ma.argmin along the axis
+            minCoord = np.ma.argmin(marr, axis=axis)
+            # Insert these indexes at the "axis"-position of the index grids.
+            idx.insert(axis, minCoord)
+            # Set all these elements to masked (True)
+            marr.mask[idx] = True
+            # And remove the positions of the minima again. This is much faster
+            # than creating a new list of mgrids each iteration.
+            del idx[axis]
+
+        # Same for the highest values for each pixel
+        for i in range(nhigh):
+            maxCoord = np.ma.argmax(marr, axis=axis)
+            idx.insert(axis, maxCoord)
+            marr.mask[idx] = True
+            del idx[axis]
+
+        # We just replace the mask. This could be problematic in case someone
+        # wanted the mask to be something else but that shouldn't be the most
+        # common case.
+        self.mask = marr.mask
+        return None  # explicitly return None, could also be omitted.
+
+    def _clip_extrema_old(self, nlow=0, nhigh=0, axis=None):
+        """This is the original version of the "clip_extrema" method. In case
+        some weird constellation shows that this is faster than the new method
+        I'll leave it in here for now.
+
+        TODO: Benchmark and then remove this or make it public again.
+        """
+        nlow = int(abs(nlow))
+        nhigh = int(abs(nhigh))
+        if axis is not None:
+            axis = int(abs(axis))
+
+        if nlow == 0 and nhigh == 0:
+            return None
+
+        marr = np.ma.array(self.data, mask=self._clipping_get_mask(),
+                           copy=False, hard_mask=False)
+
+        if axis is None:
+            for i in range(nlow):
+                idx = np.ma.argmin(marr)
+                marr.mask.ravel()[idx] = True
+            for i in range(nhigh):
+                idx = np.ma.argmax(marr)
+                marr.mask.ravel()[idx] = True
+
+            self.mask = marr.mask
+            return None
+        if axis >= marr.ndim:
+            raise IndexError('cannot clip along non-existent axis.')
 
         # This comparison array is just an array containing the indices along
         # the axis we want to compare. In case the axis is not the last
@@ -184,12 +265,9 @@ class NDClippingMixin(object):
             newmask = cmp == maxCoord
             marr.mask |= newmask
 
-        # We just replace the mask. This could be problematic in case someone
-        # wanted the mask to be something else but that shouldn't be the most
-        # common case.
         self.mask = marr.mask
 
-        return None  # explicitly return None, could also be omitted.
+        return None
 
     def _clipping_get_mask(self):
         """Mostly for subclasses that don't use numpy bool masks as "mask".
@@ -201,7 +279,20 @@ class NDClippingMixin(object):
         See also
         --------
         NDStatsMixin._stats_get_mask
+
+        Notes
+        -----
+        It is very important that you do not return "None" here because
+        np.ma.array(self.data, mask=None) is MUCH MUCH MUCH more slower than
+        np.ma.array(self.data, mask=np.zeros(self.data.shape, dtype=bool)).
+        I measured 800 ms for a (100, 100, 100) array with None vs. 450 us with
+        np.zeros. This is more than a factor of 1000!
+        See also:
+        http://stackoverflow.com/questions/37468069/why-is-np-ma-array-so-slow-with-mask-none-or-mask-0
         """
         if isinstance(self.mask, np.ndarray) and self.mask.dtype == bool:
             return self.mask
-        return None
+        return np.zeros(self.data.shape, dtype=bool)
+        # numpy 1.11 also special cases False and True but not before, so this
+        # function is awfully slow then.
+        # return False
