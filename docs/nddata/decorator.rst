@@ -18,23 +18,23 @@ Getting started
 
 Let's consider the following function::
 
-    def test(data, wcs=None, unit=None, n_iterations=3):
+    def func(data, wcs=None, unit=None, n_iterations=3):
         ...
 
-Now let's say that we want to be able to call the function as ``test(nd)``
+Now let's say that we want to be able to call the function as ``func(nd)``
 where ``nd`` is a :class:`~nddata.nddata.NDDataBase` instance. We can decorate
 this function using :func:`~nddata.nddata.utils.support_nddata`::
 
     from nddata.nddata import support_nddata
 
     @support_nddata
-    def test(data, wcs=None, unit=None, n_iterations=3):
+    def func(data, wcs=None, unit=None, n_iterations=3):
         ...
 
-which makes it so that when the user calls ``test(nd)``, the function would
+which makes it so that when the user calls ``func(nd)``, the function would
 automatically be called with::
 
-    test(nd.data, wcs=nd.wcs, unit=nd.unit)
+    func(nd.data, wcs=nd.wcs, unit=nd.unit)
 
 That is, the decorator looks at the signature of the function and checks if any
 of the arguments are also properties of the :class:`~nddata.nddata.NDDataBase`
@@ -57,10 +57,10 @@ specify ``repack=True`` in the decorator and provide a list of the names of the
 output arguments from the function::
 
     @support_nddata(repack=True, returns=['data', 'wcs'])
-    def test(data, wcs=None, unit=None, n_iterations=3):
+    def func(data, wcs=None, unit=None, n_iterations=3):
         ...
 
-With this, the function will return separate values if ``test`` is called with
+With this, the function will return separate values if ``func`` is called with
 separate arguments, and an object with the same class type as the input if the
 input is an :class:`~nddata.nddata.NDDataBase` or subclass instance.
 
@@ -69,6 +69,6 @@ Finally, the decorator can be made to restrict input to specific
 the ``accepts`` option::
 
     @support_nddata(accepts=CCDImage)
-    def test(data, wcs=None, unit=None, n_iterations=3):
+    def func(data, wcs=None, unit=None, n_iterations=3):
         ...
 
