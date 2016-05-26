@@ -67,6 +67,40 @@ def test_extremaclip_one_d_nlow():
                                   np.array([1, 1, 1, 1, 1], dtype=bool))
 
 
+def test_extremaclip_one_d_nlow():
+    data = np.array([5, 2, 1, 3, 3])
+    ndd = NDData(data)
+    ndd.clip_extrema(nlow=1, axis=0)
+    np.testing.assert_array_equal(ndd.data, data)
+    np.testing.assert_array_equal(ndd.mask,
+                                  np.array([0, 0, 1, 0, 0], dtype=bool))
+
+    ndd.clip_extrema(nlow=1, axis=0)
+    np.testing.assert_array_equal(ndd.data, data)
+    np.testing.assert_array_equal(ndd.mask,
+                                  np.array([0, 1, 1, 0, 0], dtype=bool))
+
+    ndd.clip_extrema(nlow=1, axis=0)
+    np.testing.assert_array_equal(ndd.data, data)
+    np.testing.assert_array_equal(ndd.mask,
+                                  np.array([0, 1, 1, 1, 0], dtype=bool))
+
+    ndd.clip_extrema(nlow=1, axis=0)
+    np.testing.assert_array_equal(ndd.data, data)
+    np.testing.assert_array_equal(ndd.mask,
+                                  np.array([0, 1, 1, 1, 1], dtype=bool))
+
+    ndd.clip_extrema(nlow=1, axis=0)
+    np.testing.assert_array_equal(ndd.data, data)
+    np.testing.assert_array_equal(ndd.mask,
+                                  np.array([1, 1, 1, 1, 1], dtype=bool))
+
+    ndd.clip_extrema(nlow=1, axis=0)
+    np.testing.assert_array_equal(ndd.data, data)
+    np.testing.assert_array_equal(ndd.mask,
+                                  np.array([1, 1, 1, 1, 1], dtype=bool))
+
+
 def test_extremaclip_one_d_nhigh():
     data = np.array([5, 2, 1, 3, 3])
     ndd = NDData(data)
