@@ -8,4 +8,5 @@ Mixins for added functionality
     ndarithmetic.rst
     ndunitconversion.rst
     ndstats.rst
+    ndclip.rst
     ndio.rst

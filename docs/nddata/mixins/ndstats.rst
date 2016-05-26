@@ -206,31 +206,35 @@ full precision will almost always, even with big datasets, return the smallest
 element with 1 count. Choosing the right amount of ``decimals_mode`` is
 essential here.
 
-Just a note about timings::
+Just a note about timings (using ``SciPy 0.17.1``):
 
-    >>> data = np.random.randint(0, 1000, 10000) # random integer  # doctest: +SKIP
-    >>> %timeit nddata_stats_mode(data, decimals=10)  # doctest: +SKIP
+.. doctest-skip::
+
+    >>> data = np.random.randint(0, 1000, 10000) # random integer
+    >>> %timeit nddata_stats_mode(data, decimals=10)
     1000 loops, best of 3: 888 µs per loop
-    >>> %timeit nddata_stats_mode(data, decimals=0)  # doctest: +SKIP
+    >>> %timeit nddata_stats_mode(data, decimals=0)
     1000 loops, best of 3: 887 µs per loop
-    >>> %timeit scipy_stats_mode(data)  # doctest: +SKIP
+    >>> %timeit scipy_stats_mode(data)
     10 loops, best of 3: 128 ms per loop
-
-    >>> data = np.random.randint(0, 1000, 50000) # more random integer  # doctest: +SKIP
-    >>> %timeit nddata_stats_mode(data, decimals=10)  # doctest: +SKIP
+    >>> data = np.random.randint(0, 1000, 50000) # more random integer
+    >>> %timeit nddata_stats_mode(data, decimals=10)
     100 loops, best of 3: 3.78 ms per loop
-    >>> %timeit nddata_stats_mode(data, decimals=0)  # doctest: +SKIP
+    >>> %timeit nddata_stats_mode(data, decimals=0)
     100 loops, best of 3: 3.8 ms per loop
-    >>> %timeit scipy_stats_mode(data)  # doctest: +SKIP
+    >>> %timeit scipy_stats_mode(data)
     1 loop, best of 3: 341 ms per loop
-
-    >>> data = np.random.random(10000)  # this time some floats  # doctest: +SKIP
-    >>> %timeit nddata_stats_mode(data, decimals=10)  # doctest: +SKIP
+    >>> data = np.random.random(10000)  # this time some floats
+    >>> %timeit nddata_stats_mode(data, decimals=10)
     100 loops, best of 3: 3.31 ms per loop
-    >>> %timeit nddata_stats_mode(data, decimals=0)  # doctest: +SKIP
+    >>> %timeit nddata_stats_mode(data, decimals=0)
     100 loops, best of 3: 2.51 ms per loop
-    >>> %timeit scipy_stats_mode(data)  # doctest: +SKIP
+    >>> %timeit scipy_stats_mode(data)
     1 loop, best of 3: 1.16 s per loop
 
 You can also see that for floating point inputs the number of decimals affects
 the runtime. But not nearly as bad as for the scipy mode function.
+
+.. note::
+    ``Scipy 0.18`` will probably implement a comparably fast mode function so
+    these timings will be inaccurate for future ``SciPy`` versions.

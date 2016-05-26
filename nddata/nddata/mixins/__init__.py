@@ -4,3 +4,4 @@ from .ndio import *
 from .ndslicing import *
 from .ndunitconversion import *
 from .ndstats import *
+from .ndclip import *
