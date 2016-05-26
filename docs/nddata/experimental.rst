@@ -4,7 +4,6 @@ Experimental classes and Features
 =================================
 
 - :class:`nddata.utils.descriptors.ArrayMask`
-- :func:`nddata.utils.numbautils.stats_one_pass`
 - :class:`nddata.nddata.ContextArithmeticDefaults`
 - :class:`nddata.nddata.mixins.NDArithmeticPyOpsMixin`
 
