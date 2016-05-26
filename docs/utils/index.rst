@@ -68,8 +68,8 @@ Numba
         These function require that `Numba <http://numba.pydata.org/>`_ is
         installed.
 
-.. automodapi:: nddata.utils.numbautils
-    :no-inheritance-diagram:
+.. note::
+    Currently none avaiable.
 
 
 Sentinels

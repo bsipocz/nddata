@@ -6,4 +6,3 @@ from . import sentinels
 from . import contextmanager
 from . import dictutils
 from . import stats
-from . import numbautils

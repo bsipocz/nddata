@@ -170,10 +170,6 @@ class NDStatsMixin(object):
         size_valid = data.size
         stats['elements'] = [size_valid]
 
-        # TODO: elements, min, max, mean, sum, std and var can also be "faster"
-        # computed by nddata.utils.numbautils.
-        # But the really slow functions are skew, mad, kurtosis and the
-        # biweights. Not necessary for now.
         stats['min'] = [np.amin(data)]
         stats['max'] = [np.amax(data)]
         stats['mean'] = [np.mean(data)]
