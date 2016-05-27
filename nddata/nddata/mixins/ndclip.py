@@ -10,6 +10,7 @@ import numpy as np
 from astropy import log
 from astropy.table import Table
 from astropy.stats import mad_std, biweight_location, biweight_midvariance
+from astropy.stats import sigma_clip
 
 from ...utils.stats import mode
 
@@ -59,6 +60,10 @@ class NDClippingMixin(object):
     def clip_extrema(self, nlow=0, nhigh=0, axis=None):
         """Clip the lowest and/or highest values along an axis.
 
+        .. note::
+            It is possible to call this method without providing parameters but
+            then this method doesn't do anything.
+
         Parameters
         ----------
         nlow, nhigh : positive `int`, optional
@@ -74,11 +79,6 @@ class NDClippingMixin(object):
 
             Default is ``None``.
 
-        Returns
-        -------
-        nothing : `None`
-            This method will update the ``mask`` attribute but returns `None`.
-
         Raises
         ------
         IndexError
@@ -87,7 +87,7 @@ class NDClippingMixin(object):
         Notes
         -----
         The input parameters are cast to the restrictions, so invalid inputs
-        may not trigger an Exception **but** yield unexpected results. For
+        may not trigger an Exception **but** may yield unexpected results. For
         example the ``nlow`` parameter is cast to a positive integer by:
         ``nlow = int(abs(nlow))`` and similar for ``nhigh`` and ``axis``.
 
@@ -104,7 +104,8 @@ class NDClippingMixin(object):
             >>> ndd = NDData([7,1,3,2,5,1,5,7])
             >>> ndd.clip_extrema(nlow=1, nhigh=2)
             >>> ndd.mask
-            array([ True,  True, False, False, False, False, False,  True], dtype=bool)
+            array([ True,  True, False, False, False, False, False,  True], \
+dtype=bool)
 
         Only the first occurence of the lowest value (1) was masked, because
         the ``nlow`` parameter only masks one value even if it is contained
@@ -119,6 +120,19 @@ class NDClippingMixin(object):
             array([[ True, False, False],
                    [False,  True, False],
                    [False,  True, False]], dtype=bool)
+
+        As all of the other clipping methods this will take the original mask
+        into account::
+
+            >>> data = np.array([0, 1, 2, 3])
+            >>> mask = data > 1
+            >>> ndd = NDData(data, mask=mask)
+            >>> ndd.clip_extrema(nhigh=1)
+            >>> ndd.mask
+            array([False,  True,  True,  True], dtype=bool)
+
+        Here the values 3 and 2 are already masked so the highest remaining
+        element was 1.
         """
 
         # nlow and nhigh are the number of lowest or highest points to be
@@ -218,9 +232,7 @@ class NDClippingMixin(object):
             marr.mask[idx] = True
             del idx[axis]
 
-        # We just replace the mask. This could be problematic in case someone
-        # wanted the mask to be something else but that shouldn't be the most
-        # common case.
+        # Overwrite the saved mask and return None
         self.mask = marr.mask
         return None  # explicitly return None, could also be omitted.
 
@@ -230,7 +242,7 @@ class NDClippingMixin(object):
         some weird constellation shows that this is faster than the new method
         I'll leave it in here for now.
 
-        TODO: Benchmark and then remove this or make it public again.
+        TODO: Benchmark and then either remove this or make it public again.
         """
         nlow = int(abs(nlow))
         nhigh = int(abs(nhigh))
@@ -296,4 +308,131 @@ class NDClippingMixin(object):
 
         self.mask = marr.mask
 
+        return None
+
+    def clip_invalid(self):
+        """Clip elements that are ``NaN`` or ``Inf``.
+
+        See also
+        --------
+        numpy.isfinite
+
+        Examples
+        --------
+        Consider you have an array where invalid values like ``NaN`` or ``Inf``
+        are present. These can be masked by using clip_invalid::
+
+            >>> from nddata.nddata import NDData
+            >>> import numpy as np
+
+            >>> ndd = NDData([1, np.nan, np.inf, -np.inf, 10])
+            >>> ndd.clip_invalid()
+            >>> ndd.mask
+            array([False,  True,  True,  True, False], dtype=bool)
+        """
+        # Get the current mask.
+        mask = self._clipping_get_mask()
+        # Combine the mask by using a logical_or. The most appropriate way
+        # of finding invalid values is by using the inverse of np.isfinite.
+        # np.isfinite return True for each value that is not NaN or not Inf so
+        # we need to invert it.
+        mask |= ~np.isfinite(self.data)
+
+        # Overwrite the saved mask and return None
+        self.mask = mask
+        return None
+
+    def clip_sigma(self, **kwargs):
+        """Clip elements based on their deviation from a center.
+
+        Parameters
+        ----------
+        see `~astropy.stats.sigma_clip`. Depending on the version of
+        ``AstroPy`` these might differ. The only two parameters that cannot be
+        set are:
+
+        - ``data`` (will be filled by the data and mask of the instance)
+        - ``copy`` (this is explicitly set to False)
+
+        Notes
+        -----
+        It is recommended using astropy 1.1.2 or 1.2.0 or newer if you use this
+        function. There were several Bugfixes and new features in AstroPy
+        regarding this function.
+
+        Examples
+        --------
+        To clip values that deviate by three sigma (in terms of standard
+        deviation) from the median of the data::
+
+            >>> import numpy as np
+            >>> from nddata.nddata import NDData
+
+            >>> ndd = NDData([0, 10, 9, 10, 11, 9, 10, 10, 11])
+            >>> ndd.clip_sigma(cenfunc=np.ma.median, stdfunc=np.ma.std,
+            ...                sigma=3)
+            >>> ndd.mask
+            array([ True, False, False, False, False, False, False, False, \
+False], dtype=bool)
+        """
+        marr = np.ma.array(self.data, mask=self._clipping_get_mask(),
+                           copy=False)
+        clipped = sigma_clip(marr, copy=False, **kwargs)
+        # Overwrite the saved mask and return None
+        self.mask = clipped.mask
+
+        return None
+
+    def clip_range(self, low=None, high=None):
+        """Clip elements that are outside a given range.
+
+        .. note::
+            It is possible to call this method without providing parameters but
+            then this method doesn't do anything.
+
+        Parameters
+        ----------
+        low : number or None, optional
+            The minimal valid value. Values which are smaller than this
+            parameter will be masked. ``None`` disables this lower bound
+            criterion and no value will be masked because of it.
+            Default is ``None``.
+
+        high : number or None, optional
+            The maximal valid value. Values which are greater than this
+            parameter will be masked. ``None`` disables this lower bound
+            criterion and no value will be masked because of it.
+            Default is ``None``.
+
+        Examples
+        --------
+        One can give the lower and higher threshold like this::
+
+            >>> import numpy as np
+            >>> from nddata.nddata import NDData
+
+            >>> data = np.arange(10)
+            >>> ndd = NDData(data)
+            >>> ndd.clip_range(low=2.1, high=4)
+            >>> ndd.mask
+            array([ True,  True,  True, False, False,  True,  True,  True,  \
+True,  True], dtype=bool)
+        """
+        # If neither parameter is set exit this method immediatly, nothing to
+        # be done in here.
+        if low is None and high is None:
+            return None
+
+        # In any case we need the current mask.
+        mask = self._clipping_get_mask()
+
+        # Mask values below or above the threshold if any of these parameters
+        # are set. Then make an in-place logical_or to propagate these values.
+        if low is not None:
+            mask |= self.data < low
+        if high is not None:
+            mask |= self.data > high
+
+        # Overwrite the saved mask and return None
+        self.mask = mask
         return None
