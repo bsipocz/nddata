@@ -3,20 +3,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from collections import OrderedDict
-
 import numpy as np
-
-from astropy import log
-from astropy.table import Table
-from astropy.stats import mad_std, biweight_location, biweight_midvariance
-from astropy.stats import sigma_clip
-
-from ...utils.stats import mode
-
-from ... import OPT_DEPS
-if OPT_DEPS['SCIPY']:  # pragma: no cover
-    from scipy.stats import skew, kurtosis
 
 __all__ = ['NDClippingMixin']
 
@@ -342,8 +329,9 @@ dtype=bool)
         self.mask = mask
         return None
 
-    def clip_sigma(self, sigma=3, sigma_lower=None, sigma_upper=None, iters=5,
-                   cenfunc=np.ma.median, stdfunc=np.std, axis=None):
+    def clip_sigma(self, sigma=3, sigma_lower=None, sigma_upper=None,
+                   iters=None, cenfunc=np.ma.median, stdfunc=np.std,
+                   axis=None):
         """Perform sigma-clipping on the provided data.
 
         The data will be iterated over, each time rejecting points that are
@@ -380,7 +368,7 @@ dtype=bool)
             The number of iterations to perform sigma clipping, or ``None`` to
             clip until convergence is achieved (i.e., continue until the
             iteration masks no further values).
-            Default is ``5``.
+            Default is ``None``.
 
         cenfunc : callable, optional
             The function used to compute the center for the clipping. Must

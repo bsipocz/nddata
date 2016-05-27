@@ -153,6 +153,109 @@ But without parameters the method will not mask any values::
 Clipping values based on deviation
 ----------------------------------
 
-:meth:`~nddata.nddata.mixins.NDClippingMixin.clip_sigma`
+:meth:`~nddata.nddata.mixins.NDClippingMixin.clip_sigma` is loosly based on
+:func:`~astropy.stats.sigma_clip` with one major difference: it works in-place,
+so the ``data`` is what is saved in the data attribute of the instance coupled
+together with the mask attribute, if present. And the resulting mask is used to
+update the current mask of the instance. This also eliminates the ``copy``
+parameter from the original function.
 
-some explanation might come in here ... someday.
+But it's usage is otherwise identical, you can specify ``sigma`` and/or
+explicit ``sigma_lower`` and ``sigma_upper``::
+
+    >>> ndd1 = NDData([5,5,5,1,5,5,5,5])
+    >>> ndd2 = ndd1.copy()
+    >>> ndd1.clip_sigma(sigma=3)
+    >>> ndd1.mask
+    array([False, False, False,  True, False, False, False, False], dtype=bool)
+
+    >>> ndd2.clip_sigma(sigma_lower=3, sigma_upper=3)
+    >>> ndd2.mask
+    array([False, False, False,  True, False, False, False, False], dtype=bool)
+
+are completly identical. Internally ``sigma`` is used as ``sigma_lower`` if
+``sigma_lower`` is not explicitly given and similar for ``sigma_upper``.
+
+The algorithm uses the ``cenfunc`` and ``stdfunc`` callables to determine the
+center and the standard deviation. Since these are operating on
+`numpy.ma.MaskedArray` they need to be able to handle the mask correctly. The
+recommended functions are:
+
+- :func:`numpy.mean` for the mean value as center and :func:`numpy.ma.median`
+  for the median. Notice that :func:`numpy.median` (without the ``ma``) doesn't
+  work for masked arrays while :func:`numpy.mean` does.
+
+- :func:`numpy.std` for the regular standard deviation as deviation or the
+  ``AstroPy`` functions :func:`~astropy.stats.mad_std` for the median absolute
+  standard deviation or :func:`~astropy.stats.biweight_midvariance`.
+
+You could of course also write your own function and provide it as parameter.
+It only needs to satisfy two conditions: It must reduce the dimensions of the
+input by 1 (because internally this dimension is added again) and take an
+``axis`` parameter. But the defaults should already work well for most cases.
+
+The clip conditions can be summarized by::
+
+    deviation < (-sigma_lower * stdfunc(deviation))
+    deviation > (sigma_upper * stdfunc(deviation))
+
+where the deviation is defined as::
+
+    deviation = data - cenfunc(data [,axis=int])
+
+The :meth:`~nddata.nddata.mixins.NDClippingMixin.clip_sigma` also takes an
+``axis`` parameter which indicates along which axis the clipping should be
+done. The default is ``None`` which performs it along the whole array but any
+axis, provided the data has appropriate dimensions, is possible::
+
+    >>> ndd = NDData([[2,2,2,2,2.1], [30,30,30,30,2], [50,50,50,50,4]])
+
+    >>> ndd1 = ndd.copy()
+    >>> ndd1.clip_sigma(sigma=2, axis=None)
+    >>> ndd1.mask
+    array([[False, False, False, False, False],
+           [False, False, False, False, False],
+           [False, False, False, False, False]], dtype=bool)
+
+    >>> ndd2 = ndd.copy()
+    >>> ndd2.clip_sigma(sigma=2, axis=0)
+    >>> ndd2.mask
+    array([[False, False, False, False, False],
+           [False, False, False, False, False],
+           [False, False, False, False,  True]], dtype=bool)
+
+    >>> ndd3 = ndd.copy()
+    >>> ndd3.clip_sigma(sigma=2, axis=1)
+    >>> ndd3.mask
+    array([[False, False, False, False,  True],
+           [False, False, False, False,  True],
+           [False, False, False, False,  True]], dtype=bool)
+
+and even negative ``axis`` are possible (negative axis are interpreted as
+counting from the last axis, so ``-1`` is the last axis, ``-2`` the second last
+and so on)::
+
+    >>> ndd4 = ndd.copy()
+    >>> ndd3.clip_sigma(sigma=2, axis=-1)
+    >>> ndd3.mask
+    array([[False, False, False, False,  True],
+           [False, False, False, False,  True],
+           [False, False, False, False,  True]], dtype=bool)
+
+These results differ from each other depending on the chosen ``axis``.
+
+The remaining parameter ``iters`` controls how many clipping iterations are
+done. The default is ``None`` which means that the iterations only stop when
+no further value is discarded in the last iteration. If you want to limit the
+maximal number of iterations then you can provide a custom value here::
+
+    >>> ndd = NDData([5,5,5,5,5,5,5,5,5,5,7,7,7,9])
+    >>> ndd.clip_sigma(sigma=2, iters=1)
+    >>> ndd.mask
+    array([False, False, False, False, False, False, False, False, False,
+           False, False, False, False,  True], dtype=bool)
+
+    >>> ndd.clip_sigma(sigma=2, iters=2)
+    >>> ndd.mask
+    array([False, False, False, False, False, False, False, False, False,
+           False,  True,  True,  True,  True], dtype=bool)
