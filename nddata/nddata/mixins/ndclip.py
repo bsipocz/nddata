@@ -136,7 +136,7 @@ dtype=bool)
         """
 
         # nlow and nhigh are the number of lowest or highest points to be
-        # masked. We can only mask whole pixel and we cannot handle negative
+        # masked. We can only mask whole values and we cannot handle negative
         # values so take the absolute and cast to integer.
         nlow = int(abs(nlow))
         nhigh = int(abs(nhigh))
@@ -225,7 +225,7 @@ dtype=bool)
             # than creating a new list of mgrids each iteration.
             del idx[axis]
 
-        # Same for the highest values for each pixel
+        # Same for the highest values
         for i in range(nhigh):
             maxCoord = np.ma.argmax(marr, axis=axis)
             idx.insert(axis, maxCoord)
@@ -300,7 +300,7 @@ dtype=bool)
             # Now just update the mask of the masked array.
             marr.mask |= newmask
 
-        # Same for the highest values for each pixel
+        # Same for the highest values
         for i in range(nhigh):
             maxCoord = np.expand_dims(np.ma.argmax(marr, axis=axis), axis=axis)
             newmask = cmp == maxCoord
@@ -342,23 +342,84 @@ dtype=bool)
         self.mask = mask
         return None
 
-    def clip_sigma(self, **kwargs):
-        """Clip elements based on their deviation from a center.
+    def clip_sigma(self, sigma=3, sigma_lower=None, sigma_upper=None, iters=5,
+                   cenfunc=np.ma.median, stdfunc=np.std, axis=None):
+        """Perform sigma-clipping on the provided data.
+
+        The data will be iterated over, each time rejecting points that are
+        discrepant by more than a specified number of standard deviations from
+        a center value. Invalid values (NaNs or Infs) are automatically masked
+        before performing the sigma clipping.
+
+        See also
+        --------
+        astropy.stats.sigma_clip
+        scipy.stats.sigmaclip
 
         Parameters
         ----------
-        see `~astropy.stats.sigma_clip`. Depending on the version of
-        ``AstroPy`` these might differ. The only two parameters that cannot be
-        set are:
+        sigma : number, optional
+            The number of standard deviations to use for both the lower and
+            upper clipping limit. These limits are overridden by
+            ``sigma_lower`` and ``sigma_upper``, if given.
+            Default is ``3``.
 
-        - ``data`` (will be filled by the data and mask of the instance)
-        - ``copy`` (this is explicitly set to False)
+        sigma_lower : number or None, optional
+            The number of standard deviations to use as the lower bound for
+            the clipping limit. If ``None`` then the value of ``sigma`` is
+            used.
+            Default is ``None``.
 
-        Notes
-        -----
-        It is recommended using astropy 1.1.2 or 1.2.0 or newer if you use this
-        function. There were several Bugfixes and new features in AstroPy
-        regarding this function.
+        sigma_upper : number or None, optional
+            The number of standard deviations to use as the upper bound for
+            the clipping limit. If ``None`` then the value of ``sigma`` is
+            used.
+            Default is ``None``.
+
+        iters : positive `int` or None, optional
+            The number of iterations to perform sigma clipping, or ``None`` to
+            clip until convergence is achieved (i.e., continue until the
+            iteration masks no further values).
+            Default is ``5``.
+
+        cenfunc : callable, optional
+            The function used to compute the center for the clipping. Must
+            be a callable that can handle `numpy.ma.MaskedArray` and outputs
+            the central value.
+
+            Recommended functions are:
+
+            - :func:`numpy.ma.median` : median
+            - :func:`numpy.mean` : mean (can handle masked arrays)
+
+            Default is :func:`numpy.ma.median`.
+
+        stdfunc : callable, optional
+            The function used to compute the standard deviation about the
+            center. Must be a callable that can handle `numpy.ma.MaskedArray`
+            and outputs a width estimator. Values are rejected based on::
+
+                 deviation < (-sigma_lower * stdfunc(deviation))
+                 deviation > (sigma_upper * stdfunc(deviation))
+
+            and::
+
+                deviation = data - cenfunc(data [,axis=int])
+
+            Recommended functions are:
+
+            - :func:`numpy.std` : standard deviation (can handle masked arrays)
+            - :func:`~astropy.stats.mad_std` : median standard deviation (can \
+                handle masked arrays since astropy 1.0.9)
+
+            Default is :func:`numpy.std`.
+
+        axis : `int` or None, optional
+            If not ``None``, clip along the given axis. For this case,
+            ``axis`` will be passed on to ``cenfunc`` and ``stdfunc``, which
+            are expected to return an array with the axis dimension removed
+            (like the numpy functions). If ``None``, clip over all axes.
+            Default is ``None``.
 
         Examples
         --------
@@ -374,13 +435,97 @@ dtype=bool)
             >>> ndd.mask
             array([ True, False, False, False, False, False, False, False, \
 False], dtype=bool)
+
+        .. note::
+            This method is inspired by ``astropy.stats.sigma_clip()`` but
+            modified in several ways.
         """
+        # The upper and lower sigma are the parameters that are used internally
+        # so check if they are explicitly provided or use the general sigma
+        # value. Because we work with positive defined sigma values later we
+        # take the precaution to use the absolute in case someone entered for
+        # example a negative value for the lower sigma.
+        sigma_lower = abs(sigma) if sigma_lower is None else abs(sigma_lower)
+        sigma_upper = abs(sigma) if sigma_upper is None else abs(sigma_upper)
+
+        # We allow the iterations to be None. To avoid duplication of the logic
+        # during the iterations of clipping we just set it to np.inf. This
+        # will ensure that the iterations run as long as the break condition
+        # is not met. DO NOT FORGET THE BREAK CONDITION!
+        # If the iters value is not None we expect it to be a positive integer
+        # so it's cast to one in that case.
+        iters = np.inf if iters is None else int(abs(iters))
+
+        # we expect only a single given axis or None as axis and because the
+        # expand-dims later wouldn't work with multiple axis we convert it to
+        # an integer here. But we allow the choice of it being negative, maybe
+        # it works.
+        if axis is not None:
+            axis = int(axis)
+
+        # Clip invalid points so that the function calculating the center and
+        # deviation do not need to account for NaNs and the mask. This is done
+        # before the temporary masked array is created.
+        self.clip_invalid()
+
+        # Create a masked array on which to perform the centering and deviation
+        # determination. Based on the current data and mask.
         marr = np.ma.array(self.data, mask=self._clipping_get_mask(),
                            copy=False)
-        clipped = sigma_clip(marr, copy=False, **kwargs)
-        # Overwrite the saved mask and return None
-        self.mask = clipped.mask
 
+        # The initial count of unmasked elements. This is used as break
+        # condition for the iterations. But we calculate only the counts of
+        # unmasked elements AFTER the clipping during the iterations so we need
+        # to calculate the initial count before we start iterating.
+        n_nomask_before = marr.count()
+
+        # Clip as long as the number of masked values change AND the number of
+        # specified iterations isn't exhausted
+        while iters > 0:
+            # decrement the iterations counter. This has no effect on np.inf so
+            # the iters=None case will iterate forever.
+            iters -= 1
+
+            # Calculate the center using the center-func. This variable will
+            # become the upper threshold later to avoid creating an additional
+            # intermediate array. Thus we name it u_threshold.
+            u_threshold = cenfunc(marr, axis=axis)
+            # Calculate the value for standard deviation using the stdfunc.
+            dev = stdfunc(marr, axis=axis)
+            # Create a new array for the lower threshold
+            l_threshold = u_threshold - sigma_lower * dev
+            # For the upper threshold we use the array where we stored the
+            # center and add the deviation criterion INPLACE.
+            u_threshold += sigma_upper * dev
+
+            # If we specified an axis we need to add the original axis back
+            # to ensure correct broadcasting later. We actuall do not need to
+            # do that for axis=0 but expand_dims is rather cheap especially if
+            # it is done in place. So apart from memory reasons there is no
+            # need to special case ONE possible axis value. But only expand the
+            # dimensions IF the original array has more than one dimension.
+            if axis is not None and marr.ndim > 1:
+                l_threshold = np.expand_dims(l_threshold, axis=axis)
+                u_threshold = np.expand_dims(u_threshold, axis=axis)
+
+            # Mask the values below and above the thresholds inplace.
+            marr.mask |= marr.data < l_threshold
+            marr.mask |= marr.data > u_threshold
+
+            # Calculate the number of unmasked elements in the array and
+            # compare this value to the last count. If the value has not
+            # changed further iterations do not make sense so we break the
+            # loop. But if they differ use the new count as the new counts
+            # before value so we don't need to calculate the counts twice in
+            # each iteration.
+            n_nomask_after = marr.count()
+            if n_nomask_after == n_nomask_before:
+                break
+            n_nomask_before = n_nomask_after
+
+        # After the clipping iterations just take the mask of the intermediate
+        # masked array and set it as new mask attribute.
+        self.mask = marr.mask
         return None
 
     def clip_range(self, low=None, high=None):
@@ -417,6 +562,10 @@ False], dtype=bool)
             >>> ndd.mask
             array([ True,  True,  True, False, False,  True,  True,  True,  \
 True,  True], dtype=bool)
+
+        .. note::
+            This method is inspired by ``ccdproc.Combiner.minmax_clipping()``
+            and only minimally modified.
         """
         # If neither parameter is set exit this method immediatly, nothing to
         # be done in here.
