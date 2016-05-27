@@ -221,6 +221,10 @@ class NDStatsMixin(object):
         This function should return ``None`` or a `numpy.ndarray` of boolean
         type that can be used for boolean indexing. This function takes no
         arguments but can use every attribute of the instance it wants.
+
+        See also
+        --------
+        NDClippingMixin._clipping_get_mask
         """
         if isinstance(self.mask, np.ndarray) and self.mask.dtype == bool:
             return self.mask
