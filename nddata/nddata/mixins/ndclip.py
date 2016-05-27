@@ -428,6 +428,14 @@ False], dtype=bool)
             This method is inspired by ``astropy.stats.sigma_clip()`` but
             modified in several ways.
         """
+        # TODO: As soon as older astropy versions aren't supported anymore
+        # one could just wrap sigma_clip. Except for the iteration end
+        # condition, the negative axis and the slightly different build the
+        # functionality is identical. It's just that it underwent major changes
+        # between astropy 1.0, 1.1 and 1.2 and not every version of astropy is
+        # built against older numpy versions and for now I feel it's better to
+        # support numpy 1.7 and 1.8 than supporting older astropy versions.
+
         # The upper and lower sigma are the parameters that are used internally
         # so check if they are explicitly provided or use the general sigma
         # value. Because we work with positive defined sigma values later we
