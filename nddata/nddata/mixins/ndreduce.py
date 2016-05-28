@@ -136,7 +136,23 @@ class NDReduceMixin(object):
         data = self.data
         mask = self._reduce_get_mask()
 
-        marr = np.ma.array(data, mask=mask, copy=False)
+        # np.mean and np.var work on masked arrays so can create a normal numpy
+        # array if no value is masked. This will probably be a lot faster.
+
+        # IMPORTANT: Line profiling shows that in case of big arrays the
+        # _reduce_get_mask() function takes only 0.1% of the total run-time and
+        # the np.any() 0-3% so this could make a difference if we special cased
+        # the case when no mask is present but NOT much.
+        # On the other hand the np.mean on a plain numpy array is approximatly
+        # 6-10 times faster than on masked arrays so that actually makes a huge
+        # difference.
+        # Therefore: This should stay as is!
+        if np.any(mask):
+            masked = True
+            marr = np.ma.array(data, mask=mask, copy=False)
+        else:
+            masked = False
+            marr = np.array(data, copy=False)
 
         # Abort the call in case the array is 1D, for 1D statistics see the
         # NDStatsMixin.
@@ -144,16 +160,25 @@ class NDReduceMixin(object):
             raise ValueError('reduce functions need the data to have more '
                              'than one dimension.')
 
-        red_data = np.ma.mean(marr, axis=axis)
+        red_data = np.mean(marr, axis=axis)
 
-        red_uncertainty = np.ma.std(marr, axis=axis)
+        # np.var and np.std have the same runtime but since we would need to
+        # take the square root of the number of valid values calculating the
+        # variance and then just dividing by the number of valid pixel is much
+        # faster than calculating the std and then diving by the SQRT of the
+        # number of valid pixel. In case someone wants the resulting
+        # uncertainty in standard deviations he can cast it to one!
+        red_uncertainty = np.var(marr, axis=axis)
 
-        n_values = (~marr.mask).sum(axis=axis)
-        no_valid_value = (n_values == 0)
-        n_values[no_valid_value] = 1
+        if masked:
+            n_values = (~marr.mask).sum(axis=axis)
+            no_valid_value = (n_values == 0)
+            n_values[no_valid_value] = 1
+        else:
+            # In case no values were masked the number of valid values is just
+            # the length of the array along the given axis.
+            n_values = marr.shape[axis]
 
-        red_uncertainty /= np.sqrt(n_values)
-
-        red_uncertainty = StdDevUncertainty(red_uncertainty)
+        red_uncertainty = VarianceUncertainty(red_uncertainty / n_values)
 
         return self.__class__(red_data, uncertainty=red_uncertainty)

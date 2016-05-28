@@ -96,19 +96,16 @@ def test_mean():
 
     assert mean.data[0] == (1 + 3 + 5) / 3
     assert not mean.mask[0]
-    assert isinstance(mean.uncertainty, StdDevUncertainty)
+    assert isinstance(mean.uncertainty, VarianceUncertainty)
     assert_allclose(mean.uncertainty.data[0],
-                    np.sqrt((2*2) + (0*0) + (2*2)) / 3)
+                    ((2*2) + (0*0) + (2*2)) / 9)
 
     # Compare against average combine with and without weights
     ndd = NDData([[3, 2, 1, 1, 4], [2, 2, 2, 2, 2]],
                  mask=np.array([[0, 1, 0, 1, 0], [0, 1, 0, 0, 0]], dtype=bool))
     mean = ndd.reduce_average(axis=0)
-    # comparison arrays, convert their variance uncertainty to stddev
     avg1 = ndd.reduce_average(axis=0, weights=[1, 1])
-    avg1.uncertainty = StdDevUncertainty(avg1.uncertainty)
     avg2 = ndd.reduce_average(axis=0)
-    avg2.uncertainty = StdDevUncertainty(avg1.uncertainty)
 
     assert_allclose(mean.data, avg1.data)
     assert_allclose(mean.data, avg2.data)
@@ -118,3 +115,31 @@ def test_mean():
 
     assert_allclose(mean.uncertainty.data, avg1.uncertainty.data)
     assert_allclose(mean.uncertainty.data, avg2.uncertainty.data)
+
+
+def test_mean_shortcut():
+    # The mean has a shortcut in case no mask is provided are all values are
+    # unmasked. In that case it operates on plain numpy arrays.
+
+    # The best way to compare it is with an array that has one masked and
+    # compare it to the same array without the masked element and also against
+    # the array without the masked element and without any mask.
+    ndd = NDData([[1, 2, 3, 4, 5, 6]],
+                 mask=np.array([[0, 0, 0, 0, 0, 1]], dtype=bool))
+    mean1 = ndd.reduce_mean(axis=1)
+
+    ndd = NDData(ndd.data[:, :-1], mask=ndd.mask[:, :-1])
+    mean2 = ndd.reduce_mean(axis=1)
+
+    ndd = NDData(ndd.data)
+    mean3 = ndd.reduce_mean(axis=1)
+
+    assert_allclose(mean1.data, mean2.data)
+    assert_allclose(mean1.data, mean3.data)
+
+    assert not mean1.mask
+    assert not mean2.mask
+    assert not mean3.mask
+
+    assert_allclose(mean1.uncertainty.data, mean2.uncertainty.data)
+    assert_allclose(mean1.uncertainty.data, mean3.uncertainty.data)
