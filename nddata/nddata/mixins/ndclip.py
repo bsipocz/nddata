@@ -5,6 +5,8 @@ from __future__ import (absolute_import, division, print_function,
 
 import numpy as np
 
+from ...utils.inputvalidation import as_integer, as_unsigned_integer
+
 __all__ = ['NDClippingMixin']
 
 
@@ -128,8 +130,8 @@ dtype=bool)
         # nlow and nhigh are the number of lowest or highest points to be
         # masked. We can only mask whole values and we cannot handle negative
         # values so take the absolute and cast to integer.
-        nlow = int(abs(nlow))
-        nhigh = int(abs(nhigh))
+        nlow = as_unsigned_integer(nlow)
+        nhigh = as_unsigned_integer(nhigh)
 
         # In case nlow and nhigh are zero we have nothing to do.
         if nlow == 0 and nhigh == 0:
@@ -139,7 +141,7 @@ dtype=bool)
         # operate on multiple axis or fractional axis. Negative axis don't work
         # yet because of the following expand_dims during clipping.
         if axis is not None:
-            axis = int(abs(axis))
+            axis = as_unsigned_integer(axis)
 
         # We will work with masked arrays and their methods here so we have
         # to create one. Get the mask from a customizable function so
@@ -234,10 +236,10 @@ dtype=bool)
 
         TODO: Benchmark and then either remove this or make it public again.
         """
-        nlow = int(abs(nlow))
-        nhigh = int(abs(nhigh))
+        nlow = as_unsigned_integer(nlow)
+        nhigh = as_unsigned_integer(nhigh)
         if axis is not None:
-            axis = int(abs(axis))
+            axis = as_unsigned_integer(axis)
 
         if nlow == 0 and nhigh == 0:
             return None
@@ -453,14 +455,14 @@ False], dtype=bool)
         # is not met. DO NOT FORGET THE BREAK CONDITION!
         # If the iters value is not None we expect it to be a positive integer
         # so it's cast to one in that case.
-        iters = np.inf if iters is None else int(abs(iters))
+        iters = np.inf if iters is None else as_unsigned_integer(iters)
 
         # we expect only a single given axis or None as axis and because the
         # expand-dims later wouldn't work with multiple axis we convert it to
         # an integer here. But we allow the choice of it being negative, maybe
         # it works.
         if axis is not None:
-            axis = int(axis)
+            axis = as_integer(axis)
 
         # Clip invalid points so that the function calculating the center and
         # deviation do not need to account for NaNs and the mask. This is done

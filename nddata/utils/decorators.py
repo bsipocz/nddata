@@ -9,6 +9,8 @@ from astropy.extern import six
 __all__ = ['format_doc']
 
 
+# TODO: Remove this as soon as astropy 1.2 is the minimal default supported
+# astropy version.
 def format_doc(docstring, *args, **kwargs):
     """
     Replaces the docstring of the decorated object and then formats it.
@@ -18,6 +20,10 @@ def format_doc(docstring, *args, **kwargs):
     documentation if you use the ``{__doc__}`` placeholder.
     Its primary use is for reusing a *long* docstring in multiple functions
     when it is the same or only slightly different between them.
+
+    .. note::
+        This is a compatibility function that was implemented in
+        ``AstroPy 1.2`` ``astropy.utils.decorators.format_doc``.
 
     Parameters
     ----------
