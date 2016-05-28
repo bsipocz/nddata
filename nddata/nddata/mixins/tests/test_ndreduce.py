@@ -19,6 +19,8 @@ def test_fail_1d():
         ndd.reduce_average(axis=0, weights=[1, 1, 1, 1, 1])
     with pytest.raises(ValueError):
         ndd.reduce_mean(axis=0)
+    with pytest.raises(ValueError):
+        ndd.reduce_median(axis=0)
 
 
 def test_avg_2d_simple():

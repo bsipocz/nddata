@@ -40,6 +40,8 @@ class NDReduceMixin(object):
         """
         if isinstance(self.mask, np.ndarray) and self.mask.dtype == bool:
             return self.mask
+        # The default is an empty mask with the same shape because we don't
+        # clip the masked values but create a masked array we operate on.
         return np.zeros(self.data.shape, dtype=bool)
 
     def reduce_average(self, axis=0, weights=None):
@@ -86,6 +88,11 @@ class NDReduceMixin(object):
             array([False,  True, False, False, False], dtype=bool)
             >>> avg.uncertainty
             VarianceUncertainty([ 0.096,  0.   ,  0.096,  0.   ,  0.384])
+
+        .. note::
+            The correction for the resulting uncertainty is the total number of
+            valid values **without** taking any degrees of freedom into
+            account.
         """
         # If no weights are given this is essentially a mean reduce. So return
         # the mean reduction result.
@@ -205,6 +212,11 @@ class NDReduceMixin(object):
         .. note::
             This method is identical to :meth:`reduce_average` with
             ``weights=None``.
+
+        .. note::
+            The correction for the resulting uncertainty is the total number of
+            valid values **without** taking any degrees of freedom into
+            account.
         """
 
         # Much the same as average but without weights and instead of average
@@ -304,6 +316,11 @@ class NDReduceMixin(object):
             >>> avg.uncertainty
             StdDevUncertainty([ 0.52417904,  0.        ,  0.52417904,  0.     \
 ])
+
+        .. note::
+            The correction for the resulting uncertainty is the total number of
+            valid values **without** taking any degrees of freedom into
+            account.
         """
 
         # This method is some hybrid from average and mean reduce. Only the

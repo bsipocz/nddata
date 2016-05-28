@@ -229,4 +229,8 @@ class NDStatsMixin(object):
         """
         if isinstance(self.mask, np.ndarray) and self.mask.dtype == bool:
             return self.mask
+        # In case no valid mask was found just return None. Different from
+        # other Mixins we don't create a masked array but just index the data
+        # with the mask. So we can easily special case "mask is None" in the
+        # computation without the need to create a valid mask.
         return None

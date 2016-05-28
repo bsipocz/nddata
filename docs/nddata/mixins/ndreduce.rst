@@ -71,6 +71,22 @@ have the same shape as the ``data`` or the same size as the axis along which
 the average is computed::
 
     >>> ndd = NDData([[1,1,3], [2,1,3], [5,2,1]])
+
+    >>> avg = ndd.reduce_average(axis=0, weights=[1,0,1])
+    >>> avg
+    NDData([ 3. ,  1.5,  2. ])
+    >>> avg.uncertainty
+    VarianceUncertainty([ 2.   ,  0.125,  0.5  ])
+
+    >>> avg = ndd.reduce_average(axis=1, weights=[1,0,1])
+    >>> avg
+    NDData([ 2. ,  2.5,  3. ])
+    >>> avg.uncertainty
+    VarianceUncertainty([ 0.5  ,  0.125,  2.   ])
+
+The averaging also works if a mask is set::
+
+    >>> ndd = NDData([[1,1,3], [2,1,3], [5,2,1]])
     >>> ndd.mask = np.array([[0,1,0], [0,0,0], [0,1,1]], dtype=bool)
 
     >>> avg = ndd.reduce_average(axis=0, weights=[1,0,1])
@@ -131,3 +147,33 @@ a mask::
     NDData([ 1.,  2.,  2.])
     >>> median.uncertainty
     StdDevUncertainty([ 0.        ,  0.85598079,  0.85598079])
+
+
+Resulting uncertainty
+---------------------
+
+.. warning::
+    The computation may change in the future. Currently the correction is done
+    assuming a large population without degrees of freedom.
+
+The resulting uncertainty is calculated using the error of the mean (or average
+or median) which is basically the variance of the values divided by the number
+of valid elements. This doesn't account for small samples where this should
+(probably?) be divided by the number of valid element minus 1.
+
+    >>> ndd = NDData([[1,1,3,4,1,2,1]])
+    >>> ndd.reduce_mean(axis=1).uncertainty
+    VarianceUncertainty([ 0.18075802])
+
+And for comparison how it is internally calculated::
+
+    >>> np.var(ndd.data) / ndd.data.size
+    0.18075801749271139
+
+This differs from the general accepted way of calculating it::
+
+    >>> np.var(ndd.data) / (ndd.data.size - 1)
+    0.21088435374149661
+
+But this is not trivial to implement considering the ``mask`` and ``weights``
+so it is currently **NOT** done.
