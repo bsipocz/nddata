@@ -70,6 +70,12 @@ def expand_multi_dims(array, axis, ndims):
     correctly to some other data in case the matching dimension is not the
     last one.
 
+    .. note::
+        This functions interpretation differs from `numpy.expand_dims` where
+        the ``axis`` parameter indicates where the empyt dimension should be
+        appended while `expand_multi_dims` ``axis`` parameter indicates where
+        the only **not empty** dimension should be.
+
     Examples
     --------
     For example you have some weights you want to apply along the first
