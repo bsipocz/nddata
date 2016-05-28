@@ -50,6 +50,18 @@ Utility functions around pythons `gc` module.
     :no-inheritance-diagram:
 
 
+Input Validation
+================
+
+Some functions that validate user input.
+
+.. note::
+    These may not be appropriate in most cases, only if try / except or
+    the standard exceptions would be misleading these functions should be used.
+
+.. automodapi:: nddata.utils.inputvalidation
+
+
 NumPy
 =====
 

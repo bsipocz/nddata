@@ -7,6 +7,7 @@ import numpy as np
 
 from ..nduncertainty_stddev import StdDevUncertainty
 from ..nduncertainty_var import VarianceUncertainty
+from ...utils.inputvalidation import as_unsigned_integer
 
 
 __all__ = ['NDReduceMixin']
@@ -106,7 +107,7 @@ class NDReduceMixin(object):
 
         # The axis must be integer and because of later restrictions it also
         # needs to be positive.
-        axis = int(abs(axis))
+        axis = as_unsigned_integer(axis)
 
         # Get the data and the mask from the instance attributes
         data = self.data
@@ -221,7 +222,7 @@ class NDReduceMixin(object):
 
         # Much the same as average but without weights and instead of average
         # with mean and std
-        axis = int(abs(axis))
+        axis = as_unsigned_integer(axis)
         data = self.data
         mask = self._reduce_get_mask()
 
@@ -326,7 +327,7 @@ class NDReduceMixin(object):
         # This method is some hybrid from average and mean reduce. Only the
         # real differences are commented upon. For further details on the
         # rationale see these other methods.
-        axis = int(abs(axis))
+        axis = as_unsigned_integer(axis)
         data = self.data
         mask = self._reduce_get_mask()
 
