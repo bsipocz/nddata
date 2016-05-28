@@ -26,6 +26,7 @@ class NDClippingMixin(object):
         See also
         --------
         NDStatsMixin._stats_get_mask
+        NDReduceMixin._reduce_get_mask
 
         Notes
         -----
@@ -39,6 +40,8 @@ class NDClippingMixin(object):
         """
         if isinstance(self.mask, np.ndarray) and self.mask.dtype == bool:
             return self.mask
+        # The default is an empty mask with the same shape because we don't
+        # just clip the masked values but create a masked array we operate on.
         return np.zeros(self.data.shape, dtype=bool)
         # numpy 1.11 also special cases False and True but not before, so this
         # function is awfully slow then.

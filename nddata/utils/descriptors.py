@@ -16,8 +16,8 @@ from .numpyutils import is_numeric_array
 
 
 __all__ = ['BaseDescriptor', 'AdvancedDescriptor',
-           'ArrayData', 'Mask', 'ArrayMask', 'Meta', 'Unit', 'WCS',
-           'Flags', 'Uncertainty', 'UncertaintyData']
+           'ArrayData', 'PlainArrayData', 'Mask', 'ArrayMask', 'Meta', 'Unit',
+           'WCS', 'Flags', 'Uncertainty', 'UncertaintyData']
 
 
 class BaseDescriptor(object):
@@ -528,7 +528,8 @@ class ArrayData(AdvancedDescriptor):
         Raises
         ------
         TypeError
-            If the value is not a `numpy.ndarray` or a subclass.
+            If the value is not a `numpy.ndarray` or a subclass or the dtype
+            is not numerical.
 
         Returns
         -------
@@ -558,6 +559,56 @@ class ArrayData(AdvancedDescriptor):
             # already saved elsewhere.
             value = np.asarray(value)
         # Final check if the array is numeric. This will internally use
+        # np.asarray again. This shouldn't be a problem in most cases but
+        # if anyone finds a valid type and creating or setting data is slow
+        # check if this function is the bottleneck.
+        if not is_numeric_array(value):
+            raise TypeError("could not convert {0} to numeric numpy array."
+                            "".format(name))
+        return value
+
+
+class PlainArrayData(AdvancedDescriptor):
+    """An `AdvancedDescriptor` which converts the input to a plain \
+            `numpy.ndarray` and checks if it is of numerical dtype.
+
+    Parameters
+    ----------
+    args, kwargs :
+        see :class:`AdvancedDescriptor`.
+    """
+    def create_default(self):
+        """No default value, this returns ``None``.
+        """
+
+    def process_value(self, instance, value):
+        """Casts the value to a plain `numpy.ndarray`.
+
+        Parameters
+        ----------
+        args, kwargs :
+            see :meth:`AdvancedDescriptor.process_value`.
+
+        Raises
+        ------
+        TypeError
+            If the value is not numerical.
+
+        Returns
+        -------
+        value : `numpy.ndarray`
+            The value that is being set as private attribute.
+
+        See also
+        --------
+        nddata.utils.numpyutils.is_numeric_array
+        """
+
+        # Save the original class name for the error message if it cannot be
+        # converted to an allowed numpy.ndarray
+        name = value.__class__.__name__
+        value = np.asarray(value)
+        # check if the array is numeric. This will internally use
         # np.asarray again. This shouldn't be a problem in most cases but
         # if anyone finds a valid type and creating or setting data is slow
         # check if this function is the bottleneck.

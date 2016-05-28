@@ -496,11 +496,11 @@ class NDDataBase(NDDataMeta):
     # Define the attributes. The body of each of these attributes is empty
     # because the complete logic is inside the descriptors (used as decorators
     # here).
-    @descriptors.ArrayData
+    @descriptors.PlainArrayData
     def data(self):
-        """(`numpy.ndarray`-like) The stored dataset.
+        """(`numpy.ndarray`) The stored dataset.
 
-        Only numerical arrays can be saved or ``None``.
+        Only numerical `numpy.ndarray` can be saved or ``None``.
         """
 
     @descriptors.Meta

@@ -387,12 +387,12 @@ class NDUncertaintyGaussian(NDUncertaintyPropagatable):
     This metaclass ensures that the ``data`` is always a `numpy.ndarray`.
     """
 
-    @descriptors.ArrayData
+    @descriptors.PlainArrayData
     def data(self):
         """(`numpy.ndarray`) Uncertainty value.
 
         Gaussian uncertainties need the value to be numeric so it is cast to
-        a `numpy.ndarray`. Always!
+        a `numpy.ndarray`. It's not possible to assign subclasses as ``data``.
         """
 
     @abstractproperty
