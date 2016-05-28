@@ -119,7 +119,7 @@ def dict_merge(*dicts, **foldfunc):
         - `operator.mul` : keep the product of the values
 
         The only requirement is that the callable takes two arguments.
-        Default is ``None.
+        Default is ``None``.
 
     Returns
     -------
@@ -133,7 +133,7 @@ def dict_merge(*dicts, **foldfunc):
         synonym for a predefined fold function.
 
     TypeError
-        If the ``foldfunc`` did not take two arguments.
+        If the ``foldfunc`` doesn't take two arguments.
 
     Examples
     --------
