@@ -39,25 +39,11 @@ class FakeUncertainty(NDUncertainty):
 
 class FakeNumpyArray(object):
     """
-    Class that has a few of the attributes of a numpy array.
-
-    These attributes are checked for by NDData.
+    Anything that provides an numpy.ndarray-like interface should be savable as
+    data.
     """
-    def __init__(self):
-        super(FakeNumpyArray, self).__init__()
-
-    def shape(self):
-        pass
-
-    def __getitem__(self):
-        pass
-
     def __array__(self):
-        pass
-
-    @property
-    def dtype(self):
-        return namedtuple('dtype', ['kind'], verbose=True)('f')
+        return np.array([1, 2, 3])
 
 
 class MinimalUncertainty(object):
@@ -328,12 +314,12 @@ def test_nddata_init_data_fail():
 
 def test_nddata_init_data_fakes():
     ndd1 = NDDataBase(FakeNumpyArray())
-    # First make sure that NDData isn't converting its data to a numpy array.
-    assert isinstance(ndd1.data, FakeNumpyArray)
+    # First make sure that NDData is converting its data to a numpy array.
+    assert isinstance(ndd1.data, np.ndarray)
     # Make a new NDData initialized from an NDData
     ndd2 = NDDataBase(ndd1)
-    # Check that the data wasn't converted to numpy
-    assert isinstance(ndd2.data, FakeNumpyArray)
+    # Check that the data is still an ndarray
+    assert isinstance(ndd2.data, np.ndarray)
 
 
 def test_param_default_sentinels():

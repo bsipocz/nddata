@@ -9,4 +9,5 @@ Mixins for added functionality
     ndunitconversion.rst
     ndstats.rst
     ndclip.rst
+    ndreduce.rst
     ndio.rst

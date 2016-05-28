@@ -26,6 +26,7 @@ class NDClippingMixin(object):
         See also
         --------
         NDStatsMixin._stats_get_mask
+        NDReduceMixin._reduce_get_mask
 
         Notes
         -----
