@@ -9,6 +9,7 @@ from numpy.testing import assert_array_equal, assert_allclose
 from astropy.tests.helper import pytest
 
 from ... import NDData
+from ...nduncertainty_stddev import StdDevUncertainty
 from ...nduncertainty_var import VarianceUncertainty
 
 
@@ -16,9 +17,11 @@ def test_fail_1d():
     ndd = NDData([1, 2, 3, 4, 5], mask=np.array([0, 1, 0, 1, 0], dtype=bool))
     with pytest.raises(ValueError):
         ndd.reduce_average(axis=0, weights=[1, 1, 1, 1, 1])
+    with pytest.raises(ValueError):
+        ndd.reduce_mean(axis=0)
 
 
-def test_2d_simple():
+def test_avg_2d_simple():
     # Tests that if the array has 2d but one of them is empty it will work
     ndd = NDData([[1, 2, 3, 4, 5]],
                  mask=np.array([[0, 1, 0, 1, 0]], dtype=bool))
@@ -43,7 +46,7 @@ def test_2d_simple():
                     ((1.5**2)*2 + (0.5**2) + (2.5**2)) / 16)
 
 
-def test_2d_complicated():
+def test_avg_2d_complicated():
     ndd = NDData([[3, 2, 1, 1, 4], [2, 2, 2, 2, 2]],
                  mask=np.array([[0, 1, 0, 1, 0], [0, 1, 0, 0, 0]], dtype=bool))
     avg = ndd.reduce_average(axis=0, weights=[1, 1.5])
@@ -83,3 +86,35 @@ def test_2d_complicated():
                     [((3-3)**2 + (1-3)**2 + 2*(4-3)**2) / 16,
                      0])
     #               [ 0.272,  0.   ]
+
+
+def test_mean():
+    # Mean result should be the same as average with all 1 as weights
+    ndd = NDData([[1, 2, 3, 4, 5]],
+                 mask=np.array([[0, 1, 0, 1, 0]], dtype=bool))
+    mean = ndd.reduce_mean(axis=1)
+
+    assert mean.data[0] == (1 + 3 + 5) / 3
+    assert not mean.mask[0]
+    assert isinstance(mean.uncertainty, StdDevUncertainty)
+    assert_allclose(mean.uncertainty.data[0],
+                    np.sqrt((2*2) + (0*0) + (2*2)) / 3)
+
+    # Compare against average combine with and without weights
+    ndd = NDData([[3, 2, 1, 1, 4], [2, 2, 2, 2, 2]],
+                 mask=np.array([[0, 1, 0, 1, 0], [0, 1, 0, 0, 0]], dtype=bool))
+    mean = ndd.reduce_average(axis=0)
+    # comparison arrays, convert their variance uncertainty to stddev
+    avg1 = ndd.reduce_average(axis=0, weights=[1, 1])
+    avg1.uncertainty = StdDevUncertainty(avg1.uncertainty)
+    avg2 = ndd.reduce_average(axis=0)
+    avg2.uncertainty = StdDevUncertainty(avg1.uncertainty)
+
+    assert_allclose(mean.data, avg1.data)
+    assert_allclose(mean.data, avg2.data)
+
+    assert_array_equal(mean.mask, avg1.mask)
+    assert_array_equal(mean.mask, avg2.mask)
+
+    assert_allclose(mean.uncertainty.data, avg1.uncertainty.data)
+    assert_allclose(mean.uncertainty.data, avg2.uncertainty.data)

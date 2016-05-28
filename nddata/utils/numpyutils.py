@@ -111,6 +111,11 @@ def expand_multi_dims(array, axis, ndims):
                          'more than one dimension. The array has {0} '
                          'dimensions'.format(array.ndim))
 
+    # The axis must be smaller than the specified final ndims
+    if axis >= ndims:
+        raise ValueError('the alignment axis ({0}) is out of bounds for a '
+                         'desired dimensionality ({1})'.format(axis, ndims))
+
     # The final number of dimensions is 1 we don't need to do anything because
     # the input is already 1d
     if ndims == 1:

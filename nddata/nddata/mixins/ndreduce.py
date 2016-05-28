@@ -5,6 +5,7 @@ from __future__ import (absolute_import, division, print_function,
 
 import numpy as np
 
+from ..nduncertainty_stddev import StdDevUncertainty
 from ..nduncertainty_var import VarianceUncertainty
 from ...utils.numpyutils import expand_multi_dims
 
@@ -125,4 +126,34 @@ class NDReduceMixin(object):
 
         # The "red_data" is a masked array so the resulting class should
         # split data and mask by itself.
+        return self.__class__(red_data, uncertainty=red_uncertainty)
+
+    def reduce_mean(self, axis=0):
+
+        # Much the same as average but without weights and instead of average
+        # with mean and std
+        axis = int(abs(axis))
+        data = self.data
+        mask = self._reduce_get_mask()
+
+        marr = np.ma.array(data, mask=mask, copy=False)
+
+        # Abort the call in case the array is 1D, for 1D statistics see the
+        # NDStatsMixin.
+        if marr.ndim < 2:
+            raise ValueError('reduce functions need the data to have more '
+                             'than one dimension.')
+
+        red_data = np.ma.mean(marr, axis=axis)
+
+        red_uncertainty = np.ma.std(marr, axis=axis)
+
+        n_values = (~marr.mask).sum(axis=axis)
+        no_valid_value = (n_values == 0)
+        n_values[no_valid_value] = 1
+
+        red_uncertainty /= np.sqrt(n_values)
+
+        red_uncertainty = StdDevUncertainty(red_uncertainty)
+
         return self.__class__(red_data, uncertainty=red_uncertainty)
