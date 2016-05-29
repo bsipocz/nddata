@@ -230,6 +230,18 @@ def dict_merge(*dicts, **foldfunc):
                 # key-value pair.
                 result[kw] = d[kw]
 
+        # Another approach would be to use the update and create intermediate
+        # generators with the appropriate values:
+        # result.update((k, foldfunc(v, result[k])) if k in result else (k, v)
+        #               for k, v in d.items())
+        # or to stick with the iterations I used originally:
+        # result.update((kw, foldfunc(d[kw], result[kw])) if kw in result else
+        #               (kw, d[kw])
+        #               for kw in d)
+        # but in the most common cases this was almost a factor 2-3 slower and
+        # a bit less readable so I dismissed it. No idea why it is really
+        # slower...
+
     return result
 
 
@@ -265,6 +277,10 @@ def dict_merge_keep_all(*dicts):
 
         >>> dict_merge_keep_all(a, b)
         OrderedDict([('a', [1]), ('b', [1, 2]), ('c', [2])])
+
+    .. note::
+        Because the list size cannot be determined before the iteration this
+        function is slower than `dict_merge_keep_all_fill_missing`.
     """
     # If no dicts were given just return an empty dictionary.
     if not dicts:
