@@ -8,7 +8,6 @@ import numpy as np
 from astropy import log
 from astropy.io import registry as io_registry
 from astropy.io import fits
-import astropy.units as u
 from astropy.wcs import WCS
 
 from ..nddata import NDDataBase

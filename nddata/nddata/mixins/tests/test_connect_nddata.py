@@ -1,6 +1,8 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+from string import ascii_lowercase
+
 from ...nddata import NDDataBase
 from ...nduncertainty_stddev import StdDevUncertainty
 from ...nduncertainty_unknown import UnknownUncertainty
@@ -9,6 +11,10 @@ from ...nduncertainty_relstd import RelativeUncertainty
 from ..ndio import NDIOMixin, write_nddata_fits, read_nddata_fits
 
 import numpy as np
+
+
+def randdata():
+    return np.random.random((3, 3))
 
 
 # Define minimal class that uses the I/O mixin
@@ -130,7 +136,7 @@ class TestIOFunctions(object):
 
     def test_nddata_write_read_uncertainty_unknown_explicit(self, tmpdir):
         ndd1 = NDDataBase(np.ones((3, 3)),
-                          uncertainty=UnknownUncertainty(np.random.random((3, 3))))
+                          uncertainty=UnknownUncertainty(randdata()))
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)
@@ -140,7 +146,7 @@ class TestIOFunctions(object):
 
     def test_nddata_write_read_uncertainty_stddev_explicit(self, tmpdir):
         ndd1 = NDDataBase(np.ones((3, 3)),
-                          uncertainty=StdDevUncertainty(np.random.random((3, 3))))
+                          uncertainty=StdDevUncertainty(randdata()))
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)
@@ -150,7 +156,7 @@ class TestIOFunctions(object):
 
     def test_nddata_write_read_uncertainty_vardev_explicit(self, tmpdir):
         ndd1 = NDDataBase(np.ones((3, 3)),
-                          uncertainty=VarianceUncertainty(np.random.random((3, 3))))
+                          uncertainty=VarianceUncertainty(randdata()))
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)
@@ -160,7 +166,7 @@ class TestIOFunctions(object):
 
     def test_nddata_write_read_uncertainty_reldev_explicit(self, tmpdir):
         ndd1 = NDDataBase(np.ones((3, 3)),
-                          uncertainty=RelativeUncertainty(np.random.random((3, 3))))
+                          uncertainty=RelativeUncertainty(randdata()))
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)
@@ -170,7 +176,7 @@ class TestIOFunctions(object):
 
     def test_nddata_write_read_uncertainty_with_unit(self, tmpdir):
         ndd1 = NDDataBase(np.ones((3, 3)),
-                          uncertainty=UnknownUncertainty(np.random.random((3, 3)), 'm'))
+                          uncertainty=UnknownUncertainty(randdata(), 'm'))
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)
@@ -180,7 +186,7 @@ class TestIOFunctions(object):
 
     def test_nddata_write_read_uncertainty_with_same_unit(self, tmpdir):
         ndd1 = NDDataBase(np.ones((3, 3)), unit='m',
-                          uncertainty=UnknownUncertainty(np.random.random((3, 3)), 'm'))
+                          uncertainty=UnknownUncertainty(randdata(), 'm'))
 
         filename = str(self.temp(tmpdir))
         write_nddata_fits(ndd1, filename)
@@ -230,7 +236,7 @@ class TestIOFunctions(object):
         self.compare_nddata(ndd3, ndd2)
 
     def test_nddata_write_read_meta(self, tmpdir):
-        meta = dict([(j, i) for i, j in enumerate('abcdefghijklmnopqrstuvwxyz')])
+        meta = dict([(j, i) for i, j in enumerate(ascii_lowercase)])
         ndd1 = NDDataBase(np.ones((3, 3)), meta=meta)
 
         filename = str(self.temp(tmpdir))
@@ -238,6 +244,16 @@ class TestIOFunctions(object):
         ndd2 = read_nddata_fits(filename)
 
         self.compare_nddata(ndd1, ndd2)
+
+    def test_nddata_write_read_wcs_disabled(self, tmpdir):
+        ndd1 = NDDataBase(np.ones((3, 3)))
+
+        # Write and read to generate basic wcs
+        filename = str(self.temp(tmpdir))
+        write_nddata_fits(ndd1, filename)
+        ndd2 = read_nddata_fits(filename, parse_wcs=False)
+
+        assert ndd2.wcs is None
 
     def test_nddata_write_read_wcs(self, tmpdir):
         ndd1 = NDDataBase(np.ones((3, 3)))
@@ -291,7 +307,7 @@ class TestIOFunctions(object):
         np.testing.assert_array_equal(ndd2.data[2:5, 4:8], ndd3.data)
 
     def test_nddata_write_read_meta_wcs(self, tmpdir):
-        meta = dict([(j, i) for i, j in enumerate('abcdefghijklmnopqrstuvwxyz')])
+        meta = dict([(j, i) for i, j in enumerate(ascii_lowercase)])
         ndd1 = NDDataBase(np.ones((10, 10)), meta=meta)
 
         filename = str(self.temp(tmpdir))
@@ -317,7 +333,7 @@ class TestIOFunctions(object):
 
     def test_ndiomixin_read(self, tmpdir):
         data = np.ones((10, 10))
-        meta = dict([(j, i) for i, j in enumerate('abcdefghijklmnopqrstuvwxyz')])
+        meta = dict([(j, i) for i, j in enumerate(ascii_lowercase)])
         unit = 'adu'
         mask = np.random.random((10, 10)) > 0.5
         uncertainty = UnknownUncertainty(np.ones((5, 5)))
