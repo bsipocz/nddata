@@ -12,6 +12,8 @@ import astropy.units as u
 from astropy.wcs import WCS
 
 from ..nddata import NDDataBase
+from ..nduncertainty_var import VarianceUncertainty
+from ..nduncertainty_relstd import RelativeUncertainty
 from ..nduncertainty_stddev import StdDevUncertainty
 from ..nduncertainty_unknown import UnknownUncertainty
 
@@ -45,9 +47,25 @@ class NDIOMixin(object):
         io_registry.write(self, *args, **kwargs)
 
 
+# Header keywords reserved to save the mask dtype and uncertainty type
+HDR_KEYWORD_MASK = 'NDDMASK'
+HDR_KEYWORD_UNCERTAINTY = 'NDDERROR'
+HDR_KEYWORD_UNIT = 'BUNIT'
+
+HDR_VALUE_MASK = 'boolean'
+# Header values for uncertainty mapped against the different classes of
+# uncertainty present. Also an inverse Mapping so we can access them quickly.
+HDR_VALUE_UNCERTAINTY = {StdDevUncertainty: 'stddev',
+                         UnknownUncertainty: 'unknown',
+                         VarianceUncertainty: 'variance',
+                         RelativeUncertainty: 'relative'}
+HDR_IVALUE_UNCERTAINTY = {
+    val: key for key, val in HDR_VALUE_UNCERTAINTY.items()}
+
+
 def read_nddata_fits(filename, ext_data=0, ext_meta=0, ext_mask='mask',
                      ext_uncert='uncert', ext_flags='flags', kw_unit='bunit',
-                     dtype=None, **kwargs_for_open):
+                     parse_wcs=True, dtype=None, **kwargs_for_open):
     """ Read data from a FITS file and wrap the contents in a \
             `~nddata.nddata.NDDataBase`.
 
@@ -65,7 +83,15 @@ def read_nddata_fits(filename, ext_data=0, ext_meta=0, ext_mask='mask',
     kw_unit : str or None, optional
         The header keyword which translates to the unit for the data. Set it
         to ``None`` if parsing the unit results in a ValueError during reading.
+        If this value in the header leads to an Exception while creating the
+        class set it to ``None``.
         Default is ``'bunit'``.
+
+    parse_wcs : `bool`, optional
+        Try to create an `~astropy.wcs.WCS` object from the meta. If ``False``
+        no attempt is made. This should only be set to ``False`` in case the
+        resulting wcs is corrupt.
+        Default is ``True``.
 
     dtype : `numpy.dtype`-like or None, optional
         If not ``None`` the data array is converted to this dtype before
@@ -82,63 +108,67 @@ def read_nddata_fits(filename, ext_data=0, ext_meta=0, ext_mask='mask',
         The wrapped FITS file contents.
     """
 
-    # Hardcoded values to get additional information about mask and uncertainty
-    kw_hdr_masktype = 'boolean mask'
-    kw_hdr_uncerttype = {
-        'standard deviation uncertainty': StdDevUncertainty,
-        'unknown uncertainty type': UnknownUncertainty}
-
     with fits.open(filename, mode='readonly', **kwargs_for_open) as hdus:
         # Read the data and meta from the specified extensions
         data = hdus[ext_data].data
         if dtype is not None:
             data = data.astype(dtype)
+
         meta = hdus[ext_meta].header
 
-        # Read the mask and uncertainty from the specified extensions but
-        # silently fail if the extension does not exist.
+        # Read in the specified extension for the mask and if it is present
+        # use it as the mask for the output.
         mask = None
         if ext_mask in hdus:
             mask = hdus[ext_mask].data
-            # Convert it to boolean array?
-            if kw_hdr_masktype in hdus[ext_mask].header.get('comment', []):
+            # Booleans cannot be saved by astropy.io.fits so we have set a flag
+            # when writing that it should be a boolean mask. If the keyword
+            # is in the header and the value of that keyword is the specified
+            # value convert it to a boolean array. This should be that cautious
+            # because we would otherwise loose information by downcasting the
+            # dtype!
+            maskhdr = hdus[ext_mask].header
+            if HDR_VALUE_MASK == maskhdr.get(HDR_KEYWORD_MASK, None):
                 mask = mask.astype(bool)
 
+        # The same for the flags.
         flags = None
         if ext_flags in hdus:
-            # Just hope flags are not some special class.... :-)
             flags = hdus[ext_flags].data
 
+        # and for the uncertainty
         uncertainty = None
         if ext_uncert in hdus:
             uncertainty = hdus[ext_uncert].data
 
+            # The uncertainty could be one of several classes. Like with the
+            # mask an appropriate flag should have been set during writing and
+            # we now check if it present (defaulting to unknown if it isn't)
+            # and then check if any uncertainty class is associated with the
+            # corresponding value.
             hdr = hdus[ext_uncert].header
-            # Get the required class for the uncertainty
-            cls = (kw_hdr_uncerttype[kw] for kw in kw_hdr_uncerttype
-                   if kw in hdr.get('comment', []))
-            cls = next(cls, UnknownUncertainty)
+            cls = hdr.get(HDR_KEYWORD_UNCERTAINTY, 'unknown')
+            cls = HDR_IVALUE_UNCERTAINTY.get(cls, UnknownUncertainty)
 
-            # Get the unit for the uncertainty if present
-            unit_ = hdr[kw_unit].lower() if kw_unit in hdr else None
+            # The uncertainty could also have a unit, check if it's present
+            # and set and if so use it, otherwise let it be.
+            unit_ = hdr[kw_unit] if kw_unit in hdr else None
 
-            # Don't copy it here, if a copy is required do it when creating
-            # NDData.
+            # Finally create the uncertainty by passing in the values and unit
+            # WITHOUT making a copy here.
             uncertainty = cls(uncertainty, unit=unit_, copy=False)
 
-        # Load unit and wcs from header
-        unit = None
-        if kw_unit is not None and kw_unit in meta:
-            try:
-                unit = u.Unit(meta[kw_unit])
-            except ValueError as exc:
-                log.info(str(exc))
-                # TODO: Possibly convert it to lower-case and try it again.
-                # Could yield totally wrong results if the prefix "M" would be
-                # converted to "m".
-                # Possible way to do it:
-                # unit = u.Unit(meta[kw_unit].lower())
-        wcs = WCS(meta)
+        # Load unit and wcs from header, this could be problematic by
+        # externally written files since the value of the header keyword might
+        # not translate to an astropy.unit.Unit but if that's the case let it
+        # fail later and the user needs to alter the FITS file manually or set
+        # the kw_unit to None and set the unit afterwards.
+        unit = meta[kw_unit] if kw_unit in meta else None
+
+        # Create an astropy.wcs.WCS object from the meta associated with the
+        # primary data. This could fail if the FITS file is invalid but then
+        # one should choose to not create a WCS object.
+        wcs = WCS(meta) if parse_wcs else None
 
     # Just create an NDData instance: This will be upcast to the appropriate
     # class
@@ -147,7 +177,7 @@ def read_nddata_fits(filename, ext_data=0, ext_meta=0, ext_mask='mask',
 
 
 def write_nddata_fits(ndd, filename, ext_mask='mask', ext_uncert='uncert',
-                      ext_flags='flags', kw_unit='bunit', **kwargs_for_write):
+                      ext_flags='flags', **kwargs_for_write):
     """Take an `~nddata.nddata.NDDataBase`-like object and save it as FITS \
             file.
 
@@ -175,75 +205,81 @@ def write_nddata_fits(ndd, filename, ext_mask='mask', ext_uncert='uncert',
     The ``data`` and ``meta`` are always written to the PrimaryHDU (extension
     number ``0``).
     """
-    # Comment card strings to allow roundtripping (must be identical to read!)
-    kw_hdr_masktype = 'boolean mask'
-    kw_hdr_uncerttype = {
-        StdDevUncertainty: 'standard deviation uncertainty',
-        UnknownUncertainty: 'unknown uncertainty type'}
-
-    # Copy or convert the meta to a FITS header
+    # We will update the meta object with potentially altered WCS informations
+    # or unit. We do not want that the instance is affected by this so we copy
+    # if it is already a fits Header or implicitly copy it by casting it to a
+    # Header object.
     if isinstance(ndd.meta, fits.Header):
         header = ndd.meta.copy()
     else:
         header = fits.Header(ndd.meta.items())
 
-    # Update the (copied) header (unit, wcs)
+    # We need to insert the unit into the header potentially overwriting the
+    # the previous set unit. But in case we explicitly removed the unit we
+    # don't want any relict of the old unit to stay in the header. So we need
+    # to remove old unit key-value pairs IF we don't overwrite them.
     if ndd.unit is not None:
-        header[kw_unit] = ndd.unit.to_string()
-    elif kw_unit in header:
-        del header[kw_unit]
+        header[HDR_KEYWORD_UNIT] = ndd.unit.to_string()
+    elif HDR_KEYWORD_UNIT in header:
+        del header[HDR_KEYWORD_UNIT]
 
+    # For now we assume that the WCS attribute is None or an astropy.wcs.WCS
+    # object. In case the WCS is set we try updating the header information
+    # in case anything was altered (maybe because of slicing).
     if ndd.wcs is not None:
         try:
             header.update(ndd.wcs.to_header())
         except AttributeError:
-            # wcs has no to_header method
-            # FIXME: Implement this if other wcs objects should be allowed.
-            log.info("the wcs cannot be converted to header information.")
+            # In case the wcs had no "to_header" we are not dealing with an
+            # astropy.wcs.WCS object so we print an info-message and leave it
+            # be.
+            log.info("the wcs of type {0} cannot be used to update the header "
+                     "and therefore the header remained unaffected."
+                     "".format(ndd.wcs.__class__.__name__))
 
-    # Create a HDUList containing data
+    # Create a HDUList containing data and header as primary data object.
     hdus = [fits.PrimaryHDU(ndd.data, header=header)]
 
-    # And append mask to the HDUList (if present)
+    # Next try to append the mask.
     try:
-        # Convert mask to uint8 and set a keyword so that the opener knows
-        # that it was a boolean mask and can convert it back again.
+        # If the mask is a boolean numpy array we need to convert it to the
+        # lowest allowed dtype for FITS images: uint8 and update the header of
+        # the mask extension so that we know when reading the file again that
+        # the mask should be interpreted as boolean.
         if ndd.mask.dtype == 'bool':
             hdr = fits.Header()
-            hdr.add_comment(kw_hdr_masktype)
+            hdr[HDR_KEYWORD_MASK] = HDR_VALUE_MASK
             hdus.append(fits.ImageHDU(ndd.mask.astype(np.uint8), header=hdr,
                                       name=ext_mask))
         else:
+            # In case it was no boolean array we just write it. No need to
+            # special case anything here
             hdus.append(fits.ImageHDU(ndd.mask, name=ext_mask))
-    except AttributeError:
-        # Either no mask or mask had no dtype
+    except AttributeError:  # If there was no mask or mask had no dtype.
         pass
 
-    # Same for flags
+    # now the flags
     if ndd.flags is not None:
         hdus.append(fits.ImageHDU(ndd.flags, name=ext_flags))
 
-    # And append the uncertainty (if present)
+    # and the uncertainty
     try:
         # We need to save the uncertainty_type and the unit of the uncertainty
         # so that the uncertainty can be completly recovered.
         hdr = fits.Header()
 
         # Save the class of the uncertainty
-        if ndd.uncertainty.__class__ in kw_hdr_uncerttype:
-            hdr.add_comment(kw_hdr_uncerttype[ndd.uncertainty.__class__])
+        cls_str = HDR_VALUE_UNCERTAINTY.get(ndd.uncertainty.__class__,
+                                            'unknown')
+        hdr[HDR_KEYWORD_UNCERTAINTY] = cls_str
 
         # Save the unit of the uncertainty if it differs from the nddata
-        # TODO: This comparison only works correctly for StdDevUncertainty...
         if ndd.uncertainty.unit is not None:
-            hdr[kw_unit] = ndd.uncertainty.unit.to_string()
+            hdr[HDR_KEYWORD_UNIT] = ndd.uncertainty.unit.to_string()
 
         hdus.append(fits.ImageHDU(ndd.uncertainty.data, header=hdr,
                                   name=ext_uncert))
-    except AttributeError:
-        # Either no uncertainty or no uncertainty array, unit or
-        # uncertainty_type. Should not be possible because everything that
-        # doesn't look like an NDUUncertainty is converted to one.
+    except AttributeError:  # no uncertainty or not NDUncertainty-like
         pass
 
     # Convert to HDUList and write it to the file.

@@ -4,6 +4,8 @@ from __future__ import (absolute_import, division, print_function,
 from ...nddata import NDDataBase
 from ...nduncertainty_stddev import StdDevUncertainty
 from ...nduncertainty_unknown import UnknownUncertainty
+from ...nduncertainty_var import VarianceUncertainty
+from ...nduncertainty_relstd import RelativeUncertainty
 from ..ndio import NDIOMixin, write_nddata_fits, read_nddata_fits
 
 import numpy as np
@@ -146,6 +148,26 @@ class TestIOFunctions(object):
 
         self.compare_nddata(ndd1, ndd2)
 
+    def test_nddata_write_read_uncertainty_vardev_explicit(self, tmpdir):
+        ndd1 = NDDataBase(np.ones((3, 3)),
+                          uncertainty=VarianceUncertainty(np.random.random((3, 3))))
+
+        filename = str(self.temp(tmpdir))
+        write_nddata_fits(ndd1, filename)
+        ndd2 = read_nddata_fits(filename)
+
+        self.compare_nddata(ndd1, ndd2)
+
+    def test_nddata_write_read_uncertainty_reldev_explicit(self, tmpdir):
+        ndd1 = NDDataBase(np.ones((3, 3)),
+                          uncertainty=RelativeUncertainty(np.random.random((3, 3))))
+
+        filename = str(self.temp(tmpdir))
+        write_nddata_fits(ndd1, filename)
+        ndd2 = read_nddata_fits(filename)
+
+        self.compare_nddata(ndd1, ndd2)
+
     def test_nddata_write_read_uncertainty_with_unit(self, tmpdir):
         ndd1 = NDDataBase(np.ones((3, 3)),
                           uncertainty=UnknownUncertainty(np.random.random((3, 3)), 'm'))
@@ -192,23 +214,6 @@ class TestIOFunctions(object):
         ndd2 = read_nddata_fits(filename)
 
         self.compare_nddata(ndd1, ndd2)
-
-    def test_nddata_write_read_unit_uppercase(self, tmpdir):
-        ndd1 = NDDataBase(np.ones((3, 3)))
-        ndd1.meta['BUNIT'] = 'ADU'
-        # ADU cannot be parsed but it can be parsed if it tries lowercase. We
-        # need to change 'kw_unit' during writing though otherwise it will be
-        # deleted.
-
-        filename = str(self.temp(tmpdir))
-        write_nddata_fits(ndd1, filename, kw_unit='blub')
-        ndd2 = read_nddata_fits(filename)
-
-        # It couldn't be parsed so it will have no unit
-        # TODO: Catch info-message here
-        ndd3 = NDDataBase(ndd1, unit=None)
-
-        self.compare_nddata(ndd3, ndd2)
 
     def test_nddata_write_read_unit_deletes_keyword(self, tmpdir):
         ndd1 = NDDataBase(np.ones((3, 3)))
