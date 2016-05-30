@@ -53,7 +53,13 @@ def pad(array, offsets, mode, constant_values):
     finalshape = tuple(i + offsets[idx][0] + offsets[idx][1]
                        for idx, i in enumerate(array.shape))
 
-    result = np.full(finalshape, dtype=array.dtype, fill_value=constant_values)
+    # unfortunatly np.full is only avaiable until numpy 1.8 as long as 1.7 is
+    # supported this cannot work.
+    # TODO: Use this as soon as numpy 1.7 isn't supported anymore
+    # result = np.full(finalshape, dtype=array.dtype,
+    #                  fill_value=constant_values)
+    result = np.empty(finalshape, dtype=array.dtype)
+    result.fill(constant_values)
     pos = tuple(slice(offsets[dim][0], offsets[dim][0]+array.shape[dim], 1)
                 for dim in range(array.ndim))
     result[pos] = array
