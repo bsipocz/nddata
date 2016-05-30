@@ -67,7 +67,7 @@ class DictionaryContext(object):
     def __init__(self, **kwargs):
         # Copy the original and update the current dictionary with the values
         # passed in.
-        self.dct_copy = deepcopy(self.dct)
+        self.dct_copy = self.dct.copy()
         self.dct.update(kwargs)
 
     def __enter__(self):

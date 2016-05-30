@@ -3,7 +3,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from copy import deepcopy
+from copy import copy
 
 import numpy as np
 
@@ -257,9 +257,9 @@ class NDArithmeticMixin(object):
             kwargs['wcs'] = None
         elif compare_wcs in ['ff', 'first_found']:
             if self.wcs is None:
-                kwargs['wcs'] = deepcopy(operand.wcs)
+                kwargs['wcs'] = copy(operand.wcs)
             else:
-                kwargs['wcs'] = deepcopy(self.wcs)
+                kwargs['wcs'] = copy(self.wcs)
         else:
             kwargs['wcs'] = self._arithmetic_wcs(operation, operand,
                                                  compare_wcs, **kwds2['wcs'])
@@ -273,9 +273,9 @@ class NDArithmeticMixin(object):
             kwargs['uncertainty'] = None
         elif not propagate_uncertainties:
             if self.uncertainty is None:
-                kwargs['uncertainty'] = deepcopy(operand.uncertainty)
+                kwargs['uncertainty'] = copy(operand.uncertainty)
             else:
-                kwargs['uncertainty'] = deepcopy(self.uncertainty)
+                kwargs['uncertainty'] = copy(self.uncertainty)
         else:
             kwargs['uncertainty'] = self._arithmetic_uncertainty(
                 operation, operand, result, uncertainty_correlation,
@@ -285,9 +285,9 @@ class NDArithmeticMixin(object):
             kwargs['mask'] = None
         elif handle_mask in ['ff', 'first_found']:
             if self.mask is None:
-                kwargs['mask'] = deepcopy(operand.mask)
+                kwargs['mask'] = copy(operand.mask)
             else:
-                kwargs['mask'] = deepcopy(self.mask)
+                kwargs['mask'] = copy(self.mask)
         else:
             kwargs['mask'] = self._arithmetic_mask(operation, operand,
                                                    handle_mask,
@@ -297,9 +297,9 @@ class NDArithmeticMixin(object):
             kwargs['flags'] = None
         elif handle_flags in ['ff', 'first_found']:
             if self.flags is None:
-                kwargs['flags'] = deepcopy(operand.flags)
+                kwargs['flags'] = copy(operand.flags)
             else:
-                kwargs['flags'] = deepcopy(self.flags)
+                kwargs['flags'] = copy(self.flags)
         else:
             kwargs['flags'] = self._arithmetic_flags(operation, operand,
                                                      handle_flags,
@@ -309,9 +309,9 @@ class NDArithmeticMixin(object):
             kwargs['meta'] = None
         elif handle_meta in ['ff', 'first_found']:
             if not self.meta:
-                kwargs['meta'] = deepcopy(operand.meta)
+                kwargs['meta'] = copy(operand.meta)
             else:
-                kwargs['meta'] = deepcopy(self.meta)
+                kwargs['meta'] = copy(self.meta)
         else:
             kwargs['meta'] = self._arithmetic_meta(
                 operation, operand, handle_meta, **kwds2['meta'])
@@ -469,9 +469,9 @@ class NDArithmeticMixin(object):
             return None
         elif self.mask is None:
             # Make a copy so there is no reference in the result.
-            return deepcopy(operand.mask)
+            return copy(operand.mask)
         elif operand.mask is None:
-            return deepcopy(self.mask)
+            return copy(self.mask)
         else:
             # Now lets calculate the resulting mask (operation enforces copy)
             return handle_mask(self.mask, operand.mask, **kwds)

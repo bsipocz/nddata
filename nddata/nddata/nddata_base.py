@@ -3,6 +3,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+from copy import copy as copycopy
 from copy import deepcopy
 
 import numpy as np
@@ -203,7 +204,7 @@ class NDDataBase(NDDataMeta):
         # changed and only copy the data again if "copy=True" was set and the
         # data wasn't changed.
         if copy and self.data is data:
-            self.data = deepcopy(data)
+            self.data = copycopy(self.data)
 
         msg = "overwriting {0}'s current {1} with specified {1}."
 
@@ -270,11 +271,16 @@ class NDDataBase(NDDataMeta):
         # maybe the uncertainty internals) so we need to copy them before we
         # set them. This avoids using the setter twice.
         if copy:
-            mask = deepcopy(mask)
-            wcs = deepcopy(wcs)
-            uncertainty = deepcopy(uncertainty)
-            meta = deepcopy(meta)
-            flags = deepcopy(flags)
+            if mask is not None:
+                mask = copycopy(mask)
+            if wcs is not None:
+                wcs = copycopy(wcs)
+            if uncertainty is not None:
+                uncertainty = copycopy(uncertainty)
+            if meta is not None:
+                meta = copycopy(meta)
+            if flags is not None:
+                flags = copycopy(flags)
             # one exception is the unit. Units seem to be immutable so we don't
             # bother copying it.
             # unit = deepcopy(unit)
