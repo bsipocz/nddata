@@ -409,3 +409,8 @@ class NDUncertaintyGaussian(NDUncertaintyPropagatable):
         """(`abc.abstractmethod`) Propagate uncertainties based on first order \
                 gaussian error propagation.
         """
+
+    def offset(self, pad_width):
+        return self.__class__(np.lib.pad(self.data, pad_width, mode='constant',
+                                         constant_values=0),
+                              unit=self.unit, copy=False)

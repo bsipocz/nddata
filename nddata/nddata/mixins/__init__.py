@@ -6,4 +6,4 @@ from .ndunitconversion import *
 from .ndstats import *
 from .ndclip import *
 from .ndreduce import *
-from .ndshapechange import *
+from .ndreshape import *

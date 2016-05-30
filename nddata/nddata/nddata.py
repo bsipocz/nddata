@@ -11,14 +11,14 @@ from .mixins.ndunitconversion import NDUnitConvMixin
 from .mixins.ndstats import NDStatsMixin
 from .mixins.ndclip import NDClippingMixin
 from .mixins.ndreduce import NDReduceMixin
-from .mixins.ndshapechange import NDShapeChangingMixin
+from .mixins.ndreshape import NDReshapeMixin
 
 
 __all__ = ['NDData']
 
 
 # The base class must be last in the bases!
-class NDData(NDShapeChangingMixin, NDSlicingMixin,
+class NDData(NDReshapeMixin, NDSlicingMixin,
              NDUnitConvMixin, NDArithmeticMixin, NDClippingMixin,
              NDReduceMixin,
              NDIOMixin,

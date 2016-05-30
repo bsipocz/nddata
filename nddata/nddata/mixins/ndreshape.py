@@ -10,13 +10,24 @@ import numpy as np
 from astropy import log
 from astropy.wcs import WCS
 
+from ...utils.copyutils import do_copy
 
-__all__ = ['NDShapeChangingMixin']
+
+__all__ = ['NDReshapeMixin']
 
 
-class NDShapeChangingMixin(object):
+class NDReshapeMixin(object):
     """Mixin to provide shape changing methods on classes implementing the \
             `~.NDDataBase` interface.
+
+    Requires the ``uncertainty`` to have an ``offset`` method.
+
+    ``mask``, ``flags``, ``wcs`` can be offsetted if they are `numpy.ndarray`.
+    But the ``WCS`` also supports `~astropy.wcs.WCS` objects.
+
+    The implementation follows the guideline of slicing that whenever possible
+    the resulting attributes are references **and not copies** of the original
+    attributes. This is not possible with `offset`.
     """
     def offset(self, pad_width):
         # Abort slicing if the data is a single scalar.
@@ -35,13 +46,13 @@ class NDShapeChangingMixin(object):
         if not pad_width_iterable:
             # This is interpreted as ((pad, pad_), ..., (pad, pad)) so we need
             # to create an iterable containing ndim (pad, pad) values:
-            pad_width = [(pad_width, pad_width) for _ in self.data.ndim]
+            pad_width = [(pad_width, pad_width) for _ in range(self.data.ndim)]
 
         # The second case is when it's an iterable BUT the elements are no
         # iterables.
         elif pad_width_iterable and not isinstance(pad_width[0], Iterable):
             # This is interpreted as (pad, ... pad) so we expand it accordingly
-            pad_width = [pad_width for _ in self.data.ndim]
+            pad_width = [pad_width for _ in range(self.data.ndim)]
 
         # The last case is when it's an iterable of iterables, in that case we
         # don't need to do anything since it _should_ fail if the number of
@@ -62,9 +73,9 @@ class NDShapeChangingMixin(object):
         kwargs['mask'] = self._offset_mask(pad_width)
         kwargs['wcs'] = self._offset_wcs(pad_width)
         kwargs['flags'] = self._offset_flags(pad_width)
-        # Attributes which are copied and not intended to be sliced
+        # Attributes which are copied and not intended to be offsetted.
         kwargs['unit'] = self.unit
-        kwargs['meta'] = self.meta
+        kwargs['meta'] = do_copy(self.meta)
         return kwargs
 
     def _offset_data(self, pad_width):
@@ -104,18 +115,20 @@ class NDShapeChangingMixin(object):
                              for idx, val in enumerate(wcs.wcs.crpix, 1)]
             return wcs
         else:
-            log.info("wcs cannot be sliced.")
+            # Try to interpret it as numpy ndarray?
+            try:
+                return np.lib.pad(self.flags, pad_width, mode='constant',
+                                  constant_values=0)
+            except ValueError:
+                log.info("wcs cannot be offsetted.")
         return self.wcs
 
     def _offset_flags(self, pad_width):
         if self.flags is None:
             return None
         try:
-            return self.flags.offset(pad_width)
-        except TypeError:
-            try:
-                return np.lib.pad(self.flags, pad_width, mode='constant',
-                                  constant_values=0)
-            except ValueError:
-                log.info("flags cannot be sliced.")
+            return np.lib.pad(self.flags, pad_width, mode='constant',
+                              constant_values=0)
+        except ValueError:
+            log.info("flags cannot be offsetted.")
         return self.flags
