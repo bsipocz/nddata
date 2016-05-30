@@ -21,6 +21,11 @@ MANIFEST
 docs/api
 docs/_build
 
+# Benchmarks environments and results
+benchmarks/env/*
+benchmarks/results/*
+benchmarks/html/*
+
 # Eclipse editor project files
 .project
 .pydevproject
