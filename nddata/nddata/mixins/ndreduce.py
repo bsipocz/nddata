@@ -3,6 +3,8 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+from copy import copy
+
 import numpy as np
 
 from ..nduncertainty_stddev import StdDevUncertainty
@@ -19,6 +21,12 @@ class NDReduceMixin(object):
 
     These methods take the ``mask`` besides the ``data`` into account and
     calculate based on the error of the result.
+
+    .. note::
+        The ``unit`` and ``meta`` of the result will be a copy of the original
+        `~nddata.nddata.NDDataBase` instance. ``wcs`` and ``flags`` as well but
+        this might change because they **should** be subject to a reduction
+        themselves- depending on the type of attribute.
     """
 
     def _reduce_get_mask(self):
@@ -44,6 +52,16 @@ class NDReduceMixin(object):
         # The default is an empty mask with the same shape because we don't
         # clip the masked values but create a masked array we operate on.
         return np.zeros(self.data.shape, dtype=bool)
+
+    def _reduce_get_others(self):
+        # Meta and unit should stay the same for the reduce functions.
+        kwargs = {'meta': copy(self.meta),
+                  'unit': self.unit,
+                  'wcs': copy(self.wcs),
+                  'flags': copy(self.flags)}
+        # TODO: WCS and Flags may also be subject to changes because of the
+        # reduction, but currently just copy them.
+        return kwargs
 
     def reduce_average(self, axis=0, weights=None):
         """Compute the average along an axis with specified weights.
@@ -169,7 +187,8 @@ class NDReduceMixin(object):
 
         # The "red_data" is a masked array so the resulting class should
         # split data and mask by itself.
-        return self.__class__(red_data, uncertainty=red_uncert)
+        return self.__class__(red_data, uncertainty=red_uncert,
+                              **self._reduce_get_others())
 
     def reduce_mean(self, axis=0):
         """Compute the mean along an axis.
@@ -276,7 +295,8 @@ class NDReduceMixin(object):
 
         red_uncertainty = VarianceUncertainty(red_uncertainty / n_values)
 
-        return self.__class__(red_data, uncertainty=red_uncertainty)
+        return self.__class__(red_data, uncertainty=red_uncertainty,
+                              **self._reduce_get_others())
 
     def reduce_median(self, axis=0):
         """Compute the median along an axis.
@@ -380,4 +400,5 @@ class NDReduceMixin(object):
         if marr_is_masked:
             red_uncertainty.data[no_valid_value] = 0
 
-        return self.__class__(red_data, uncertainty=red_uncertainty)
+        return self.__class__(red_data, uncertainty=red_uncertainty,
+                              **self._reduce_get_others())
