@@ -16,6 +16,7 @@ import astropy.units as u
 
 from ...utils import descriptors
 from ...utils.sentinels import ParameterNotSpecified
+from ...utils.numpyutils import pad
 from ..exceptions import MissingDataAssociationException
 
 __all__ = ['NDUncertainty',
@@ -411,6 +412,6 @@ class NDUncertaintyGaussian(NDUncertaintyPropagatable):
         """
 
     def offset(self, pad_width):
-        return self.__class__(np.lib.pad(self.data, pad_width, mode='constant',
-                                         constant_values=0),
+        return self.__class__(pad(self.data, pad_width, mode='constant',
+                                  constant_values=0),
                               unit=self.unit, copy=False)

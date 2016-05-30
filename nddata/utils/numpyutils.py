@@ -5,7 +5,7 @@ from __future__ import (absolute_import, division, print_function,
 
 import numpy as np
 
-__all__ = ['is_numeric_array', 'expand_multi_dims']
+__all__ = ['is_numeric_array', 'expand_multi_dims', 'pad']
 
 # Boolean, unsigned integer, signed integer, float, complex.
 _NUMERIC_KINDS = set('buifc')
@@ -33,6 +33,31 @@ def is_numeric_array(array):
         return array.dtype.kind in _NUMERIC_KINDS
     except AttributeError:
         return np.asarray(array).dtype.kind in _NUMERIC_KINDS
+
+
+def pad(array, offsets, mode, constant_values):
+    array = np.asarray(array)
+    if array.shape == ():
+        raise ValueError('cannot pad scalars.')
+    if mode != 'constant':
+        raise ValueError('compat-pad function can only use mode=constant')
+
+    # In case a 1d array is given the offsets could be a tuple with two
+    # elements or a tuple of a tuple of 2 elements. In case it's the first we
+    # wrap it inside another tuple so the following parts can remain the same
+    # for 1d and multi-d
+    if array.ndim == 1:
+        if len(offsets) == 2:
+            offsets = (offsets, )
+
+    finalshape = tuple(i + offsets[idx][0] + offsets[idx][1]
+                       for idx, i in enumerate(array.shape))
+
+    result = np.full(finalshape, dtype=array.dtype, fill_value=constant_values)
+    pos = tuple(slice(offsets[dim][0], offsets[dim][0]+array.shape[dim], 1)
+                for dim in range(array.ndim))
+    result[pos] = array
+    return result
 
 
 def expand_multi_dims(array, axis, ndims):

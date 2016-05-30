@@ -11,6 +11,7 @@ from astropy import log
 from astropy.wcs import WCS
 
 from ...utils.copyutils import do_copy
+from ...utils.numpyutils import pad
 
 
 __all__ = ['NDReshapeMixin']
@@ -80,8 +81,7 @@ class NDReshapeMixin(object):
 
     def _offset_data(self, pad_width):
         # Pad with zeros
-        return np.lib.pad(self.data, pad_width, mode='constant',
-                          constant_values=0)
+        return pad(self.data, pad_width, mode='constant', constant_values=0)
 
     def _offset_uncertainty(self, pad_width):
         if self.uncertainty is None:
@@ -98,8 +98,8 @@ class NDReshapeMixin(object):
             return None
         try:
             # Pad the mask. Interpret the offsetted elements as masked.
-            return np.lib.pad(self.mask, pad_width, mode='constant',
-                              constant_values=1)
+            return pad(self.mask, pad_width, mode='constant',
+                       constant_values=1)
         except ValueError:
             log.info("mask cannot be offsetted.")
         return self.mask
@@ -117,8 +117,8 @@ class NDReshapeMixin(object):
         else:
             # Try to interpret it as numpy ndarray?
             try:
-                return np.lib.pad(self.flags, pad_width, mode='constant',
-                                  constant_values=0)
+                return pad(self.flags, pad_width, mode='constant',
+                           constant_values=0)
             except ValueError:
                 log.info("wcs cannot be offsetted.")
         return self.wcs
@@ -127,8 +127,8 @@ class NDReshapeMixin(object):
         if self.flags is None:
             return None
         try:
-            return np.lib.pad(self.flags, pad_width, mode='constant',
-                              constant_values=0)
+            return pad(self.flags, pad_width, mode='constant',
+                       constant_values=0)
         except ValueError:
             log.info("flags cannot be offsetted.")
         return self.flags

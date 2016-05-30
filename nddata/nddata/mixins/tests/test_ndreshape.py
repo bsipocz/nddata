@@ -56,7 +56,27 @@ def test_pad_width_int():
     assert nddoffset.unit == u.m
 
 
-def test_pad_width_int_data_only():
+def test_pad_width_int_data_only1d():
+    ndd = NDData(np.ones(3))
+
+    # Integer is interpreted as ((3, 3),)
+    nddoffset = ndd.offset(3)
+
+    # Assert right final shape
+    assert nddoffset.data.shape == (9, )
+
+    # Assert right fill value
+    assert nddoffset.data[0] == 0
+
+    assert not nddoffset.meta
+    assert nddoffset.unit is None
+    assert nddoffset.mask is None
+    assert nddoffset.uncertainty is None
+    assert nddoffset.wcs is None
+    assert nddoffset.flags is None
+
+
+def test_pad_width_int_data_only2d():
     ndd = NDData(np.ones((3, 3)))
 
     # Integer is interpreted as ((3, 3), (3, 3))
