@@ -15,6 +15,12 @@ reduce only one dimension and not necessarily to a scalar. This resembles the
 behaviour if you give an not ``None`` ``axis`` parameter to :func:`numpy.mean`.
 The result will be another array but reduced by one dimension.
 
+.. note::
+    The ``unit`` and ``meta`` of the result will be a copy of the original
+    `~nddata.nddata.NDDataBase` instance. ``wcs`` and ``flags`` as well but
+    this might change because they **should** be subject to a reduction
+    themselves - depending on the type of attribute.
+
 
 Mean and average
 ----------------
