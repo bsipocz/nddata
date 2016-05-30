@@ -11,14 +11,18 @@ from .mixins.ndunitconversion import NDUnitConvMixin
 from .mixins.ndstats import NDStatsMixin
 from .mixins.ndclip import NDClippingMixin
 from .mixins.ndreduce import NDReduceMixin
+from .mixins.ndshapechange import NDShapeChangingMixin
 
 
 __all__ = ['NDData']
 
 
 # The base class must be last in the bases!
-class NDData(NDUnitConvMixin, NDArithmeticMixin, NDIOMixin, NDSlicingMixin,
-             NDClippingMixin, NDReduceMixin, NDStatsMixin, NDDataBase):
+class NDData(NDShapeChangingMixin, NDSlicingMixin,
+             NDUnitConvMixin, NDArithmeticMixin, NDClippingMixin,
+             NDReduceMixin,
+             NDIOMixin,
+             NDStatsMixin, NDDataBase):
     """Implements `NDDataBase` with all Mixins.
 
     This class implements a `NDDataBase`-like container that supports reading

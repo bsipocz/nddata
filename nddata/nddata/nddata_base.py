@@ -3,8 +3,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from copy import copy as copycopy
-from copy import deepcopy
+from ..utils.copyutils import do_copy
 
 import numpy as np
 
@@ -204,7 +203,7 @@ class NDDataBase(NDDataMeta):
         # changed and only copy the data again if "copy=True" was set and the
         # data wasn't changed.
         if copy and self.data is data:
-            self.data = copycopy(self.data)
+            self.data = do_copy(self.data)
 
         msg = "overwriting {0}'s current {1} with specified {1}."
 
@@ -271,19 +270,14 @@ class NDDataBase(NDDataMeta):
         # maybe the uncertainty internals) so we need to copy them before we
         # set them. This avoids using the setter twice.
         if copy:
-            if mask is not None:
-                mask = copycopy(mask)
-            if wcs is not None:
-                wcs = copycopy(wcs)
-            if uncertainty is not None:
-                uncertainty = copycopy(uncertainty)
-            if meta is not None:
-                meta = copycopy(meta)
-            if flags is not None:
-                flags = copycopy(flags)
+            mask = do_copy(mask)
+            wcs = do_copy(wcs)
+            uncertainty = do_copy(uncertainty)
+            meta = do_copy(meta)
+            flags = do_copy(flags)
             # one exception is the unit. Units seem to be immutable so we don't
             # bother copying it.
-            # unit = deepcopy(unit)
+            # unit = do_copy(unit)
 
         # Now call the respective setters. Order shouldn't matter (not like
         # astropy.nddata.NDData which needed as specific order).

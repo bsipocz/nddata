@@ -4,7 +4,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from abc import ABCMeta, abstractproperty, abstractmethod
-from copy import copy as copycopy
+from ...utils.copyutils import do_copy
 import weakref
 
 import numpy as np
@@ -115,7 +115,7 @@ class NDUncertainty(object):
         # this avoids unnecessary copy-steps. Hopefully noone does just a
         # shallow copy in the property...
         if copy and self.data is data:
-            self.data = copycopy(data)
+            self.data = do_copy(data)
             # No need to copy unit because they are immutable
             # and copying parent_nddata would be bad since this would copy the
             # associated NDData instance!!!

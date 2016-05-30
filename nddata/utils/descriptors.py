@@ -4,7 +4,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from collections import OrderedDict, Mapping
-from copy import deepcopy
+from .copyutils import do_copy
 
 import numpy as np
 
@@ -151,7 +151,7 @@ class BaseDescriptor(object):
     def __set__(self, instance, value):
         if self.copy:
             # Copy it if necessary with deepcopy
-            value = deepcopy(value)
+            value = do_copy(value)
         setattr(instance, self.attr, value)
 
     def __delete__(self, instance):

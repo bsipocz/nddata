@@ -11,6 +11,17 @@ Classes that can be used with ``with``.
 .. automodapi:: nddata.utils.contextmanager
     :no-inheritance-diagram:
 
+
+Copy Utilities
+==============
+
+Some classes do not implement appropriate ``__copy__`` methods and some should
+not be copied. These functions help to find the right way to shallow copy an
+arbitary variable.
+
+.. automodapi:: nddata.utils.copyutils
+    :no-inheritance-diagram:
+
 Decorators
 ==========
 
