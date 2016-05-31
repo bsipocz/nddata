@@ -292,6 +292,17 @@ class NDUncertainty(object):
         # We don't need sliced uncertainties linking to unsliced data.
         return self.__class__(self.data[item], unit=self.unit, copy=False)
 
+    def offset(self, pad_width):
+        """Pad the uncertainty data assuming it is a `numpy.ndarray`.
+
+        See also
+        --------
+        nddata.nddata.NDData.offset
+        """
+        return self.__class__(pad(self.data, pad_width, mode='constant',
+                                  constant_values=0),
+                              unit=self.unit, copy=False)
+
     # Descriptor-properties
     @descriptors.UncertaintyData
     def data(self):
@@ -410,8 +421,3 @@ class NDUncertaintyGaussian(NDUncertaintyPropagatable):
         """(`abc.abstractmethod`) Propagate uncertainties based on first order \
                 gaussian error propagation.
         """
-
-    def offset(self, pad_width):
-        return self.__class__(pad(self.data, pad_width, mode='constant',
-                                  constant_values=0),
-                              unit=self.unit, copy=False)

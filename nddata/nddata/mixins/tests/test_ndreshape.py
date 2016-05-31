@@ -101,6 +101,7 @@ def test_pad_width_int_unoffsettables():
               'mask': 5,
               'flags': 5,
               'wcs': 5,
+              'uncertainty': StdDevUncertainty(5),
               'meta': {'a': 1},
               'unit': 'm',
               }

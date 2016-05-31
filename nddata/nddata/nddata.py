@@ -37,7 +37,7 @@ class NDData(NDReshapeMixin, NDSlicingMixin,
         >>> from nddata.nddata import NDData, StdDevUncertainty
         >>> import numpy as np
 
-        >>> data = np.ones((3,3), dtype=np.float)
+        >>> data = np.ones((3,3), dtype=float)
         >>> ndd1 = NDData(data, uncertainty=StdDevUncertainty(data))
         >>> ndd2 = NDData(data, uncertainty=StdDevUncertainty(data))
 

@@ -4,10 +4,11 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import numpy as np
+from numpy.testing import assert_array_equal
 
 from astropy.tests.helper import pytest
 
-from ..numpyutils import is_numeric_array, expand_multi_dims
+from ..numpyutils import is_numeric_array, expand_multi_dims, pad
 
 
 NUMERIC = [True, 1, -1, 1.0, 1+1j]
@@ -72,3 +73,24 @@ def test_expand_multidims_others():
     assert expand_multi_dims(array, axis=1, ndims=4).shape == (1, 4, 1, 1)
     assert expand_multi_dims(array, axis=2, ndims=4).shape == (1, 1, 4, 1)
     assert expand_multi_dims(array, axis=3, ndims=4).shape == (1, 1, 1, 4)
+
+
+def test_pad():
+    with pytest.raises(ValueError):
+        pad(2, (1, 1), 'constant', 0)
+    with pytest.raises(ValueError):
+        pad([2], (1, 1), 'constants', 0)
+    with pytest.raises(ValueError):
+        pad([2], (1, 1), 'constant', (2, 2))
+
+    # Normal case offsets tuple of tuple
+    assert_array_equal(pad([2], ((1, 1), ), 'constant', 0),  [0, 2, 0])
+    # Special case for 1d arrays
+    assert_array_equal(pad([2], (1, 1), 'constant', 0),  [0, 2, 0])
+    assert_array_equal(pad([2], (1, 1), 'constant', np.int32(4)),  [4, 2, 4])
+    assert_array_equal(pad([2], (1, 1), 'constant', 10), [10, 2, 10])
+    assert_array_equal(pad([2], (1, 2), 'constant', 10), [10, 2, 10, 10])
+    assert_array_equal(pad([2], (2, 1), 'constant', 10), [10, 10, 2, 10])
+    assert_array_equal(pad([2], (0, 0), 'constant', 10), [2])
+    assert_array_equal(pad([2], (0, 1), 'constant', 10), [2, 10])
+    assert_array_equal(pad([2], (1, 0), 'constant', 10), [10, 2])
