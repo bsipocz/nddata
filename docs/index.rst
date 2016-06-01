@@ -14,4 +14,5 @@ Meta informations
 .. toctree::
     :maxdepth: 1
 
+    copy.rst
     changelog

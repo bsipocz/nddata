@@ -11,14 +11,18 @@ from .mixins.ndunitconversion import NDUnitConvMixin
 from .mixins.ndstats import NDStatsMixin
 from .mixins.ndclip import NDClippingMixin
 from .mixins.ndreduce import NDReduceMixin
+from .mixins.ndreshape import NDReshapeMixin
 
 
 __all__ = ['NDData']
 
 
 # The base class must be last in the bases!
-class NDData(NDUnitConvMixin, NDArithmeticMixin, NDIOMixin, NDSlicingMixin,
-             NDClippingMixin, NDReduceMixin, NDStatsMixin, NDDataBase):
+class NDData(NDReshapeMixin, NDSlicingMixin,
+             NDUnitConvMixin, NDArithmeticMixin, NDClippingMixin,
+             NDReduceMixin,
+             NDIOMixin,
+             NDStatsMixin, NDDataBase):
     """Implements `NDDataBase` with all Mixins.
 
     This class implements a `NDDataBase`-like container that supports reading
@@ -33,7 +37,7 @@ class NDData(NDUnitConvMixin, NDArithmeticMixin, NDIOMixin, NDSlicingMixin,
         >>> from nddata.nddata import NDData, StdDevUncertainty
         >>> import numpy as np
 
-        >>> data = np.ones((3,3), dtype=np.float)
+        >>> data = np.ones((3,3), dtype=float)
         >>> ndd1 = NDData(data, uncertainty=StdDevUncertainty(data))
         >>> ndd2 = NDData(data, uncertainty=StdDevUncertainty(data))
 

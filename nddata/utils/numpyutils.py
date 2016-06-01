@@ -5,7 +5,7 @@ from __future__ import (absolute_import, division, print_function,
 
 import numpy as np
 
-__all__ = ['is_numeric_array', 'expand_multi_dims']
+__all__ = ['is_numeric_array', 'expand_multi_dims', 'pad']
 
 # Boolean, unsigned integer, signed integer, float, complex.
 _NUMERIC_KINDS = set('buifc')
@@ -33,6 +33,110 @@ def is_numeric_array(array):
         return array.dtype.kind in _NUMERIC_KINDS
     except AttributeError:
         return np.asarray(array).dtype.kind in _NUMERIC_KINDS
+
+
+def pad(array, offsets, mode, constant_values):
+    """Alternative to :func:`numpy.pad` but only with ``mode=constant``.
+
+    The :func:`numpy.pad` function is very powerful but very slow for small
+    inputs and even if it scales exactly like this function it is approximatly
+    a factor of 3 slower. This function serves as fast alternative for the
+    constant mode with a scalar fill value and as a compatibility layer for
+    ``NumPy 1.6`` which did not have a pad function (and some failures on
+    ``NumPy 1.7-1.9``).
+
+    Parameters
+    ----------
+    array : `numpy.ndarray`-like
+        The array to pad. If it's a subclass it will be cast to a plain array.
+
+    offsets : `tuple` of `tuple`
+        This should be a tuple containing a tuple for each dimension. The first
+        element should be the padding before and the second the padding at the
+        end. For example ``((1,2),)`` for padding a one-dimensional array with
+        one element at the start and two at the end. The convenience options
+        of :func:`numpy.pad` are not integrated.
+
+    mode : `str`
+        Should be ``"constant"``. Other modes are avaiable using
+        :func:`numpy.pad`.
+
+    constant_values : number
+        The value with which to pad the array. Must be a scalar. The more
+        advanced options of `numpy.pad` are not integrated.
+
+    Returns
+    -------
+    padded_array : `numpy.ndarray`
+        The padded array.
+
+    Examples
+    --------
+
+    To pad a one-dimensional array::
+
+        >>> from nddata.utils.numpyutils import pad
+        >>> import numpy as np
+
+        >>> pad([1,2,3], (1, 2), 'constant', 0)
+        array([0, 1, 2, 3, 0, 0])
+
+    But also arbitary dimensional arrays can be padded::
+
+        >>> pad(np.ones((3,3), int), ((0, 1), (2, 1)), 'constant', 0)
+        array([[0, 0, 1, 1, 1, 0],
+               [0, 0, 1, 1, 1, 0],
+               [0, 0, 1, 1, 1, 0],
+               [0, 0, 0, 0, 0, 0]])
+    """
+    # Convert it an array
+    array = np.asarray(array)
+
+    # Scalar values should not be padded.
+    if array.shape == ():
+        raise ValueError('cannot pad scalars.')
+
+    # This is a compatibility function with much less options and optimized
+    # just to do constant padding with one value. If that's not enough use
+    # np.pad - even though I had some test failures for numpy 1.7-1.9
+    # which could mean that there were some changes recently. This is just a
+    # way to deal with my common case and ignore the wide range of np.lin.pad
+    # possibilities:
+    # TL; DR; Only allow constants and only if the value is a scalar.
+    if mode != 'constant':
+        raise ValueError('pad function can only use mode=constant')
+
+    # In case a 1d array is given the offsets could be a tuple with two
+    # elements or a tuple of a tuple of 2 elements. In case it's the first we
+    # wrap it inside another tuple so the following parts can remain the same
+    # for 1d and multi-d.
+    # In case one just happens to enter a ((1,1),(1,1)) as offset this will
+    # break calculating the finalshape because of the extra wrapping. But
+    # trying to pad a 1D array in 2 dimensions is kinda wrong.
+    if array.ndim == 1:
+        if len(offsets) == 2:
+            offsets = (offsets, )
+
+    # Calculate the finalshape as tuple by adding the current shape to the
+    # sum of offsets in this dimension.
+    finalshape = tuple(i + offsets[idx][0] + offsets[idx][1]
+                       for idx, i in enumerate(array.shape))
+
+    # unfortunatly np.full is only avaiable until numpy 1.8 as long as 1.7 is
+    # supported this cannot work.
+    # TODO: Use this as soon as numpy 1.7 isn't supported anymore
+    # result = np.full(finalshape, dtype=array.dtype,
+    #                  fill_value=constant_values)
+    result = np.empty(finalshape, dtype=array.dtype)
+    result.fill(constant_values)
+
+    # Calculate the position where to insert the array. This is simply
+    # start=offset_before, end=offset_before+original_shape. Then insert the
+    # original array in the new one. This will copy the array!
+    pos = tuple(slice(offsets[dim][0], offsets[dim][0]+array.shape[dim], 1)
+                for dim in range(array.ndim))
+    result[pos] = array
+    return result
 
 
 def expand_multi_dims(array, axis, ndims):

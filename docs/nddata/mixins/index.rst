@@ -5,6 +5,7 @@ Mixins for added functionality
     :maxdepth: 2
 
     ndslicing.rst
+    ndreshape.rst
     ndarithmetic.rst
     ndunitconversion.rst
     ndstats.rst

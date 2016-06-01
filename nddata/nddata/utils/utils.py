@@ -3,7 +3,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from copy import deepcopy
+from ...utils.copyutils import do_copy
 
 import numpy as np
 
@@ -692,7 +692,7 @@ class Cutout2D(object):
             self.origin_original[1] - self.slices_cutout[0].start)
 
         if wcs is not None:
-            self.wcs = deepcopy(wcs)
+            self.wcs = do_copy(wcs)
             self.wcs.wcs.crpix -= self._origin_original_true
         else:
             self.wcs = None

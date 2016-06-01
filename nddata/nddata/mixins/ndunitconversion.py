@@ -3,7 +3,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from copy import copy
+from ...utils.copyutils import do_copy
 
 
 __all__ = ['NDUnitConvMixin']
@@ -87,18 +87,18 @@ class NDUnitConvMixin(object):
     def _convert_unit_mask(self, unit, equivalencies):
         if self.mask is None:
             return None
-        return copy(self.mask)
+        return do_copy(self.mask)
 
     def _convert_unit_meta(self, unit, equivalencies):
-        return copy(self.meta)
+        return do_copy(self.meta)
 
     def _convert_unit_wcs(self, unit, equivalencies):
         if self.wcs is None:
             return None
-        return copy(self.wcs)
+        return do_copy(self.wcs)
 
     def _convert_unit_flags(self, unit, equivalencies):
-        return copy(self.flags)
+        return do_copy(self.flags)
 
     def _convert_unit_uncertainty(self, unit, equivalencies):
         if self.uncertainty is None:
@@ -109,4 +109,4 @@ class NDUnitConvMixin(object):
         except AttributeError:
             # Either it has no "convert_unit_to" method OR it is an Unknown-
             # uncertainty without unit.
-            return copy(self.uncertainty)
+            return do_copy(self.uncertainty)

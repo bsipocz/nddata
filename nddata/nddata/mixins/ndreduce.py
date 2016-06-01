@@ -3,7 +3,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from copy import copy
+from ...utils.copyutils import do_copy
 
 import numpy as np
 
@@ -55,10 +55,10 @@ class NDReduceMixin(object):
 
     def _reduce_get_others(self):
         # Meta and unit should stay the same for the reduce functions.
-        kwargs = {'meta': copy(self.meta),
+        kwargs = {'meta': do_copy(self.meta),
                   'unit': self.unit,
-                  'wcs': copy(self.wcs),
-                  'flags': copy(self.flags)}
+                  'wcs': do_copy(self.wcs),
+                  'flags': do_copy(self.flags)}
         # TODO: WCS and Flags may also be subject to changes because of the
         # reduction, but currently just copy them.
         return kwargs

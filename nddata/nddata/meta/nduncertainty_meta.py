@@ -4,7 +4,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from abc import ABCMeta, abstractproperty, abstractmethod
-from copy import copy as copycopy
+from ...utils.copyutils import do_copy
 import weakref
 
 import numpy as np
@@ -16,6 +16,7 @@ import astropy.units as u
 
 from ...utils import descriptors
 from ...utils.sentinels import ParameterNotSpecified
+from ...utils.numpyutils import pad
 from ..exceptions import MissingDataAssociationException
 
 __all__ = ['NDUncertainty',
@@ -115,7 +116,7 @@ class NDUncertainty(object):
         # this avoids unnecessary copy-steps. Hopefully noone does just a
         # shallow copy in the property...
         if copy and self.data is data:
-            self.data = copycopy(data)
+            self.data = do_copy(data)
             # No need to copy unit because they are immutable
             # and copying parent_nddata would be bad since this would copy the
             # associated NDData instance!!!
@@ -290,6 +291,17 @@ class NDUncertainty(object):
         # is going through it's init and there the parent is set.
         # We don't need sliced uncertainties linking to unsliced data.
         return self.__class__(self.data[item], unit=self.unit, copy=False)
+
+    def offset(self, pad_width):
+        """Pad the uncertainty data assuming it is a `numpy.ndarray`.
+
+        See also
+        --------
+        nddata.nddata.NDData.offset
+        """
+        return self.__class__(pad(self.data, pad_width, mode='constant',
+                                  constant_values=0),
+                              unit=self.unit, copy=False)
 
     # Descriptor-properties
     @descriptors.UncertaintyData

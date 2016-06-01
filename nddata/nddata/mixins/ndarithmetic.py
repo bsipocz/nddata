@@ -3,7 +3,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from copy import copy
+from ...utils.copyutils import do_copy
 
 import numpy as np
 
@@ -18,6 +18,8 @@ from ...utils.dictutils import dict_split
 
 
 __all__ = ['NDArithmeticMixin']
+
+FIRSTFOUND = ['first_found', 'ff']
 
 # Docstring templates for add, subtract, multiply, divide methods.
 _arit_doc = """Performs {name} based on `~nddata.nddata.NDDataBase`.
@@ -255,11 +257,14 @@ class NDArithmeticMixin(object):
         # First check that the WCS allows the arithmetic operation
         if compare_wcs is None:
             kwargs['wcs'] = None
-        elif compare_wcs in ['ff', 'first_found']:
+        elif compare_wcs in FIRSTFOUND:
+            # In case only one WCS is present we need to deepcopy it. Shallow
+            # copies wouldn't copy the underlying _Wcsprm which defines all
+            # of the wcs.
             if self.wcs is None:
-                kwargs['wcs'] = copy(operand.wcs)
+                kwargs['wcs'] = do_copy(operand.wcs)
             else:
-                kwargs['wcs'] = copy(self.wcs)
+                kwargs['wcs'] = do_copy(self.wcs)
         else:
             kwargs['wcs'] = self._arithmetic_wcs(operation, operand,
                                                  compare_wcs, **kwds2['wcs'])
@@ -273,9 +278,9 @@ class NDArithmeticMixin(object):
             kwargs['uncertainty'] = None
         elif not propagate_uncertainties:
             if self.uncertainty is None:
-                kwargs['uncertainty'] = copy(operand.uncertainty)
+                kwargs['uncertainty'] = do_copy(operand.uncertainty)
             else:
-                kwargs['uncertainty'] = copy(self.uncertainty)
+                kwargs['uncertainty'] = do_copy(self.uncertainty)
         else:
             kwargs['uncertainty'] = self._arithmetic_uncertainty(
                 operation, operand, result, uncertainty_correlation,
@@ -283,11 +288,11 @@ class NDArithmeticMixin(object):
 
         if handle_mask is None:
             kwargs['mask'] = None
-        elif handle_mask in ['ff', 'first_found']:
+        elif handle_mask in FIRSTFOUND:
             if self.mask is None:
-                kwargs['mask'] = copy(operand.mask)
+                kwargs['mask'] = do_copy(operand.mask)
             else:
-                kwargs['mask'] = copy(self.mask)
+                kwargs['mask'] = do_copy(self.mask)
         else:
             kwargs['mask'] = self._arithmetic_mask(operation, operand,
                                                    handle_mask,
@@ -295,11 +300,11 @@ class NDArithmeticMixin(object):
 
         if handle_flags is None:
             kwargs['flags'] = None
-        elif handle_flags in ['ff', 'first_found']:
+        elif handle_flags in FIRSTFOUND:
             if self.flags is None:
-                kwargs['flags'] = copy(operand.flags)
+                kwargs['flags'] = do_copy(operand.flags)
             else:
-                kwargs['flags'] = copy(self.flags)
+                kwargs['flags'] = do_copy(self.flags)
         else:
             kwargs['flags'] = self._arithmetic_flags(operation, operand,
                                                      handle_flags,
@@ -307,11 +312,11 @@ class NDArithmeticMixin(object):
 
         if handle_meta is None:
             kwargs['meta'] = None
-        elif handle_meta in ['ff', 'first_found']:
+        elif handle_meta in FIRSTFOUND:
             if not self.meta:
-                kwargs['meta'] = copy(operand.meta)
+                kwargs['meta'] = do_copy(operand.meta)
             else:
-                kwargs['meta'] = copy(self.meta)
+                kwargs['meta'] = do_copy(self.meta)
         else:
             kwargs['meta'] = self._arithmetic_meta(
                 operation, operand, handle_meta, **kwds2['meta'])
@@ -469,9 +474,9 @@ class NDArithmeticMixin(object):
             return None
         elif self.mask is None:
             # Make a copy so there is no reference in the result.
-            return copy(operand.mask)
+            return do_copy(operand.mask)
         elif operand.mask is None:
-            return copy(self.mask)
+            return do_copy(self.mask)
         else:
             # Now lets calculate the resulting mask (operation enforces copy)
             return handle_mask(self.mask, operand.mask, **kwds)
