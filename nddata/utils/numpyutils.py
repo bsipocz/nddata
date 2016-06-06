@@ -90,6 +90,10 @@ def create_slices(point, shape, origin='start'):
     ValueError
         If the ``origin`` is a not allowed type or string.
 
+    See also
+    --------
+    nddata.nddata.mixins.NDSlicingMixin.slice
+
     Examples
     --------
     Given an two dimensional 5x10 array::

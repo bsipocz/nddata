@@ -5,6 +5,8 @@ from __future__ import (absolute_import, division, print_function,
 
 from astropy import log
 
+from ...utils.numpyutils import create_slices
+
 
 __all__ = ['NDSlicingMixin']
 
@@ -40,6 +42,92 @@ class NDSlicingMixin(object):
         # Let the other methods handle slicing.
         kwargs = self._slice(item)
         return self.__class__(**kwargs)
+
+    def slice(self, point, shape, origin='start'):
+        """Slice the `~nddata.nddata.NDDataBase` instance by choosing a \
+                reference point and shape.
+
+        This is a wrapper for :func:`~nddata.utils.numpyutils.create_slices`.
+
+        Parameters
+        ----------
+        point : `int`, `tuple` of integers
+            The position represents the starting/central/end point (inclusive)
+            of the slice. The interpretation of the point is controlled by the
+            ``origin`` parameter.
+
+        shape : `int`, `tuple` of integers
+            The shape represents the extend of the slice. The ``shape`` can
+            also be a `numpy.ndarray` in which case it's shape is used.
+
+            .. note::
+                The ``point`` and ``shape`` should contain as many integer as
+                the target array has dimensions. In case it is a flat (1D)
+                array the parameters don't need to be tuples but can also be
+                single integer. **But** both parameters must be the same type
+                and contain the same number of elements.
+
+        origin : `str` {"start" | "end" | "center"}, optional
+            Defines the interpretation of the ``point`` parameter:
+
+            - ``"start"``, first point included in the slice.
+            - ``"end"``, last point included in the slice.
+            - ``"center"``, central point of the slice. Odd shapes have as
+              many elements before and after the center while even shapes have
+              one more element before.
+
+            Default is ``"start"``.
+
+        Returns
+        -------
+        sliced nddatabase : `~nddata.nddata.NDDataBase`-like
+            The sliced NDDataBase-like instance. When possible the items are
+            references to the originals and not copies.
+
+        Raises
+        ------
+        ValueError
+            If the ``origin`` is a not allowed type or string.
+
+        See also
+        --------
+        nddata.utils.numpyutils.create_slices
+
+        Examples
+        --------
+        Besides the Python slicing syntax also this specific method can be used
+        to slice an instance::
+
+            >>> from nddata.nddata import NDData
+            >>> import numpy as np
+            >>> ndd = NDData(np.arange(20).reshape(4, 5))
+
+        To slice a 2x3 shaped portion starting at 1, 1::
+
+            >>> ndd.slice((1,1), (2,3), origin="start")
+            NDData([[ 6,  7,  8],
+                    [11, 12, 13]])
+
+        This is equivalent to slicing a 2x3 portion ending at 2, 3::
+
+            >>> ndd.slice((2,3), (2,3), origin="end")
+            NDData([[ 6,  7,  8],
+                    [11, 12, 13]])
+
+        Or using the center at 2,2::
+
+            >>> ndd.slice((2,2), (2,3), origin="center")
+            NDData([[ 6,  7,  8],
+                    [11, 12, 13]])
+
+        Notes
+        -----
+        This method has more options of specifying an ``origin`` but doesn't
+        allow for ``NumPy`` integer or boolean indexing. If you want to use
+        those you can use the normal ``ndd[indices]`` syntax.
+        """
+        # Create the appropriate real slices and pass them to getitem.
+        return self[create_slices(point, shape, origin)]
 
     def _slice(self, item):
         """
