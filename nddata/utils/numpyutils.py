@@ -90,6 +90,10 @@ def create_slices(point, shape, origin='start'):
     ValueError
         If the ``origin`` is a not allowed type or string.
 
+    TypeError
+        If ``point`` and ``shape`` are of different type (one scalar and one
+        tuple) or contain different number of elements.
+
     See also
     --------
     nddata.nddata.mixins.NDSlicingMixin.slice

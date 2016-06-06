@@ -8,7 +8,8 @@ from numpy.testing import assert_array_equal
 
 from astropy.tests.helper import pytest
 
-from ..numpyutils import is_numeric_array, expand_multi_dims, pad
+from ..numpyutils import (create_slices, is_numeric_array, expand_multi_dims,
+                          pad)
 
 
 NUMERIC = [True, 1, -1, 1.0, 1+1j]
@@ -94,3 +95,42 @@ def test_pad():
     assert_array_equal(pad([2], (0, 0), 'constant', 10), [2])
     assert_array_equal(pad([2], (0, 1), 'constant', 10), [2, 10])
     assert_array_equal(pad([2], (1, 0), 'constant', 10), [10, 2])
+
+
+def test_create_slices():
+    # Failures
+    # Unknown origin parameter
+    with pytest.raises(ValueError):
+        create_slices(1, 1, 'blub')
+    # Incompatible position and shape
+    with pytest.raises(TypeError):
+        create_slices((1, ), 1, 'start')
+    with pytest.raises(TypeError):
+        create_slices(1, (1, ), 'start')
+
+    # Correctness tests with scalars
+    assert create_slices(1, 1, 'start') == (slice(1, 2, None), )
+    assert create_slices(1, 1, 'end') == (slice(1, 2, None), )
+    assert create_slices(1, 1, 'center') == (slice(1, 2, None), )
+
+    assert create_slices(1, 2, 'start') == (slice(1, 3, None), )
+    assert create_slices(1, 2, 'end') == (slice(0, 2, None), )
+    assert create_slices(1, 2, 'center') == (slice(0, 2, None), )
+
+    assert create_slices(2, 3, 'start') == (slice(2, 5, None), )
+    assert create_slices(2, 3, 'end') == (slice(0, 3, None), )
+    assert create_slices(2, 3, 'center') == (slice(1, 4, None), )
+
+    # And with tuples
+    assert create_slices((2, 2), (3, 3), 'start') == (slice(2, 5, None),
+                                                      slice(2, 5, None))
+    assert create_slices((2, 2), (3, 3), 'end') == (slice(0, 3, None),
+                                                    slice(0, 3, None))
+    assert create_slices((2, 2), (3, 3), 'center') == (slice(1, 4, None),
+                                                       slice(1, 4, None))
+
+    # and with an array as shape parameter
+    assert create_slices(1, np.ones(3)) == (slice(1, 4, None), )
+    assert create_slices((1, ), np.ones(3)) == (slice(1, 4, None), )
+    assert create_slices((1, 1), np.ones((3, 3))) == (slice(1, 4, None),
+                                                      slice(1, 4, None))
