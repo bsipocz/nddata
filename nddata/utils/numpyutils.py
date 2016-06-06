@@ -5,7 +5,12 @@ from __future__ import (absolute_import, division, print_function,
 
 import numpy as np
 
-__all__ = ['is_numeric_array', 'expand_multi_dims', 'pad']
+from astropy.extern import six
+
+if six.PY2:  # pragma: no cover
+    from future_builtins import zip
+
+__all__ = ['create_slices', 'expand_multi_dims', 'is_numeric_array', 'pad']
 
 # Boolean, unsigned integer, signed integer, float, complex.
 _NUMERIC_KINDS = set('buifc')
@@ -35,7 +40,145 @@ def is_numeric_array(array):
         return np.asarray(array).dtype.kind in _NUMERIC_KINDS
 
 
-def pad(array, offsets, mode, constant_values):
+def create_slices(point, shape, origin='start'):
+    """Create `slice` to index an array starting from a specified position and\
+            with specified shape.
+
+    Parameters
+    ----------
+    point : `int`, `tuple` of integers
+        The position represents the starting/central/end point (inclusive) of
+        the slice. The interpretation of the point is controlled by the
+        ``origin`` parameter.
+
+    shape : `int`, `tuple` of integers
+        The shape represents the extend of the slice. The ``shape`` can also be
+        a `numpy.ndarray` in which case it's shape is used.
+
+        .. note::
+            The ``point`` and ``shape`` should contain as many integer as
+            the target array has dimensions. In case it is a flat (1D) array
+            the parameters don't need to be tuples but can also be single
+            integer. **But** both parameters must be the same type and contain
+            the same number of elements.
+
+    origin : `str` {"start" | "end" | "center"}, optional
+        Defines the interpretation of the ``point`` parameter:
+
+        - ``"start"``, first point included in the slice.
+        - ``"end"``, last point included in the slice.
+        - ``"center"``, central point of the slice. Odd shapes have as many
+          elements before and after the center while even shapes have one more
+          element before.
+
+        Default is ``"start"``.
+
+    Returns
+    -------
+    slices : `tuple` of slices
+        The returned object can be used to index (slice) an array and get the
+        specified parts of the array.
+
+        .. warning::
+            The return is always a **tuple** which cannot be used by most
+            Python datastructures like `list`, `str`, ... if you want to index
+            these you need to get the appropriate element (most probably the
+            first) from the return.
+
+    Raises
+    ------
+    ValueError
+        If the ``origin`` is a not allowed type or string.
+
+    Examples
+    --------
+    Given an two dimensional 5x10 array::
+
+        >>> from nddata.utils.numpyutils import create_slices
+        >>> import numpy as np
+        >>> array = np.arange(50).reshape(5, 10)
+
+    For example to get a 3x3 part of the array centered at 2, 5::
+
+        >>> array = np.arange(50).reshape(5, 10)
+        >>> slices = create_slices(point=(2, 5), shape=(3, 4), origin='center')
+        >>> array[slices]
+        array([[13, 14, 15, 16],
+               [23, 24, 25, 26],
+               [33, 34, 35, 36]])
+
+    Or a 7 element one-dimensional array ending with index 10::
+
+        >>> array = np.arange(15)
+        >>> array[create_slices(point=10, shape=7, origin='end')]
+        array([ 4,  5,  6,  7,  8,  9, 10])
+
+    These can also be used to insert a small array into a bigger one using a
+    central index::
+
+        >>> array2 = np.arange(5)
+        >>> array[create_slices(point=4, shape=array2, origin='center')] =\
+ array2
+        >>> array
+        array([ 0,  1,  0,  1,  2,  3,  4,  7,  8,  9, 10, 11, 12, 13, 14])
+    """
+    # In case the shape is a numpy array we take it's shape. This allows the
+    # user to pass in the array which should be inserted.
+    try:
+        shape = shape.shape
+    except AttributeError:
+        pass
+    else:
+        # If we have a numpy array do a quick check that the point is also a
+        # tuple (or iterable). This is a bit annoying but .shape always returns
+        # a tuple even if the array is 1D or a scalar.
+        try:
+            len(point)
+        except TypeError:
+            point = (point, )
+
+    # Zip the point and shape. We require them to be of equal length or integer
+    # if they are integer we need to wrap them into tuples before zipping.
+    try:
+        zips = zip(point, shape)
+    except TypeError:
+        zips = zip((point, ), (shape, ))
+
+    # Depending on the origin determine the appropriate slices. Start is
+    # "normal" slicing but "end" and "center" require some more calculations.
+    if origin == 'start':
+        # If we start from the ankor is the starting point the slices can be
+        # calculated by adding the shape of each dimension to the starting
+        # point.
+        return tuple(slice(pos, pos + length) for pos, length in zips)
+
+    elif origin == 'end':
+        # If the position is the end value we need to subtract the length from
+        # the position to get the starting point. But one also needs to add
+        # one to the start and the end because otherwise the end point would
+        # not be included.
+        # TODO: Document that the end point is included here!!!
+        return tuple(slice(pos - length + 1, pos + 1) for pos, length in zips)
+
+    elif origin == 'center':
+        # Using the center as ankor is more complicated because we might have
+        # even and off shapes. We start by calculating an intermediate
+        # generator containing the position and the shapes divided by 2. We
+        # use floor division and keep the modulo
+        zips = ((pos, length // 2, length % 2) for pos, length in zips)
+        # The starting point is always just the position minus the result of
+        # the floor division, while the stop is the pos plus the result of the
+        # floor division AND the modulo. This ensures that off length shapes
+        # have as many elements before and after center while even arrays
+        # contain one more element before than after.
+        return tuple(slice(pos - half_len, pos + half_len + mod)
+                     for pos, half_len, mod in zips)
+
+    else:
+        raise ValueError('origin must be one of "start", "stop" or "center".')
+
+
+def pad(array, offsets, mode='constant', constant_values=0):
     """Alternative to :func:`numpy.pad` but only with ``mode=constant``.
 
     The :func:`numpy.pad` function is very powerful but very slow for small
@@ -60,10 +203,12 @@ def pad(array, offsets, mode, constant_values):
     mode : `str`
         Should be ``"constant"``. Other modes are avaiable using
         :func:`numpy.pad`.
+        Default is ``"constant"``.
 
     constant_values : number
         The value with which to pad the array. Must be a scalar. The more
-        advanced options of `numpy.pad` are not integrated.
+        advanced options of `numpy.pad` are not allowed.
+        Default is ``0``.
 
     Returns
     -------
@@ -130,11 +275,17 @@ def pad(array, offsets, mode, constant_values):
     result = np.empty(finalshape, dtype=array.dtype)
     result.fill(constant_values)
 
-    # Calculate the position where to insert the array. This is simply
-    # start=offset_before, end=offset_before+original_shape. Then insert the
-    # original array in the new one. This will copy the array!
-    pos = tuple(slice(offsets[dim][0], offsets[dim][0]+array.shape[dim], 1)
-                for dim in range(array.ndim))
+    # Calculate the position where to insert the array. This can be done by
+    # using the create_slices function with origin="start" (default therefore
+    # omitted) and the position is just the first element of the offsets.
+    # Unfortunatly this requires an intermediate list comprehension but for the
+    # shape we can simply use the original array. The function will extract the
+    # shape by itself.
+    # Then insert the original array in the new one. This will copy the array!
+    pos = create_slices([i[0] for i in offsets], array)
+    # Without create_slices this would be:
+    # pos = tuple(slice(offsets[dim][0], offsets[dim][0]+array.shape[dim], 1)
+    #             for dim in range(array.ndim))
     result[pos] = array
     return result
 

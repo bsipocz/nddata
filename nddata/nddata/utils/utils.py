@@ -3,15 +3,18 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from ...utils.copyutils import do_copy
+import math
 
 import numpy as np
 
 from astropy import units as u
+from astropy.coordinates import SkyCoord
 from astropy.utils import lazyproperty
 from astropy.wcs.utils import skycoord_to_pixel, proj_plane_pixel_scales
 
 from .decorators import support_nddata
+
+from ...utils.copyutils import do_copy
 
 
 __all__ = ['extract_array', 'add_array', 'subpixel_indices',
@@ -30,12 +33,12 @@ class PartialOverlapError(ValueError):
 
 
 def _round(a):
-    '''Always round up.
+    '''Rounding to the nearest integer.
 
-    ``np.round`` cannot be used here, because it rounds .5 to the nearest
-    even number.
+    The difference to `numpy.around` is that it rounds .5 up (not to the
+    nearest even number) and it returns an `int` and not a `float`.
     '''
-    return int(np.floor(a + 0.5))
+    return int(math.floor(a + 0.5))
 
 
 def _offset(a):
@@ -46,16 +49,15 @@ def _offset(a):
     four elements it's center -2 / +1
     This function introduces that offset.
     '''
-    if np.mod(a, 2) == 0:
-        return -0.5
-    else:
+    if a % 2:
         return 0.
+    else:
+        return -0.5
 
 
 def overlap_slices(large_array_shape, small_array_shape, position,
                    mode='partial'):
-    """
-    Get slices for the overlapping part of a small and a large array.
+    """Get slices for the overlapping part of a small and a large array.
 
     Given a certain position of the center of the small array, with
     respect to the large array, tuples of slices are returned which can be
@@ -66,41 +68,44 @@ def overlap_slices(large_array_shape, small_array_shape, position,
 
     Parameters
     ----------
-    large_array_shape : tuple or int
+    large_array_shape : `int`, `tuple` of integers
         The shape of the large array (for 1D arrays, this can be an
         `int`).
-    small_array_shape : tuple or int
+
+    small_array_shape : `int`, `tuple` of integers
         The shape of the small array (for 1D arrays, this can be an
-        `int`).  See the ``mode`` keyword for additional details.
-    position : tuple of numbers or number
+        `int`). See the ``mode`` keyword for additional details.
+
+    position : number, `tuple` of numbers
         The position of the small array's center with respect to the
-        large array.  The pixel coordinates should be in the same order
-        as the array shape.  Integer positions are at the pixel centers.
+        large array. The pixel coordinates should be in the same order
+        as the array shape. Integer positions are at the pixel centers.
         For any axis where ``small_array_shape`` is even, the position
         is rounded up, e.g. extracting two elements with a center of
         ``1`` will define the extracted region as ``[0, 1]``.
-    mode : {'partial', 'trim', 'strict'}, optional
+
+    mode : `str` {'partial', 'trim', 'strict'}, optional
         In ``'partial'`` mode, a partial overlap of the small and the
-        large array is sufficient.  The ``'trim'`` mode is similar to
+        large array is sufficient. The ``'trim'`` mode is similar to
         the ``'partial'`` mode, but ``slices_small`` will be adjusted to
-        return only the overlapping elements.  In the ``'strict'`` mode,
+        return only the overlapping elements. In the ``'strict'`` mode,
         the small array has to be fully contained in the large array,
         otherwise an `~nddata.nddata.utils.PartialOverlapError` is
-        raised.  In all modes, non-overlapping arrays will raise a
+        raised. In all modes, non-overlapping arrays will raise a
         `~nddata.nddata.utils.NoOverlapError`.
 
     Returns
     -------
-    slices_large : tuple of slices
+    slices_large : `tuple` of slices
         A tuple of slice objects for each axis of the large array, such
         that ``large_array[slices_large]`` extracts the region of the
         large array that overlaps with the small array.
-    slices_small : slice
+
+    slices_small : `slice`
         A tuple of slice objects for each axis of the small array, such
         that ``small_array[slices_small]`` extracts the region that is
         inside the large array.
     """
-
     if mode not in ['partial', 'trim', 'strict']:
         raise ValueError('Mode can be only "partial", "trim", or "strict".')
     if np.isscalar(small_array_shape):
@@ -163,43 +168,52 @@ def extract_array(array_large, shape, position, mode='partial',
 
     Parameters
     ----------
-    array_large : `~numpy.ndarray`
+    array_large : `numpy.ndarray`-like
         The array from which to extract the small array.
-    shape : tuple or int
+
+    shape : `int`, `tuple` of integers
         The shape of the extracted array (for 1D arrays, this can be an
-        `int`).  See the ``mode`` keyword for additional details.
-    position : tuple of numbers or number
+        `int`). See the ``mode`` keyword for additional details.
+
+    position : number, `tuple` of numbers
         The position of the small array's center with respect to the
-        large array.  The pixel coordinates should be in the same order
-        as the array shape.  Integer positions are at the pixel centers
+        large array. The pixel coordinates should be in the same order
+        as the array shape. Integer positions are at the pixel centers
         (for 1D arrays, this can be a number).
-    mode : {'partial', 'trim', 'strict'}, optional
-        The mode used for extracting the small array.  For the
+
+    mode : `str` {'partial', 'trim', 'strict'}, optional
+        The mode used for extracting the small array. For the
         ``'partial'`` and ``'trim'`` modes, a partial overlap of the
-        small array and the large array is sufficient.  For the
+        small array and the large array is sufficient. For the
         ``'strict'`` mode, the small array has to be fully contained
         within the large array, otherwise an
-        `~nddata.nddata.utils.PartialOverlapError` is raised.   In all
+        `~nddata.nddata.utils.PartialOverlapError` is raised. In all
         modes, non-overlapping arrays will raise a
-        `~nddata.nddata.utils.NoOverlapError`.  In ``'partial'`` mode,
+        `~nddata.nddata.utils.NoOverlapError`. In ``'partial'`` mode,
         positions in the small array that do not overlap with the large
-        array will be filled with ``fill_value``.  In ``'trim'`` mode
+        array will be filled with ``fill_value``. In ``'trim'`` mode
         only the overlapping elements are returned, thus the resulting
         small array may be smaller than the requested ``shape``.
+        Default is ``"partial"``.
+
     fill_value : number, optional
         If ``mode='partial'``, the value to fill pixels in the extracted
         small array that do not overlap with the input ``array_large``.
         ``fill_value`` must have the same ``dtype`` as the
         ``array_large`` array.
-    return_position : boolean, optional
-        If `True`, return the coordinates of ``position`` in the
+        Default is ``NaN``.
+
+    return_position : `bool`, optional
+        If ``True``, return the coordinates of ``position`` in the
         coordinate system of the returned array.
+        Default is ``False``.
 
     Returns
     -------
     array_small : `~numpy.ndarray`
         The extracted array.
-    new_position : tuple
+
+    new_position : `tuple`
         If ``return_position`` is true, this tuple will contain the
         coordinates of the input ``position`` in the coordinate system
         of ``array_small``. Note that for partially overlapping arrays,
@@ -210,15 +224,15 @@ def extract_array(array_large, shape, position, mode='partial',
     Examples
     --------
     We consider a large array with the shape 11x10, from which we extract
-    a small array of shape 3x5:
+    a small array of shape 3x5::
 
-    >>> import numpy as np
-    >>> from nddata.nddata.utils import extract_array
-    >>> large_array = np.arange(110).reshape((11, 10))
-    >>> extract_array(large_array, (3, 5), (7, 7))
-    array([[65, 66, 67, 68, 69],
-           [75, 76, 77, 78, 79],
-           [85, 86, 87, 88, 89]])
+        >>> import numpy as np
+        >>> from nddata.nddata.utils import extract_array
+        >>> large_array = np.arange(110).reshape((11, 10))
+        >>> extract_array(large_array, (3, 5), (7, 7))
+        array([[65, 66, 67, 68, 69],
+               [75, 76, 77, 78, 79],
+               [85, 86, 87, 88, 89]])
     """
 
     if np.isscalar(shape):
@@ -253,17 +267,19 @@ def add_array(array_large, array_small, position):
 
     Parameters
     ----------
-    array_large : `~numpy.ndarray`
+    array_large : `numpy.ndarray`
         Large array.
-    array_small : `~numpy.ndarray`
+
+    array_small : `numpy.ndarray`
         Small array to add.
-    position : tuple
+
+    position : `tuple`
         Position of the small array's center, with respect to the large array.
         Coordinates should be in the same order as the array shape.
 
     Returns
     -------
-    new_array : `~numpy.ndarray`
+    new_array : `numpy.ndarray`
         The new array formed from the sum of ``array_large`` and
         ``array_small``.
 
@@ -274,25 +290,25 @@ def add_array(array_large, array_small, position):
     Examples
     --------
     We consider a large array of zeros with the shape 5x5 and a small
-    array of ones with a shape of 3x3:
+    array of ones with a shape of 3x3::
 
-    >>> import numpy as np
-    >>> from nddata.nddata.utils import add_array
-    >>> large_array = np.zeros((5, 5))
-    >>> small_array = np.ones((3, 3))
-    >>> add_array(large_array, small_array, (1, 2))
-    array([[ 0.,  1.,  1.,  1.,  0.],
-           [ 0.,  1.,  1.,  1.,  0.],
-           [ 0.,  1.,  1.,  1.,  0.],
-           [ 0.,  0.,  0.,  0.,  0.],
-           [ 0.,  0.,  0.,  0.,  0.]])
+        >>> import numpy as np
+        >>> from nddata.nddata.utils import add_array
+        >>> large_array = np.zeros((5, 5))
+        >>> small_array = np.ones((3, 3))
+        >>> add_array(large_array, small_array, (1, 2))
+        array([[ 0.,  1.,  1.,  1.,  0.],
+               [ 0.,  1.,  1.,  1.,  0.],
+               [ 0.,  1.,  1.,  1.,  0.],
+               [ 0.,  0.,  0.,  0.,  0.],
+               [ 0.,  0.,  0.,  0.,  0.]])
     """
     # Check if large array is really larger
     if all(large_shape > small_shape for (large_shape, small_shape)
            in zip(array_large.shape, array_small.shape)):
-        large_slices, small_slices = overlap_slices(array_large.shape,
-                                                    array_small.shape, position)
-        array_large[large_slices] += array_small[small_slices]
+        lslices, sslices = overlap_slices(array_large.shape, array_small.shape,
+                                          position)
+        array_large[lslices] += array_small[sslices]
         return array_large
     else:
         raise ValueError("Can't add array. Small array too large.")
@@ -309,32 +325,33 @@ def subpixel_indices(position, subsampling):
 
     Parameters
     ----------
-    position : `~numpy.ndarray` or array-like
+    position : `numpy.ndarray`-like
         Positions in pixels.
-    subsampling : int
+
+    subsampling : `int`
         Subsampling factor per pixel.
 
     Returns
     -------
-    indices : `~numpy.ndarray`
+    indices : `numpy.ndarray`
         The integer subpixel indices corresponding to the input positions.
 
     Examples
     --------
+    If no subsampling is used, then the subpixel indices returned are always
+    0::
 
-    If no subsampling is used, then the subpixel indices returned are always 0:
-
-    >>> from nddata.nddata.utils import subpixel_indices
-    >>> subpixel_indices([1.2, 3.4, 5.6],1)
-    array([ 0.,  0.,  0.])
+        >>> from nddata.nddata.utils import subpixel_indices
+        >>> subpixel_indices([1.2, 3.4, 5.6], 1)
+        array([ 0.,  0.,  0.])
 
     If instead we use a subsampling of 2, we see that for the two first values
     (1.1 and 3.4) the subpixel position is 1, while for 5.6 it is 0. This is
     because the values of 1, 3, and 6 lie in the center of pixels, and 1.1 and
-    3.4 lie in the left part of the pixels and 5.6 lies in the right part.
+    3.4 lie in the left part of the pixels and 5.6 lies in the right part::
 
-    >>> subpixel_indices([1.2, 3.4, 5.5],2)
-    array([ 1.,  1.,  0.])
+        >>> subpixel_indices([1.2, 3.4, 5.5], 2)
+        array([ 1.,  1.,  0.])
     """
     # Get decimal points
     fractions = np.modf(np.asanyarray(position) + 0.5)[0]
@@ -350,26 +367,29 @@ def block_reduce(data, block_size, func=np.sum):
     given axis then the data will be trimmed (from the end) along that
     axis.
 
+    .. note::
+        Requires ``SciKit-Image``.
+
     Parameters
     ----------
-    data : array_like
+    data : `numpy.ndarray`-like
         The data to be resampled.
 
-    block_size : int or array_like (int)
-        The integer block size along each axis.  If ``block_size`` is a
+    block_size : `int`, `numpy.ndarray` of integers
+        The integer block size along each axis. If ``block_size`` is a
         scalar and ``data`` has more than one dimension, then
         ``block_size`` will be used for for every axis.
 
     func : callable, optional
-        The method to use to downsample the data.  Must be a callable
-        that takes in a `~numpy.ndarray` along with an ``axis`` keyword,
-        which defines the axis along which the function is applied.  The
-        default is `~numpy.sum`, which provides block summation (and
+        The method to use to downsample the data. Must be a callable
+        that takes in a `numpy.ndarray` along with an ``axis`` keyword,
+        which defines the axis along which the function is applied.
+        Default is :func:`numpy.sum`, which provides block summation (and
         conserves the data sum).
 
     Returns
     -------
-    output : array-like
+    output : `numpy.ndarray`-like
         The resampled data.
 
     Examples
@@ -419,27 +439,30 @@ def block_replicate(data, block_size, conserve_sum=True):
 
     Parameters
     ----------
-    data : array_like
+    data : `numpy.ndarray`
         The data to be block replicated.
 
-    block_size : int or array_like (int)
-        The integer block size along each axis.  If ``block_size`` is a
+    block_size : `int`, `numpy.ndarray` of integers
+        The integer block size along each axis. If ``block_size`` is a
         scalar and ``data`` has more than one dimension, then
         ``block_size`` will be used for for every axis.
 
-    conserve_sum : bool, optional
-        If `True` (the default) then the sum of the output
-        block-replicated data will equal the sum of the input ``data``.
+    conserve_sum : `bool`, optional
+        If `True` then the sum of the output block-replicated data will equal
+        the sum of the input ``data``. If ``False`` the original values are
+        used.
+        Default is ``True``.
 
     Returns
     -------
-    output : array_like
+    output : `numpy.ndarray`
         The block-replicated data.
 
     Examples
     --------
     >>> import numpy as np
     >>> from nddata.nddata.utils import block_replicate
+
     >>> data = np.array([[0., 1.], [2., 3.]])
     >>> block_replicate(data, 2)
     array([[ 0.  ,  0.  ,  0.25,  0.25],
@@ -477,7 +500,7 @@ class Cutout2D(object):
     """
     Create a cutout object from a 2D array.
 
-    The returned object will contain a 2D cutout array.  If
+    The returned object will contain a 2D cutout array. If
     ``copy=False`` (default), the cutout array is a view into the
     original ``data`` array, otherwise the cutout array will contain a
     copy of the original data.
@@ -494,126 +517,129 @@ class Cutout2D(object):
         input WCS object contains distortion lookup tables described in
         the `FITS WCS distortion paper
         <http://www.atnf.csiro.au/people/mcalabre/WCS/dcs_20040422.pdf>`__.
+
+    Parameters
+    ----------
+    data : `numpy.ndarray`-like
+        The 2D data array from which to extract the cutout array.
+
+    position : `tuple` or `~astropy.coordinates.SkyCoord`
+        The position of the cutout array's center with respect to
+        the ``data`` array. The position can be specified either as
+        a ``(x, y)`` tuple of pixel coordinates or a
+        `~astropy.coordinates.SkyCoord`, in which case ``wcs`` is a
+        required input.
+
+    size : `int`, `numpy.ndarray`-like, `~astropy.units.Quantity`
+        The size of the cutout array along each axis. If ``size``
+        is a scalar number or a scalar `~astropy.units.Quantity`,
+        then a square cutout of ``size`` will be created. If
+        ``size`` has two elements, they should be in ``(ny, nx)``
+        order. Scalar numbers in ``size`` are assumed to be in
+        units of pixels. ``size`` can also be a
+        `~astropy.units.Quantity` object or contain
+        `~astropy.units.Quantity` objects. Such
+        `~astropy.units.Quantity` objects must be in pixel or
+        angular units. For all cases, ``size`` will be converted to
+        an integer number of pixels, rounding the the nearest
+        integer. See the ``mode`` keyword for additional details on
+        the final cutout size.
+
+        .. note::
+            If ``size`` is in angular units, the cutout size is
+            converted to pixels using the pixel scales along each
+            axis of the image at the ``CRPIX`` location. Projection
+            and other non-linear distortions are not taken into
+            account.
+
+    wcs : `~astropy.wcs.WCS`, optional
+        A WCS object associated with the input ``data`` array. If
+        ``wcs`` is not `None`, then the returned cutout object will
+        contain a copy of the updated WCS for the cutout data array.
+        Defaults is ``None``.
+
+    mode : `str` {'trim', 'partial', 'strict'}, optional
+        The mode used for creating the cutout data array. For the
+        ``'partial'`` and ``'trim'`` modes, a partial overlap of the
+        cutout array and the input ``data`` array is sufficient.
+        For the ``'strict'`` mode, the cutout array has to be fully
+        contained within the ``data`` array, otherwise an
+        `~nddata.nddata.utils.PartialOverlapError` is raised. In
+        all modes, non-overlapping arrays will raise a
+        `~nddata.nddata.utils.NoOverlapError`. In ``'partial'``
+        mode, positions in the cutout array that do not overlap with
+        the ``data`` array will be filled with ``fill_value``. In
+        ``'trim'`` mode only the overlapping elements are returned,
+        thus the resulting cutout array may be smaller than the
+        requested ``shape``.
+        Default is ``"trim"``.
+
+    fill_value : number, optional
+        If ``mode='partial'``, the value to fill pixels in the
+        cutout array that do not overlap with the input ``data``.
+        ``fill_value`` must have the same ``dtype`` as the input
+        ``data`` array.
+        Default is ``NaN``.
+
+
+    copy : `bool`, optional
+        If ``False``, then the cutout data will be a view into the original
+        ``data`` array. If ``True``, then the cutout data will hold a copy
+        of the original ``data`` array.
+        Default is ``False``.
+
+    Returns
+    -------
+    result : `~nddata.nddata.utils.Cutout2D`
+        A cutout object containing the 2D cutout data array and the
+        updated WCS, if ``wcs`` is input.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from nddata.nddata.utils import Cutout2D
+    >>> from astropy import units as u
+
+    >>> data = np.arange(20.).reshape(5, 4)
+    >>> cutout1 = Cutout2D(data, (2, 2), (3, 3))
+    >>> print(cutout1.data)
+    [[  5.   6.   7.]
+     [  9.  10.  11.]
+     [ 13.  14.  15.]]
+
+    >>> print(cutout1.center_original)
+    (2.0, 2.0)
+    >>> print(cutout1.center_cutout)
+    (1.0, 1.0)
+    >>> print(cutout1.origin_original)
+    (1, 1)
+
+    >>> cutout2 = Cutout2D(data, (2, 2), 3)
+    >>> print(cutout2.data)
+    [[  5.   6.   7.]
+     [  9.  10.  11.]
+     [ 13.  14.  15.]]
+
+    >>> size = u.Quantity([3, 3], u.pixel)
+    >>> cutout3 = Cutout2D(data, (0, 0), size)
+    >>> print(cutout3.data)
+    [[ 0.  1.]
+     [ 4.  5.]]
+
+    >>> cutout4 = Cutout2D(data, (0, 0), (3 * u.pixel, 3))
+    >>> print(cutout4.data)
+    [[ 0.  1.]
+     [ 4.  5.]]
+
+    >>> cutout5 = Cutout2D(data, (0, 0), (3, 3), mode='partial')
+    >>> print(cutout5.data)
+    [[ nan  nan  nan]
+     [ nan   0.   1.]
+     [ nan   4.   5.]]
     """
 
     def __init__(self, data, position, size, wcs=None, mode='trim',
                  fill_value=np.nan, copy=False):
-        """
-        Parameters
-        ----------
-        data : `~numpy.ndarray`
-            The 2D data array from which to extract the cutout array.
-
-        position : tuple or `~astropy.coordinates.SkyCoord`
-            The position of the cutout array's center with respect to
-            the ``data`` array.  The position can be specified either as
-            a ``(x, y)`` tuple of pixel coordinates or a
-            `~astropy.coordinates.SkyCoord`, in which case ``wcs`` is a
-            required input.
-
-        size : int, array-like, `~astropy.units.Quantity`
-            The size of the cutout array along each axis.  If ``size``
-            is a scalar number or a scalar `~astropy.units.Quantity`,
-            then a square cutout of ``size`` will be created.  If
-            ``size`` has two elements, they should be in ``(ny, nx)``
-            order.  Scalar numbers in ``size`` are assumed to be in
-            units of pixels.  ``size`` can also be a
-            `~astropy.units.Quantity` object or contain
-            `~astropy.units.Quantity` objects.  Such
-            `~astropy.units.Quantity` objects must be in pixel or
-            angular units.  For all cases, ``size`` will be converted to
-            an integer number of pixels, rounding the the nearest
-            integer.  See the ``mode`` keyword for additional details on
-            the final cutout size.
-
-            .. note::
-                If ``size`` is in angular units, the cutout size is
-                converted to pixels using the pixel scales along each
-                axis of the image at the ``CRPIX`` location.  Projection
-                and other non-linear distortions are not taken into
-                account.
-
-        wcs : `~astropy.wcs.WCS`, optional
-            A WCS object associated with the input ``data`` array.  If
-            ``wcs`` is not `None`, then the returned cutout object will
-            contain a copy of the updated WCS for the cutout data array.
-
-        mode : {'trim', 'partial', 'strict'}, optional
-            The mode used for creating the cutout data array.  For the
-            ``'partial'`` and ``'trim'`` modes, a partial overlap of the
-            cutout array and the input ``data`` array is sufficient.
-            For the ``'strict'`` mode, the cutout array has to be fully
-            contained within the ``data`` array, otherwise an
-            `~nddata.nddata.utils.PartialOverlapError` is raised.   In
-            all modes, non-overlapping arrays will raise a
-            `~nddata.nddata.utils.NoOverlapError`.  In ``'partial'``
-            mode, positions in the cutout array that do not overlap with
-            the ``data`` array will be filled with ``fill_value``.  In
-            ``'trim'`` mode only the overlapping elements are returned,
-            thus the resulting cutout array may be smaller than the
-            requested ``shape``.
-
-        fill_value : number, optional
-            If ``mode='partial'``, the value to fill pixels in the
-            cutout array that do not overlap with the input ``data``.
-            ``fill_value`` must have the same ``dtype`` as the input
-            ``data`` array.
-
-        copy : bool, optional
-            If `False` (default), then the cutout data will be a view
-            into the original ``data`` array.  If `True`, then the
-            cutout data will hold a copy of the original ``data`` array.
-
-        Returns
-        -------
-        result : `~nddata.nddata.utils.Cutout2D`
-            A cutout object containing the 2D cutout data array and the
-            updated WCS, if ``wcs`` is input.
-
-        Examples
-        --------
-        >>> import numpy as np
-        >>> from nddata.nddata.utils import Cutout2D
-        >>> from astropy import units as u
-        >>> data = np.arange(20.).reshape(5, 4)
-        >>> cutout1 = Cutout2D(data, (2, 2), (3, 3))
-        >>> print(cutout1.data)
-        [[  5.   6.   7.]
-         [  9.  10.  11.]
-         [ 13.  14.  15.]]
-
-        >>> print(cutout1.center_original)
-        (2.0, 2.0)
-        >>> print(cutout1.center_cutout)
-        (1.0, 1.0)
-        >>> print(cutout1.origin_original)
-        (1, 1)
-
-        >>> cutout2 = Cutout2D(data, (2, 2), 3)
-        >>> print(cutout2.data)
-        [[  5.   6.   7.]
-         [  9.  10.  11.]
-         [ 13.  14.  15.]]
-
-        >>> size = u.Quantity([3, 3], u.pixel)
-        >>> cutout3 = Cutout2D(data, (0, 0), size)
-        >>> print(cutout3.data)
-        [[ 0.  1.]
-         [ 4.  5.]]
-
-        >>> cutout4 = Cutout2D(data, (0, 0), (3 * u.pixel, 3))
-        >>> print(cutout4.data)
-        [[ 0.  1.]
-         [ 4.  5.]]
-
-        >>> cutout5 = Cutout2D(data, (0, 0), (3, 3), mode='partial')
-        >>> print(cutout5.data)
-        [[ nan  nan  nan]
-         [ nan   0.   1.]
-         [ nan   4.   5.]]
-        """
-        # FIXME: Lazy import because otherwise it creates cyclic imports.
-        from astropy.coordinates import SkyCoord
 
         if isinstance(position, SkyCoord):
             if wcs is None:
@@ -704,12 +730,12 @@ class Cutout2D(object):
 
         Parameters
         ----------
-        cutout_position : tuple
+        cutout_position : `tuple`
             The ``(x, y)`` pixel position in the cutout array.
 
         Returns
         -------
-        original_position : tuple
+        original_position : `tuple`
             The corresponding ``(x, y)`` pixel position in the original
             large array.
         """
@@ -723,12 +749,12 @@ class Cutout2D(object):
 
         Parameters
         ----------
-        original_position : tuple
+        original_position : `tuple`
             The ``(x, y)`` pixel position in the original large array.
 
         Returns
         -------
-        cutout_position : tuple
+        cutout_position : `tuple`
             The corresponding ``(x, y)`` pixel position in the cutout
             array.
         """
@@ -739,24 +765,27 @@ class Cutout2D(object):
         """
         Plot the cutout region on a matplotlib Axes instance.
 
+        .. note::
+            Requires ``MatPlotLib``.
+
         Parameters
         ----------
         ax : `matplotlib.axes.Axes` instance, optional
             If `None`, then the current `matplotlib.axes.Axes` instance
             is used.
 
-        fill : bool, optional
-            Set whether to fill the cutout patch.  The default is
+        fill : `bool`, optional
+            Set whether to fill the cutout patch. The default is
             `False`.
 
-        kwargs : optional
+        kwargs
             Any keyword arguments accepted by `matplotlib.patches.Patch`.
 
         Returns
         -------
         ax : `matplotlib.axes.Axes` instance
             The matplotlib Axes instance constructed in the method if
-            ``ax=None``.  Otherwise the output ``ax`` is the same as the
+            ``ax=None``. Otherwise the output ``ax`` is the same as the
             input ``ax``.
         """
 
@@ -778,8 +807,8 @@ class Cutout2D(object):
     @staticmethod
     def _calc_center(slices):
         """
-        Calculate the center position.  The center position will be
-        fractional for even-sized arrays.  For ``mode='partial'``, the
+        Calculate the center position. The center position will be
+        fractional for even-sized arrays. For ``mode='partial'``, the
         central position is calculated for the valid (non-filled) cutout
         values.
         """
@@ -790,8 +819,8 @@ class Cutout2D(object):
     def _calc_bbox(slices):
         """
         Calculate a minimal bounding box in the form ``((ymin, ymax),
-        (xmin, xmax))``.  Note these are pixel locations, not slice
-        indices.  For ``mode='partial'``, the bounding box indices are
+        (xmin, xmax))``. Note these are pixel locations, not slice
+        indices. For ``mode='partial'``, the bounding box indices are
         for the valid (non-filled) cutout values.
         """
         # (stop - 1) to return the max pixel location, not the slice index
@@ -802,7 +831,7 @@ class Cutout2D(object):
     def origin_original(self):
         """
         The ``(x, y)`` index of the origin pixel of the cutout with
-        respect to the original array.  For ``mode='partial'``, the
+        respect to the original array. For ``mode='partial'``, the
         origin pixel is calculated for the valid (non-filled) cutout
         values.
         """
@@ -812,7 +841,7 @@ class Cutout2D(object):
     def origin_cutout(self):
         """
         The ``(x, y)`` index of the origin pixel of the cutout with
-        respect to the cutout array.  For ``mode='partial'``, the origin
+        respect to the cutout array. For ``mode='partial'``, the origin
         pixel is calculated for the valid (non-filled) cutout values.
         """
         return (self.slices_cutout[1].start, self.slices_cutout[0].start)
@@ -839,7 +868,7 @@ class Cutout2D(object):
     def center_original(self):
         """
         The central ``(x, y)`` position of the cutout array with respect
-        to the original array.  For ``mode='partial'``, the central
+        to the original array. For ``mode='partial'``, the central
         position is calculated for the valid (non-filled) cutout values.
         """
         return self._calc_center(self.slices_original)
@@ -848,7 +877,7 @@ class Cutout2D(object):
     def center_cutout(self):
         """
         The central ``(x, y)`` position of the cutout array with respect
-        to the cutout array.  For ``mode='partial'``, the central
+        to the cutout array. For ``mode='partial'``, the central
         position is calculated for the valid (non-filled) cutout values.
         """
         return self._calc_center(self.slices_cutout)
@@ -858,7 +887,7 @@ class Cutout2D(object):
         """
         The bounding box ``((ymin, ymax), (xmin, xmax))`` of the minimal
         rectangular region of the cutout array with respect to the
-        original array.  For ``mode='partial'``, the bounding box
+        original array. For ``mode='partial'``, the bounding box
         indices are for the valid (non-filled) cutout values.
         """
         return self._calc_bbox(self.slices_original)
@@ -868,7 +897,7 @@ class Cutout2D(object):
         """
         The bounding box ``((ymin, ymax), (xmin, xmax))`` of the minimal
         rectangular region of the cutout array with respect to the
-        cutout array.  For ``mode='partial'``, the bounding box indices
+        cutout array. For ``mode='partial'``, the bounding box indices
         are for the valid (non-filled) cutout values.
         """
         return self._calc_bbox(self.slices_cutout)
