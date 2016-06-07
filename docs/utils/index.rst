@@ -113,3 +113,12 @@ Some very simple statistical tools.
 
 .. automodapi:: nddata.utils.stats
     :no-inheritance-diagram:
+
+
+WCS
+===
+
+Some convenience functions around `astropy.wcs.WCS`
+
+.. automodapi:: nddata.utils.wcs
+    :no-inheritance-diagram:

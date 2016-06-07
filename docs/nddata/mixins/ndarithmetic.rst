@@ -374,11 +374,9 @@ or if the operation should be forbidden. The possible values are identical to
       >>> ndd1.subtract(ndd2, compare_wcs=compare_wcs_scalar, wcs_allowed_deviation=2).wcs
       1
 
-  If one is using `~astropy.wcs.WCS` objects a very handy function to use might
-  be::
+  If using `~astropy.wcs.WCS` objects a very handy function to use might be::
 
-      >>> def wcs_compare(wcs1, wcs2, *args, **kwargs):
-      ...     return wcs1.wcs.compare(wcs2.wcs, *args, **kwargs)
+      >>> from nddata.utils.wcs import wcs_compare
 
   see :meth:`astropy.wcs.Wcsprm.compare` for the arguments this comparison
   allows.
