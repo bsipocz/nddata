@@ -49,9 +49,11 @@ def create_slices(point, shape, origin='start'):
     point : `int`, `tuple` of integers
         The position represents the starting/central/end point (inclusive) of
         the slice. The interpretation of the point is controlled by the
-        ``origin`` parameter.
+        ``origin`` parameter. Negative values for the point are considered off
+        the grid by this amount and not like normal ``Python`` which interprets
+        negative indices as indices counting _from the end_.
 
-    shape : `int`, `tuple` of integers
+    shape : positive `int`, `tuple` of positive integers
         The shape represents the extend of the slice. The ``shape`` can also be
         a `numpy.ndarray` in which case it's shape is used.
 
@@ -154,11 +156,20 @@ def create_slices(point, shape, origin='start'):
 
     # Depending on the origin determine the appropriate slices. Start is
     # "normal" slicing but "end" and "center" require some more calculations.
+    # Important: Negative indices are not allowed when using this kind of
+    # slice creation since that could/would create problems later on. Thus each
+    # slice will contain the "maximum" of the computed value or 0. This ensures
+    # that the smallest start/stop is 0.
+    # TODO: Maybe it is possible also to allow negative indices but that would
+    # require that the position is first interpreted. Positive indices leading
+    # to indices >= 0 and neative indices always resulting in indices < 0.
+    # But for now this would be too much convolution.
     if origin == 'start':
         # If we start from the ankor is the starting point the slices can be
         # calculated by adding the shape of each dimension to the starting
         # point.
-        return tuple(slice(pos, pos + length) for pos, length in zips)
+        return tuple(slice(max(pos, 0), max(pos + length, 0))
+                     for pos, length in zips)
 
     elif origin == 'end':
         # If the position is the end value we need to subtract the length from
@@ -166,7 +177,8 @@ def create_slices(point, shape, origin='start'):
         # one to the start and the end because otherwise the end point would
         # not be included.
         # TODO: Document that the end point is included here!!!
-        return tuple(slice(pos - length + 1, pos + 1) for pos, length in zips)
+        return tuple(slice(max(pos - length + 1, 0), max(pos + 1, 0))
+                     for pos, length in zips)
 
     elif origin == 'center':
         # Using the center as ankor is more complicated because we might have
@@ -179,7 +191,8 @@ def create_slices(point, shape, origin='start'):
         # floor division AND the modulo. This ensures that off length shapes
         # have as many elements before and after center while even arrays
         # contain one more element before than after.
-        return tuple(slice(pos - half_len, pos + half_len + mod)
+        return tuple(slice(max(pos - half_len, 0),
+                           max(pos + half_len + mod, 0))
                      for pos, half_len, mod in zips)
 
     else:
