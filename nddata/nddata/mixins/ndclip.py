@@ -139,7 +139,7 @@ dtype=bool)
 
         # If an axis is given make sure it's an integer as well, we cannot
         # operate on multiple axis or fractional axis. Negative axis don't work
-        # yet because of the following expand_dims during clipping.
+        # yet because of how the dimensions are treated during clipping.
         if axis is not None:
             axis = as_unsigned_integer(axis)
 

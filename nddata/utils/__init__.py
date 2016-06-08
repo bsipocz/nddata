@@ -8,3 +8,4 @@ from . import dictutils
 from . import stats
 from . import inputvalidation
 from . import copyutils
+from . import wcs

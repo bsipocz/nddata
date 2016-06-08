@@ -14,6 +14,7 @@ from astropy.wcs import WCS
 from .meta.nddata_meta import NDDataMeta
 from ..utils import descriptors
 from ..utils.sentinels import ParameterNotSpecified
+from ..utils.wcs import wcs_compare
 
 
 __all__ = ['NDDataBase']
@@ -462,7 +463,7 @@ class NDDataBase(NDDataMeta):
                 if np.any(self.wcs != other.wcs):
                     return False
             elif isinstance(self.wcs, WCS):
-                if not self.wcs.wcs.compare(other.wcs.wcs):
+                if not wcs_compare(self.wcs, other.wcs):
                     return False
             else:
                 if self.wcs != other.wcs:
