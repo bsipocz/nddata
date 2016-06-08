@@ -51,7 +51,7 @@ def create_slices(point, shape, origin='start'):
         the slice. The interpretation of the point is controlled by the
         ``origin`` parameter. Negative values for the point are considered off
         the grid by this amount and not like normal ``Python`` which interprets
-        negative indices as indices counting _from the end_.
+        negative indices as indices counting from the end.
 
     shape : positive `int`, `tuple` of positive integers
         The shape represents the extend of the slice. The ``shape`` can also be

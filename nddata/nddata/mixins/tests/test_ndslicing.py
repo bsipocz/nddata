@@ -233,3 +233,101 @@ def test_slice_cutout_1d():
     ndd_cutout = ndd.slice_cutout([10], [10])
     assert_array_equal(ndd_cutout.data, ndd_cutout_ref.data)
     assert ndd_cutout.wcs.wcs.crpix[0] == ndd_cutout_ref.wcs.wcs.crpix[0]
+
+
+def test_slice_cutout_2d():
+    wcs2D = WCS(naxis=2)
+    wcs2D.wcs.crpix = [1, 1]
+    wcs2D.wcs.crval = [1, 1]
+    wcs2D.wcs.cunit = ["deg", "deg"]
+    wcs2D.wcs.cdelt = [1.5, 1.5]
+
+    data = np.arange(10000).reshape(100, 100)
+
+    ndd = NDData(data, wcs=wcs2D)
+
+    # Fails with scalar
+    with pytest.raises(TypeError):
+        ndd.slice_cutout([1, 2], 1)
+    with pytest.raises(TypeError):
+        ndd.slice_cutout(1, [1, 2])
+
+    # Fails with wrong dimensions
+    with pytest.raises(ValueError):
+        ndd.slice_cutout([1, 2], [1])
+    with pytest.raises(ValueError):
+        ndd.slice_cutout([1], [1, 2])
+
+    # Test all 4 cases: unitless position/shape and quantity position/shape
+    ndd_cutout = ndd.slice_cutout((10, 10), (10, 10))
+    assert_array_equal(ndd_cutout.data, data[10:20, 10:20])
+    assert ndd_cutout.wcs.wcs.crpix[0] == -9
+    assert ndd_cutout.wcs.wcs.crpix[1] == -9
+
+    ndd_cutout = ndd.slice_cutout((10, 10), (13.5*u.deg, 13.5*u.deg))
+    assert_array_equal(ndd_cutout.data, data[10:20, 10:20])
+    assert ndd_cutout.wcs.wcs.crpix[0] == -9
+    assert ndd_cutout.wcs.wcs.crpix[1] == -9
+
+    ndd_cutout = ndd.slice_cutout((16.5*u.deg, 16.5*u.deg), (10, 10))
+    assert_array_equal(ndd_cutout.data, data[10:20, 10:20])
+    assert ndd_cutout.wcs.wcs.crpix[0] == -9
+    assert ndd_cutout.wcs.wcs.crpix[1] == -9
+
+    ndd_cutout = ndd.slice_cutout((16.5*u.deg, 16.5*u.deg),
+                                  (13.5*u.deg, 13.5*u.deg))
+    assert_array_equal(ndd_cutout.data, data[10:20, 10:20])
+    assert ndd_cutout.wcs.wcs.crpix[0] == -9
+    assert ndd_cutout.wcs.wcs.crpix[1] == -9
+
+
+def test_slice_cutout_3d():
+    wcs3D = WCS(naxis=3)
+    wcs3D.wcs.crpix = [1, 1, 1]
+    wcs3D.wcs.crval = [1, 1, 1]
+    wcs3D.wcs.cunit = ["deg", "deg", "deg"]
+    wcs3D.wcs.cdelt = [1.5, 1.5, 1.5]
+
+    data = np.arange(1000000).reshape(100, 100, 100)
+
+    ndd = NDData(data, wcs=wcs3D)
+
+    # Fails with scalar
+    with pytest.raises(TypeError):
+        ndd.slice_cutout([1, 2], 1)
+    with pytest.raises(TypeError):
+        ndd.slice_cutout(1, [1, 2])
+
+    # Fails with wrong dimensions
+    with pytest.raises(ValueError):
+        ndd.slice_cutout([1, 2, 3], [1])
+    with pytest.raises(ValueError):
+        ndd.slice_cutout([1], [1, 2, 3])
+
+    # Test all 4 cases: unitless position/shape and quantity position/shape
+    ndd_cutout = ndd.slice_cutout((10, 10, 10), (10, 10, 10))
+    assert_array_equal(ndd_cutout.data, data[10:20, 10:20, 10:20])
+    assert ndd_cutout.wcs.wcs.crpix[0] == -9
+    assert ndd_cutout.wcs.wcs.crpix[1] == -9
+    assert ndd_cutout.wcs.wcs.crpix[2] == -9
+
+    ndd_cutout = ndd.slice_cutout((10, 10, 10),
+                                  (13.5*u.deg, 13.5*u.deg, 13.5*u.deg))
+    assert_array_equal(ndd_cutout.data, data[10:20, 10:20, 10:20])
+    assert ndd_cutout.wcs.wcs.crpix[0] == -9
+    assert ndd_cutout.wcs.wcs.crpix[1] == -9
+    assert ndd_cutout.wcs.wcs.crpix[2] == -9
+
+    ndd_cutout = ndd.slice_cutout((16.5*u.deg, 16.5*u.deg, 16.5*u.deg),
+                                  (10, 10, 10))
+    assert_array_equal(ndd_cutout.data, data[10:20, 10:20, 10:20])
+    assert ndd_cutout.wcs.wcs.crpix[0] == -9
+    assert ndd_cutout.wcs.wcs.crpix[1] == -9
+    assert ndd_cutout.wcs.wcs.crpix[2] == -9
+
+    ndd_cutout = ndd.slice_cutout((16.5*u.deg, 16.5*u.deg, 16.5*u.deg),
+                                  (13.5*u.deg, 13.5*u.deg, 13.5*u.deg))
+    assert_array_equal(ndd_cutout.data, data[10:20, 10:20, 10:20])
+    assert ndd_cutout.wcs.wcs.crpix[0] == -9
+    assert ndd_cutout.wcs.wcs.crpix[1] == -9
+    assert ndd_cutout.wcs.wcs.crpix[2] == -9
