@@ -73,6 +73,14 @@ Some functions that validate user input.
 .. automodapi:: nddata.utils.inputvalidation
 
 
+Itertools recipes
+=================
+
+Recipes copied and slightly adapted from ``itertools`` documentation.
+
+.. automodapi:: nddata.utils.itertools_recipes
+
+
 NumPy
 =====
 

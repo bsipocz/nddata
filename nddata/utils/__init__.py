@@ -9,3 +9,4 @@ from . import stats
 from . import inputvalidation
 from . import copyutils
 from . import wcs
+from . import itertools_recipes
