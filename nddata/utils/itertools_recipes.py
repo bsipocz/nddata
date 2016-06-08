@@ -28,7 +28,7 @@ __all__ = ['take', 'tabulate', 'consume', 'nth', 'all_equal', 'quantify',
 
 # FIXME: Due to a change in random.choice the results are not reproducible for
 # between pre python 3.2 and afterwards.
-if six.PY3:
+if six.PY3:  # pragma: no cover
     __doctest_skip__ = ['random_combination_with_replacement',
                         'random_permutation', 'random_product']
 
@@ -118,6 +118,11 @@ def consume(iterator, n):
     >>> consume(g, 2)
     >>> list(g)
     [4, 9, 16, 25, 36, 49, 64, 81]
+
+    >>> g = (x**2 for x in range(10))
+    >>> consume(g, None)
+    >>> list(g)
+    []
     """
     # Use functions that consume iterators at C speed.
     if n is None:
@@ -423,7 +428,7 @@ def grouper(iterable, n, fillvalue=None):
     args = [iter(iterable)] * n
     if six.PY2:
         return zip_longest(fillvalue=fillvalue, *args)
-    else:
+    else:  # pragma: no cover
         return zip_longest(*args, fillvalue=fillvalue)
 
 
@@ -450,7 +455,7 @@ def roundrobin(*iterables):
     pending = len(iterables)
     if six.PY2:
         nexts = cycle(iter(it).next for it in iterables)
-    else:
+    else:  # pragma: no cover
         nexts = cycle(iter(it).__next__ for it in iterables)
     while pending:
         try:
