@@ -55,6 +55,11 @@ class NDSlicingMixin(object):
 
         This is a wrapper for :func:`~nddata.utils.numpyutils.create_slices`.
 
+        .. note::
+            ``NumPy``-like slicing and indexing is possible using the regular
+            ``ndd[...]`` syntax where ``...`` is whatever you want to use as
+            slice or index.
+
         Parameters
         ----------
         point : `int`, `tuple` of integers
@@ -97,7 +102,10 @@ class NDSlicingMixin(object):
 
         See also
         --------
-        nddata.utils.numpyutils.create_slices
+        nddata.utils.numpyutils.create_slices : Function to convert indices to\
+            slices.
+        nddata.nddata.mixins.NDSlicingMixin.slice_cutout : Allows specifying \
+            WCS coordinates
 
         Examples
         --------
@@ -177,6 +185,12 @@ class NDSlicingMixin(object):
         ValueError
             If the number of positions or shape does't match the number of axis
             set in the wcs.
+
+        See also
+        --------
+        nddata.nddata.mixins.NDSlicingMixin.slice : Does the slicing after the\
+            coordinates are converted to grid points.
+        astropy.wcs.WCS.all_world2pix : Convert coordinates to grid points.
 
         Notes
         -----
