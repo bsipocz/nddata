@@ -7,6 +7,8 @@ import numpy as np
 
 from astropy.extern import six
 
+from .inputvalidation import as_iterable
+
 if six.PY2:  # pragma: no cover
     from future_builtins import zip
 
@@ -142,17 +144,14 @@ def create_slices(point, shape, origin='start'):
         # If we have a numpy array do a quick check that the point is also a
         # tuple (or iterable). This is a bit annoying but .shape always returns
         # a tuple even if the array is 1D or a scalar.
-        try:
-            len(point)
-        except TypeError:
-            point = (point, )
+        point = as_iterable(point)
 
     # Zip the point and shape. We require them to be of equal length or integer
-    # if they are integer we need to wrap them into tuples before zipping.
+    # if they are integer we need to wrap them into iterables before zipping.
     try:
         zips = zip(point, shape)
     except TypeError:
-        zips = zip((point, ), (shape, ))
+        zips = zip(as_iterable(point), as_iterable(shape))
 
     # Depending on the origin determine the appropriate slices. Start is
     # "normal" slicing but "end" and "center" require some more calculations.

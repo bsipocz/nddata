@@ -15,6 +15,7 @@ from astropy.wcs.utils import skycoord_to_pixel, proj_plane_pixel_scales
 from .decorators import support_nddata
 
 from ...utils.copyutils import do_copy
+from ...utils.inputvalidation import as_iterable
 
 
 __all__ = ['extract_array', 'add_array', 'subpixel_indices',
@@ -108,12 +109,9 @@ def overlap_slices(large_array_shape, small_array_shape, position,
     """
     if mode not in ['partial', 'trim', 'strict']:
         raise ValueError('Mode can be only "partial", "trim", or "strict".')
-    if np.isscalar(small_array_shape):
-        small_array_shape = (small_array_shape, )
-    if np.isscalar(large_array_shape):
-        large_array_shape = (large_array_shape, )
-    if np.isscalar(position):
-        position = (position, )
+    small_array_shape = as_iterable(small_array_shape)
+    large_array_shape = as_iterable(large_array_shape)
+    position = as_iterable(position)
 
     if len(small_array_shape) != len(large_array_shape):
         raise ValueError('"large_array_shape" and "small_array_shape" must '
@@ -234,11 +232,8 @@ def extract_array(array_large, shape, position, mode='partial',
                [75, 76, 77, 78, 79],
                [85, 86, 87, 88, 89]])
     """
-
-    if np.isscalar(shape):
-        shape = (shape, )
-    if np.isscalar(position):
-        position = (position, )
+    shape = as_iterable(shape)
+    position = as_iterable(position)
 
     if mode not in ['partial', 'trim', 'strict']:
         raise ValueError("Valid modes are 'partial', 'trim', and 'strict'.")
@@ -761,7 +756,8 @@ class Cutout2D(object):
         return tuple(original_position[i] - self.origin_original[i]
                      for i in [0, 1])
 
-    def plot_on_original(self, ax=None, fill=False, **kwargs):
+    def plot_on_original(self, ax=None, fill=False,
+                         **kwargs):  # pragma: no cover
         """
         Plot the cutout region on a matplotlib Axes instance.
 
