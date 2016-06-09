@@ -72,10 +72,10 @@ def support_nddata(_func=None, accepts=NDDataBase, repack=False, returns=None):
     user that the explicitly specified value will take priority.
     """
 
-    if returns is not None and not repack:
+    if returns is not None and not repack:  # pragma: no cover
         raise ValueError('returns should only be set if repack=True')
 
-    if returns is None and repack:
+    if returns is None and repack:  # pragma: no cover
         raise ValueError('returns should be set if repack=True')
 
     def support_nddata_decorator(func):
@@ -85,7 +85,8 @@ def support_nddata(_func=None, accepts=NDDataBase, repack=False, returns=None):
         func_args = []
         func_kwargs = []
         for param in sig.parameters.values():
-            if param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
+            if param.kind in (param.VAR_POSITIONAL,
+                              param.VAR_KEYWORD):  # pragma: no cover
                 raise ValueError("func may not have *args or **kwargs")
             elif param.default == param.empty:
                 func_args.append(param.name)
@@ -152,7 +153,8 @@ def support_nddata(_func=None, accepts=NDDataBase, repack=False, returns=None):
             if unpack:
 
                 if repack:
-                    if len(returns) > 1 and len(returns) != len(result):
+                    if (len(returns) > 1 and
+                            len(returns) != len(result)):  # pragma: no cover
                         raise ValueError("Function did not return the expected"
                                          " number of arguments")
                     elif len(returns) == 1:

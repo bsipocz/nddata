@@ -102,11 +102,6 @@ def test_create_slices():
     # Unknown origin parameter
     with pytest.raises(ValueError):
         create_slices(1, 1, 'blub')
-    # Incompatible position and shape
-    with pytest.raises(TypeError):
-        create_slices((1, ), 1, 'start')
-    with pytest.raises(TypeError):
-        create_slices(1, (1, ), 'start')
 
     # Correctness tests with scalars
     assert create_slices(1, 1, 'start') == (slice(1, 2, None), )

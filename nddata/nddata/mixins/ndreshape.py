@@ -123,7 +123,7 @@ class NDReshapeMixin(object):
         # don't need to do anything since it _should_ fail if the number of
         # dimensions doesn't match the one of the data.
 
-        # Let the other methods handle slicing.
+        # Let the other methods handle offsetting.
         kwargs = self._offset(pad_width)
         return self.__class__(**kwargs)
 

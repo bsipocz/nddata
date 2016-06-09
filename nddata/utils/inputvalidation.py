@@ -7,7 +7,7 @@ from __future__ import (absolute_import, division, print_function,
 from astropy import log
 
 
-__all__ = ['as_integer', 'as_unsigned_integer']
+__all__ = ['as_integer', 'as_unsigned_integer', 'as_iterable']
 
 
 CONV_FAILED = '{0} cannot be converted to {1}.'
@@ -134,3 +134,67 @@ def as_unsigned_integer(value, info=True):
             raise ValueError(EXCEPT_MSG.format(value, typ))
 
     return value_
+
+
+def as_iterable(value):
+    """Checks if the value is an `collections.Iterable`.
+
+    Parameters
+    ----------
+    value : any type
+        The value to investigate.
+
+    Returns
+    -------
+    value : `collections.Iterable` or `tuple`
+        The value as iterable and if it wasn't an iterable it is now wrapped
+        in a tuple.
+
+    Notes
+    -----
+    Generally it is frowned upon to do explicit type checks. The more
+    appropriate way is to do try / excepts or just try to do it and let it
+    fail. But given that some functions are really convolved and the standard
+    exception messages would be unhelpful this function might become
+    appropriate but definitly not always!
+    """
+    # This function differs from the other as_* functions because we don't want
+    # it to fail. Just convert it to a tuple if it's not an iterable.
+
+    # Currently this is implemented to check if it has a length and if it
+    # doesn't it's wrapped in a tuple.
+    try:
+        len(value)
+    except:
+        return (value, )
+    else:
+        return value
+
+    # Other possibilities here:
+
+    # if np.isscalar(value):
+    #     return (value, )
+    # else:
+    #     return value
+
+    # if hasattr(value, '__len__'):
+    #     return value
+    # else:
+    #     return (value, )
+
+    # if isinstance(value, collections.Iterable):
+    #     return value
+    # else:
+    #     return (value, )
+
+    # Advantages and Disadvantages:
+    # np.isscalar clearly has problems if it comes to non-numericals. These
+    # cases will probably be very rare so that might actually not be a problem.
+    # isinstance is very slow for collections.abc because they check if a lot
+    # of attributes are present. But subsequent calls with the same type should
+    # be a lot faster because it registers types.
+    # hasattr is clearly not the most pythonic way. But it should be fairly
+    # fast and probably identical to the "try - except" option.
+
+    # This function shouldn't be a bottleneck so it shouldn't matter which
+    # approach is taken but IF it is then maybe checkout the other solutions.

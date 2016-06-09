@@ -8,10 +8,9 @@ from itertools import product
 import numpy as np
 
 from astropy import log
-import astropy.units as u
-from astropy.units import Quantity
 
 from ...utils.numpyutils import create_slices
+from ...utils.inputvalidation import as_iterable
 
 
 __all__ = ['NDSlicingMixin']
@@ -219,6 +218,8 @@ class NDSlicingMixin(object):
 
             >>> import numpy as np
             >>> from astropy.wcs import WCS
+            >>> import astropy.units as u
+            >>> from nddata.nddata import NDData
 
             >>> wcs = WCS(naxis=2)
             >>> wcs.wcs.crpix = (1, 1)
@@ -229,7 +230,6 @@ class NDSlicingMixin(object):
         And some data with a shape of 10x50::
 
             >>> data = np.arange(500).reshape(10, 50)
-            >>> from nddata.nddata import NDData
             >>> ndd = NDData(data, wcs=wcs)
 
         Slicing from 123 degrees spanning 3 degrees and from 450 nanometers
@@ -286,16 +286,8 @@ class NDSlicingMixin(object):
         if wcs.naxis == 1:
             # If it has no length it will raise a TypeError. Scalars (numpy,
             #  quantity, python, ...) have no length.
-            try:
-                len(point)
-            except TypeError:
-                point = (point, )
-
-            # same for the shape
-            try:
-                len(shape)
-            except TypeError:
-                shape = (shape, )
+            point = as_iterable(point)
+            shape = as_iterable(shape)
 
         if wcs.naxis != len(point) or wcs.naxis != len(shape):
             raise ValueError('Shape of input ({0} and {1}) doesn\' match the '

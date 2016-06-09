@@ -1,19 +1,22 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
+
 import numpy as np
 from numpy.testing import assert_allclose
+
+from astropy import units as u
+from astropy.coordinates import SkyCoord
 from astropy.tests.helper import pytest, assert_quantity_allclose
+from astropy.wcs import WCS
+
+
+from .... import OPT_DEPS
+
 from ..utils import (extract_array, add_array, subpixel_indices,
                      block_reduce, block_replicate,
                      overlap_slices, NoOverlapError, PartialOverlapError,
                      Cutout2D)
-from astropy.wcs import WCS
-from astropy.coordinates import SkyCoord
-from astropy import units as u
-
-
-from .... import OPT_DEPS
 
 
 test_positions = [(10.52, 3.12), (5.62, 12.97), (31.33, 31.77),
@@ -55,6 +58,9 @@ def test_slices_no_overlap(pos):
 def test_slices_partial_overlap():
     '''Compute a slice for partially overlapping arrays.'''
     temp = overlap_slices((5,), (3,), (0,))
+    assert temp == ((slice(0, 2, None),), (slice(1, 3, None),))
+
+    temp = overlap_slices(5, 3, 0)
     assert temp == ((slice(0, 2, None),), (slice(1, 3, None),))
 
     temp = overlap_slices((5,), (3,), (0,), mode='partial')
@@ -200,6 +206,14 @@ def test_add_array_even_shape():
 
     added_array = add_array(large_test_array, small_test_array, (0, 0))
     assert np.all(added_array == large_test_array_ref)
+
+
+def test_add_array_small_bigger():
+    large_test_array = np.ones((4, 4))
+    small_test_array = np.zeros((11, 11))
+
+    with pytest.raises(ValueError):
+        add_array(large_test_array, small_test_array, (0, 0))
 
 
 @pytest.mark.parametrize(('position', 'subpixel_index'),
