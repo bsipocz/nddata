@@ -76,7 +76,9 @@ Some functions that validate user input.
 Itertools recipes
 =================
 
-Recipes copied and slightly adapted from ``itertools`` documentation.
+Python2 and 3 compatible `itertools` recipes - copied from the python module
+documentation and only slightly modified to work across Python versions (and
+with proper documentation).
 
 .. automodapi:: nddata.utils.itertools_recipes
 
