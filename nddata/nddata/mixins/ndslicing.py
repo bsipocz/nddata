@@ -227,57 +227,62 @@ class NDSlicingMixin(object):
             >>> wcs.wcs.cunit = ["deg", "nm"]
             >>> wcs.wcs.cdelt = [1, 5]
 
-        And some data with a shape of 10x50::
+        .. note::
+            These WCS uses Fortran-style indexing so the first ``Python`` axis
+            is the second wcs axis. So we need to slice with ``nm`` first and
+            then ``deg`` as second index.
 
-            >>> data = np.arange(500).reshape(10, 50)
+        And some data with a shape of 50x10::
+
+            >>> data = np.arange(500).reshape(50, 10)
             >>> ndd = NDData(data, wcs=wcs)
 
         Slicing from 123 degrees spanning 3 degrees and from 450 nanometers
         and 100 nanometers in shape::
 
-            >>> ndd_cutout1 = ndd.slice_cutout((123*u.degree, 450*u.nm),
-            ...                                (3*u.degree, 100*u.nm))
+            >>> ndd_cutout1 = ndd.slice_cutout((450*u.nm, 123*u.degree),
+            ...                                (100*u.nm, 3*u.degree))
             >>> ndd_cutout1.data.shape
-            (4, 20)
+            (20, 4)
 
         or with specifying a center the shape will be equally distributed in
         either direction::
 
-            >>> ndd_cutout2 = ndd.slice_cutout((125*u.degree, 450*u.nm),
-            ...                                (3*u.degree, 50*u.nm),
+            >>> ndd_cutout2 = ndd.slice_cutout((450*u.nm, 125*u.degree),
+            ...                                (50*u.nm, 3*u.degree),
             ...                                origin="center")
             >>> ndd_cutout2.data.shape
-            (3, 11)
+            (11, 3)
 
         Also possible is to give the position or shape in grid-coordinates by
         omitting the unit::
 
-            >>> ndd_cutout3 = ndd.slice_cutout((3, 20),
-            ...                                (3*u.degree, 50*u.nm),
+            >>> ndd_cutout3 = ndd.slice_cutout((20, 3),
+            ...                                (50*u.nm, 3*u.degree),
             ...                                origin="end")
             >>> ndd_cutout3.data.shape
-            (4, 11)
+            (11, 4)
 
-            >>> ndd_cutout4 = ndd.slice_cutout((125*u.degree, 470*u.nm),
+            >>> ndd_cutout4 = ndd.slice_cutout((470*u.nm, 125*u.degree),
             ...                                (4, 10),
             ...                                origin="end")
             >>> ndd_cutout4.data.shape
-            (4, 10)
+            (4, 6)
 
         If the resulting cutout is partially or totally outside the valid
         range for the data the result will only include the valid points and
         partially trimmed (or return an empty result in case the area is
         totally outside)::
 
-            >>> ndd_cutout5 = ndd.slice_cutout((100*u.degree, 450*u.nm),
-            ...                                (3*u.degree, 100*u.nm))
+            >>> ndd_cutout5 = ndd.slice_cutout((450*u.nm, 100*u.degree),
+            ...                                (100*u.nm, 3*u.degree))
             >>> ndd_cutout5.data.shape
-            (0, 20)
+            (20, 0)
 
-            >>> ndd_cutout6 = ndd.slice_cutout((132*u.degree, 450*u.nm),
-            ...                                (3*u.degree, 100*u.nm), 'end')
+            >>> ndd_cutout6 = ndd.slice_cutout((450*u.nm, 132*u.degree),
+            ...                                (100*u.nm, 3*u.degree), 'end')
             >>> ndd_cutout6.data.shape
-            (1, 21)
+            (21, 1)
         """
         wcs = self.wcs
         # Generally the position is an naxis-length iterable containing
@@ -293,6 +298,12 @@ class NDSlicingMixin(object):
             raise ValueError('Shape of input ({0} and {1}) doesn\' match the '
                              'number of wcs axis ({2}).'
                              ''.format(len(point), len(shape), wcs.naxis))
+
+        # We take the input in NumPy-style order but all calculations
+        # with the WCS are Fortran-style so we need to invert the axis before
+        # doing any calculation and then revert them back before slicing.
+        point = point[::-1]
+        shape = shape[::-1]
 
         # We allow mixed position/shape interpretations.
         # 1.) grid-related: unitless numbers
@@ -355,8 +366,9 @@ class NDSlicingMixin(object):
                 # is just one point and finally convert these to real integer.
                 point = list(wcs.all_world2pix(*point).round()[0].astype(int))
 
-            # Now we can simply call the normal slicing.
-            return self.slice(point, shape, origin)
+            # Now we can simply call the normal slicing. But we need to invert
+            # the order of the axis again.
+            return self.slice(point[::-1], shape[::-1], origin)
 
         # Here ends the cases 1 and 3. The following only applies to 2 and 4.
 
@@ -400,7 +412,9 @@ class NDSlicingMixin(object):
         # Theoretically this position and shape can now be used by the normal
         # slicing as well.
         point = list(point)
-        return self.slice(point, shape, origin='start')
+
+        # We revert the axis again to allow for normal slicing.
+        return self.slice(point[::-1], shape[::-1], origin='start')
 
     def _slice(self, item):
         """
