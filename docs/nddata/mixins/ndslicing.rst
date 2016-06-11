@@ -247,9 +247,9 @@ coordinates instead of grid points for the ``slice_cutout``::
 
     >>> wcs = WCS(naxis=2)
     >>> wcs.wcs.crpix = [1, 1]
-    >>> wcs.wcs.crval = [0, 400]
-    >>> wcs.wcs.cdelt = [1, 10]
-    >>> wcs.wcs.cunit = ["deg", "nm"]
+    >>> wcs.wcs.crval = [400, 1]
+    >>> wcs.wcs.cdelt = [10, 1]
+    >>> wcs.wcs.cunit = ["nm", "deg"]
     >>> ndd = NDData(np.arange(100).reshape(10, 10), wcs=wcs)
 
 To use coordinates just use `~astropy.units.Quantity` as indices instead of
@@ -257,11 +257,17 @@ integer::
 
     >>> import astropy.units as u
     >>> ndd.slice_cutout([2*u.degree, 400*u.nm], [5, 5], 'start')
-    NDData([[20, 21, 22, 23, 24],
+    NDData([[10, 11, 12, 13, 14],
+            [20, 21, 22, 23, 24],
             [30, 31, 32, 33, 34],
             [40, 41, 42, 43, 44],
-            [50, 51, 52, 53, 54],
-            [60, 61, 62, 63, 64]])
+            [50, 51, 52, 53, 54]])
+
+.. note::
+    The WCS definition is exactly reversed to the ``Python`` and ``NumPy``
+    axis. So what is defined as first axis in the ``WCS`` is actually the last
+    axis. This means the first coordinate for ``slice_cutout`` has to be in
+    ``deg`` and the second in ``nm``.
 
 you can also specify the ``shape`` as coordinates and the position as normal
 indices::
