@@ -33,6 +33,18 @@ def test_extremaclip_no_clip():
     np.testing.assert_array_equal(ndd.mask, ndd2.mask)
 
 
+def test_extremaclip_unsigned():
+    # Regression test for unsigned arrays behaving strange with nhigh parameter
+    # set. See:
+    # http://stackoverflow.com/questions/37765118/argmax-with-masked-arrays
+    marr = np.ma.array(np.array([[2, 2, 2], [3, 3, 3], [1, 1, 1]]),
+                       mask=False,
+                       dtype=np.uint16)
+    ndd = NDData(marr)
+    ndd.clip_extrema(axis=0, nlow=1, nhigh=1)
+    np.testing.assert_array_equal(ndd.mask, [[0, 0, 0], [1, 1, 1], [1, 1, 1]])
+
+
 def test_extremaclip_one_d_nlow():
     data = np.array([5, 2, 1, 3, 3])
     ndd = NDData(data)

@@ -207,8 +207,15 @@ dtype=bool)
 
         # Start finding and clipping the lowest values
         for i in range(nlow):
-            # Finding the coordinates with np.ma.argmin along the axis
-            minCoord = np.ma.argmin(marr, axis=axis)
+            # Finding the coordinates with np.ma.argmin along the axis.
+            # IMPORTANT: Do NOT use np.ma.argmax here it does strange stuff
+            # with unsigned integers here. "np.argmax(marr)" seems to work as
+            # well as "marr.argmax" but to be on the safe side use the
+            # masked array method here to avoid problems if np.argmax has some
+            # side effects with masked arrays somewhere.
+            # See also
+            # http://stackoverflow.com/questions/37765118/argmax-with-masked-arrays
+            minCoord = marr.argmin(axis=axis)
             # Insert these indexes at the "axis"-position of the index grids.
             idx.insert(axis, minCoord)
             # Set all these elements to masked (True)
@@ -219,7 +226,7 @@ dtype=bool)
 
         # Same for the highest values
         for i in range(nhigh):
-            maxCoord = np.ma.argmax(marr, axis=axis)
+            maxCoord = marr.argmax(axis=axis)
             idx.insert(axis, maxCoord)
             marr.mask[idx] = True
             del idx[axis]
