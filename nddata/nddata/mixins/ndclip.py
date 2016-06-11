@@ -186,14 +186,15 @@ dtype=bool)
         # Create a grid to index the elements. The indexes for the highest
         # value will be inserted later so we need only setup the other axis.
         # It is crucial that we special case 1 and 2 dimensions here because
-        # the iteration would otherwise go over the grid and not over the axis.
+        # the iteration would otherwise go over the grid and not over the list
+        # of grids.
         if marr.ndim == 1:
             # Empty indexes, because we only need to index along the axis
             # we compute the positions of the maxima.
             idx = []
         elif marr.ndim == 2:
             # This case is special because we create a 1D grid and the
-            # iteration I've used for 3d+ would iterate over the 1D grid
+            # iteration I've used for 3d+ would iterate over the grid itself
             # and yield a wrong result. So we just create a list containing
             # the one grid and insert the grid of the axis that WAS NOT
             # specified.
@@ -207,8 +208,17 @@ dtype=bool)
 
         # Start finding and clipping the lowest values
         for i in range(nlow):
-            # Finding the coordinates with np.ma.argmin along the axis
-            minCoord = np.ma.argmin(marr, axis=axis)
+            # Finding the coordinates with np.ma.argmin along the axis.
+            # IMPORTANT: Do NOT use np.ma.argmin here it does strange stuff
+            # with unsigned integers here. "np.argmin(marr)" seems to work as
+            # well as "marr.argmin" but to be on the safe side use the
+            # masked array method here to avoid problems if np.argmin has some
+            # side effects with masked arrays somewhere.
+            # See also
+            # http://stackoverflow.com/questions/37765118/argmax-with-masked-arrays
+            # Numpy 1.12 should fix the issue regarding np.ma.argmin but that
+            # is not even released at the time of writing (11.6.2016)
+            minCoord = marr.argmin(axis=axis)
             # Insert these indexes at the "axis"-position of the index grids.
             idx.insert(axis, minCoord)
             # Set all these elements to masked (True)
@@ -219,7 +229,7 @@ dtype=bool)
 
         # Same for the highest values
         for i in range(nhigh):
-            maxCoord = np.ma.argmax(marr, axis=axis)
+            maxCoord = marr.argmax(axis=axis)
             idx.insert(axis, maxCoord)
             marr.mask[idx] = True
             del idx[axis]
