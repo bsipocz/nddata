@@ -7,7 +7,7 @@ from __future__ import (absolute_import, division, print_function,
 from astropy import log
 
 
-__all__ = ['as_integer', 'as_unsigned_integer', 'as_iterable']
+__all__ = ['as_integer', 'as_unsigned_integer', 'as_iterable', 'clamp']
 
 
 CONV_FAILED = '{0} cannot be converted to {1}.'
@@ -134,6 +134,54 @@ def as_unsigned_integer(value, info=True):
             raise ValueError(EXCEPT_MSG.format(value, typ))
 
     return value_
+
+
+def clamp(value, minimum, maximum):
+    """Clamps the value to the range specified by minimum and maximum.
+
+    Parameters
+    ----------
+    value : number
+        The value to be clamped.
+
+    minimum : number
+        The minimal value for the range.
+
+    maximum : number
+        The maximal value for the range.
+
+    Returns
+    -------
+    clamped_value : number
+        The original value clamped to the range.
+
+    See also
+    --------
+    numpy.clip : Clamp `numpy.ndarray`-like values.
+
+    Examples
+    --------
+    >>> from nddata.utils.inputvalidation import clamp
+    >>> clamp(1, 4, 10)
+    4
+    >>> clamp(6, 4, 10)
+    6
+    >>> clamp(14, 4, 10)
+    10
+    """
+    # Small
+    if value < minimum:
+        return minimum
+    if value > maximum:
+        return maximum
+    return value
+
+    # Other approaches:
+    # return sorted((minimum, value, maximum))[1]
+
+    # return min(maximum, max(minimum, value))
+
+    # return np.clip(value, minimum, maximum)
 
 
 def as_iterable(value):
