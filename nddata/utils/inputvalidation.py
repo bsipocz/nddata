@@ -3,11 +3,12 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-
 from astropy import log
 
 
-__all__ = ['as_integer', 'as_unsigned_integer', 'as_iterable']
+__all__ = ['as_integer', 'as_unsigned_integer', 'as_iterable', 'clamp']
+
+inf = float('inf')
 
 
 CONV_FAILED = '{0} cannot be converted to {1}.'
@@ -134,6 +135,87 @@ def as_unsigned_integer(value, info=True):
             raise ValueError(EXCEPT_MSG.format(value, typ))
 
     return value_
+
+
+def clamp(value, minimum=-inf, maximum=inf):
+    """Clamps the value to the range specified by minimum and maximum.
+
+    Parameters
+    ----------
+    value : number
+        The value to be clamped.
+
+    minimum : number, optional
+        The minimal value for the range.
+        Default is ``-inf``.
+
+    maximum : number
+        The maximal value for the range.
+        Default is ``inf``.
+
+    Returns
+    -------
+    clamped_value : number
+        The original value clamped to the range.
+
+    See also
+    --------
+    numpy.clip : Clamp `numpy.ndarray`-like values.
+
+    Examples
+    --------
+    Explicit ranges for clamping::
+
+        >>> from nddata.utils.inputvalidation import clamp
+
+        >>> clamp(1, 4, 10)
+        4
+        >>> clamp(6, 4, 10)
+        6
+        >>> clamp(14, 4, 10)
+        10
+
+    Clamp values to positive values::
+
+        >>> clamp(10, 0)
+        10
+        >>> clamp(-10, 0)
+        0
+
+    Or equivalently to negative values::
+
+        >>> clamp(10, maximum=0)
+        0
+        >>> clamp(-10, maximum=0)
+        -10
+
+    If you use them regularly remember that with `functools.partial` you can
+    create new functions by fixing one parameter::
+
+        >>> from functools import partial
+        >>> clamp_pos = partial(clamp, minimum=0)
+        >>> clamp_neg = partial(clamp, maximum=0)
+        >>> clamp_pos(-2)
+        0
+        >>> clamp_neg(2)
+        0
+    """
+    if value < minimum:
+        return minimum
+    if value > maximum:
+        return maximum
+    return value
+
+    # Other approaches (not tested for efficiency yet. Just what happened to
+    # pass my mind and from:
+    # http://stackoverflow.com/questions/4092528/how-to-clamp-an-integer-to-some-range-in-python
+    # But the timings mentioned there might be out of date by now.
+
+    # return sorted((minimum, value, maximum))[1]
+
+    # return min(maximum, max(minimum, value))
+
+    # return np.clip(value, minimum, maximum)
 
 
 def as_iterable(value):

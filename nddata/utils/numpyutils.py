@@ -7,7 +7,7 @@ import numpy as np
 
 from astropy.extern import six
 
-from .inputvalidation import as_iterable
+from .inputvalidation import as_iterable, clamp, as_unsigned_integer
 
 if six.PY2:  # pragma: no cover
     from future_builtins import zip
@@ -167,7 +167,7 @@ def create_slices(point, shape, origin='start'):
         # If we start from the ankor is the starting point the slices can be
         # calculated by adding the shape of each dimension to the starting
         # point.
-        return tuple(slice(max(pos, 0), max(pos + length, 0))
+        return tuple(slice(clamp(pos, 0), clamp(pos + length, 0))
                      for pos, length in zips)
 
     elif origin == 'end':
@@ -176,7 +176,7 @@ def create_slices(point, shape, origin='start'):
         # one to the start and the end because otherwise the end point would
         # not be included.
         # TODO: Document that the end point is included here!!!
-        return tuple(slice(max(pos - length + 1, 0), max(pos + 1, 0))
+        return tuple(slice(clamp(pos - length + 1, 0), clamp(pos + 1, 0))
                      for pos, length in zips)
 
     elif origin == 'center':
@@ -190,8 +190,8 @@ def create_slices(point, shape, origin='start'):
         # floor division AND the modulo. This ensures that off length shapes
         # have as many elements before and after center while even arrays
         # contain one more element before than after.
-        return tuple(slice(max(pos - half_len, 0),
-                           max(pos + half_len + mod, 0))
+        return tuple(slice(clamp(pos - half_len, 0),
+                           clamp(pos + half_len + mod, 0))
                      for pos, half_len, mod in zips)
 
     else:
@@ -384,7 +384,7 @@ def expand_multi_dims(array, axis, ndims):
     I neglected displaying the resulting array (120 elements) here but that no
     ValueError was raised indicates that the broadcasting worked as expected.
     """
-    array = np.asarray(array)
+    array = np.asanyarray(array)
 
     # If the input has more than one dimension we cannot expand it in here.
     if array.ndim != 1:
@@ -403,8 +403,8 @@ def expand_multi_dims(array, axis, ndims):
         return array
 
     # Cast axis and ndims to positive integer.
-    axis = int(abs(axis))
-    ndims = int(abs(ndims))
+    axis = as_unsigned_integer(axis)
+    ndims = as_unsigned_integer(ndims)
 
     # Create a list containing the final shape. Use 1 for every dimension that
     # is not the specified dimension and the array-size for the the dimension
