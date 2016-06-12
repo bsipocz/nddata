@@ -189,8 +189,8 @@ def clamp(value, minimum=-inf, maximum=inf):
         >>> clamp(-10, maximum=0)
         -10
 
-    If you use them regularly remember that with `functools.partial` you can
-    create new functions by fixing one parameter::
+    If you use them regularly remember that with :func:`functools.partial` you
+    can create new functions by fixing one parameter::
 
         >>> from functools import partial
         >>> clamp_pos = partial(clamp, minimum=0)
