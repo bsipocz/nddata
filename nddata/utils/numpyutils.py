@@ -84,10 +84,11 @@ def create_slices(point, shape, origin='start'):
         specified parts of the array.
 
         .. warning::
-            The return is always a **tuple** which cannot be used by most
-            Python datastructures like `list`, `str`, ... if you want to index
-            these you need to get the appropriate element (most probably the
-            first) from the return.
+            The return is always wrapped as **tuple** which is the basis for
+            ``NumPy`` slicing but the basic ``Python`` structures like `list`,
+            `str`, ... **do not** support this. If you want to index these you
+            need to get the appropriate element (most probably the first) from
+            the return.
 
     Raises
     ------
