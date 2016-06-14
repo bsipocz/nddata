@@ -1314,6 +1314,8 @@ def test_power_equivalent_units():
 
 def test_power_not_allowed_things():
 
+    # TODO: This is rather unhelpful but some travis ci mixup actually
+    # installed astropy 1.0.1 so this is needed...
     if not MIN_VERSIONS['ASTROPY_1_0_3']:
         exception = u.UnitsError
     else:
