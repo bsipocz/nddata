@@ -45,19 +45,36 @@ env:
 matrix:
     include:
 
+        # Try older numpy versions
+        - python: 3.5
+          env: NUMPY_VERSION=1.10
+               ASTROPY_VERSION=''
+               PIP_DEPENDENCIES='astropy>=1.1'
+        # some weird test failure here with python 3, therefore python 2
+        - python: 2.7
+          env: NUMPY_VERSION=1.9
+               ASTROPY_VERSION=''
+               PIP_DEPENDENCIES='astropy>=1.1'
+
+        # Older numpy versions which aren't build against python 3.5
+        - python: 2.7
+          env: NUMPY_VERSION=1.8
+               ASTROPY_VERSION=''
+               PIP_DEPENDENCIES='astropy>=1.1'
+        - python: 2.7
+          env: NUMPY_VERSION=1.7
+               ASTROPY_VERSION=''
+               PIP_DEPENDENCIES='astropy>=1.1'
+
         # Try all python versions with the latest numpy available on that
         # python version.
         - python: 2.7
-          env: SETUP_CMD='test'
         - python: 3.4
-          env: SETUP_CMD='test'
         - python: 3.5
-          env: SETUP_CMD='test'
 
         # One test without additional dependencies installed
         - python: 3.5
-          env: SETUP_CMD='test'
-               CONDA_DEPENDENCIES=''
+          env: CONDA_DEPENDENCIES=''
 
         # Do a coverage test in Python 2.
         - python: 2.7
@@ -85,23 +102,6 @@ matrix:
         # Try numpy pre-release
         - python: 3.5
           env: NUMPY_VERSION=prerelease
-
-        # Try older numpy versions
-        - python: 3.5
-          env: NUMPY_VERSION=1.10
-               PIP_DEPENDENCIES='astropy=1.1'
-        # some weird test failure here with python 3, therefore python 2
-        - python: 2.7
-          env: NUMPY_VERSION=1.9
-               PIP_DEPENDENCIES='astropy=1.1'
-
-        # Older numpy versions which aren't build against python 3.5
-        - python: 2.7
-          env: NUMPY_VERSION=1.8
-               PIP_DEPENDENCIES='astropy=1.1'
-        - python: 2.7
-          env: NUMPY_VERSION=1.7
-               PIP_DEPENDENCIES='astropy=1.1'
 
         # Do a PEP8 test
         # - python: 2.7
