@@ -54,6 +54,11 @@ matrix:
         - python: 3.5
           env: SETUP_CMD='test'
 
+        # One test without additional dependencies installed
+        - python: 3.5
+          env: SETUP_CMD='test'
+               CONDA_DEPENDENCIES=''
+
         # Do a coverage test in Python 2.
         - python: 2.7
           env: SETUP_CMD='test --coverage'
