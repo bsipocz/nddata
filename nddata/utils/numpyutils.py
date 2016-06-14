@@ -12,7 +12,8 @@ from .inputvalidation import as_iterable, clamp, as_unsigned_integer
 if six.PY2:  # pragma: no cover
     from future_builtins import zip
 
-__all__ = ['create_slices', 'expand_multi_dims', 'is_numeric_array', 'pad']
+__all__ = ['create_slices', 'expand_multi_dims', 'is_numeric_array',
+           'mgrid_for_array', 'pad']
 
 # Boolean, unsigned integer, signed integer, float, complex.
 _NUMERIC_KINDS = set('buifc')
@@ -176,7 +177,6 @@ def create_slices(point, shape, origin='start'):
         # the position to get the starting point. But one also needs to add
         # one to the start and the end because otherwise the end point would
         # not be included.
-        # TODO: Document that the end point is included here!!!
         return tuple(slice(clamp(pos - length + 1, 0), clamp(pos + 1, 0))
                      for pos, length in zips)
 
@@ -414,3 +414,81 @@ def expand_multi_dims(array, axis, ndims):
 
     # Use reshape to this intermediate shape and return the result.
     return array.reshape(*shape)
+
+
+def mgrid_for_array(data):
+    """Create a meshgrid for a ``data`` array.
+
+    Parameters
+    ----------
+    data : `numpy.ndarray`-like
+        The data for which to create a `numpy.mgrid`.
+
+    Returns
+    -------
+    list of grids : `list` of numpy.ndarrays
+        Returns a list containing the grids for each dimension.
+
+    Notes
+    -----
+    One major difference from directly using `numpy.mgrid` is that the result
+    is not a `numpy.ndarray` but a `list`. This means that the result is
+    useable for functions taking an arbitary number of dimensions.
+
+    Examples
+    --------
+    For one-dimensional arrays::
+
+        >>> from nddata.utils.numpyutils import mgrid_for_array
+        >>> import numpy as np
+
+        >>> mgrid_for_array(np.ones(10))
+        [array([[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])]
+
+    For 2d arrays::
+
+        >>> mgrid_for_array(np.ones((2, 10)))
+        [array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]),
+         array([[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])]
+
+    But also for arrays having more dimensions::
+
+        >>> mgrid_for_array(np.ones((2, 2, 10)))
+        [array([[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+        <BLANKLINE>
+                [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                 [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]]),
+         array([[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                 [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]],
+        <BLANKLINE>
+                [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                 [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]]),
+         array([[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                 [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]],
+        <BLANKLINE>
+                [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                 [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]]])]
+
+    Creating such an mgrid has advantages when dealing with functions that
+    require some grid coordinates as well as the actual values. The `list`
+    wrapper allows to just append the values and unpack it into the function
+    call::
+
+        >>> def func(x, y, z):
+        ...     pass  # just demonstration!
+
+        >>> data = np.ones((10, 20))
+        >>> grid = mgrid_for_array(data)
+        >>> grid.append(data)
+        >>> func(*grid)
+    """
+    data = np.asanyarray(data)
+    grid = np.mgrid[tuple(slice(shape) for shape in data.shape)]
+    if data.ndim == 1:
+        grid = [grid]
+    else:
+        grid = list(grid)
+    return grid

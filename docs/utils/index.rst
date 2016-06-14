@@ -101,8 +101,7 @@ Numba
         These function require that `Numba <http://numba.pydata.org/>`_ is
         installed.
 
-.. note::
-    Currently none avaiable.
+.. automodapi:: nddata.utils.numbautils
 
 
 Sentinels

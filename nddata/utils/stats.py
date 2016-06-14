@@ -10,10 +10,67 @@ from astropy import log
 from .. import MIN_VERSIONS
 
 
-__all__ = ['mode']
+__all__ = ['minmax', 'mode']
 
 if not MIN_VERSIONS['NUMPY_1_9']:  # pragma: no cover
     __doctest_skip__ = ['mode']
+
+
+def minmax(data):
+    """Returns the minimum and maximum of some data.
+
+    Parameters
+    ----------
+    data : `numpy.ndarray`-like
+        The data for which to determine the minimum and maximum.
+
+    Returns
+    -------
+    min : number
+        The minimum value in the data.
+
+    max : number
+        The maximum value in the data.
+
+    Notes
+    -----
+    This is just a convenience wrapper for :func:`numpy.amin` and
+    :func:`numpy.amax` (and also supports subclasses like
+    `~astropy.units.Quantity` as data). But this could be replaced by some more
+    efficient algorithm that determines both properties in one pass.
+
+    Examples
+    --------
+    Two simple examples::
+
+        >>> from nddata.utils.stats import minmax
+        >>> import numpy as np
+
+        >>> minmax([1,2,3,4,5])
+        (1, 5)
+
+        >>> minmax(np.arange(20))
+        (0, 19)
+
+    The result for the calculation with `~astropy.units.Quantity` results in
+    a minimum and maximum with a unit::
+
+        >>> from astropy import units as u
+        >>> data = np.arange(20) * u.m
+        >>> minmax(data)
+        (<Quantity 0.0 m>, <Quantity 19.0 m>)
+
+    Also `numpy.ma.MaskedArray` will yield correct results (ignoring masked
+    values)::
+
+        >>> data = np.ma.array(np.arange(5), mask=[1, 0, 0, 0, 1])
+        >>> minmax(data)
+        (1, 3)
+    """
+    data = np.asanyarray(data)
+    # TODO: Check if there is a single-pass algorithm that also supports
+    # subclasses...
+    return data.min(), data.max()
 
 
 def mode(data, decimals=0):

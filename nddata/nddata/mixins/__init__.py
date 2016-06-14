@@ -7,3 +7,4 @@ from .ndstats import *
 from .ndclip import *
 from .ndreduce import *
 from .ndreshape import *
+from .ndplot import *

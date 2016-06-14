@@ -32,7 +32,7 @@ env:
         # For this package-template, we include examples of Cython modules,
         # so Cython is required for testing. If your package does not include
         # Cython code, you can set CONDA_DEPENDENCIES=''
-        - CONDA_DEPENDENCIES='scipy numba scikit-image'
+        - CONDA_DEPENDENCIES='scipy numba scikit-image wcsaxes'
 
         # If there are matplotlib or other GUI tests, uncomment the following
         # line to use the X virtual framebuffer.
@@ -48,18 +48,10 @@ matrix:
         # Try older numpy versions
         - python: 3.5
           env: NUMPY_VERSION=1.10
-               ASTROPY_VERSION=''
-               PIP_DEPENDENCIES='astropy>=1.1'
-        # some weird test failure here with python 3, therefore python 2
-        - python: 2.7
-          env: NUMPY_VERSION=1.9
-               ASTROPY_VERSION=''
-               PIP_DEPENDENCIES='astropy>=1.1'
 
         # Try all python versions with the latest numpy available on that
         # python version.
         - python: 2.7
-        - python: 3.4
         - python: 3.5
 
         # One test without additional dependencies installed
@@ -77,9 +69,7 @@ matrix:
           env: SETUP_CMD='build_sphinx -w'
         # python 3.5 has other links to collections.abc so no switch yet.
 
-        # Try Astropy development version with all dependencies
-        - python: 2.7
-          env: ASTROPY_VERSION=development
+        # Try Astropy and NumPy development version
         - python: 3.5
           env: ASTROPY_VERSION=development
         - python: 3.5
@@ -88,10 +78,6 @@ matrix:
         # Try the LTS astropy versions
         - python: 3.5
           env: ASTROPY_VERSION=lts
-
-        # Try numpy pre-release
-        - python: 3.5
-          env: NUMPY_VERSION=prerelease
 
         # Do a PEP8 test
         # - python: 2.7
