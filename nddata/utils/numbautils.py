@@ -8,17 +8,18 @@ import numpy as np
 from .sentinels import ParameterNotSpecified
 from ..deps import OPT_DEPS
 
-__all__ = ['convolve', 'interpolate']
+__all__ = ['convolve', 'convolve_median', 'interpolate', 'interpolate_median']
 
 if not OPT_DEPS['NUMBA']:  # pragma: no cover
-    __doctest_skip__ = ['interpolate', 'convolve']
+    __doctest_skip__ = ['convolve', 'convolve_median',
+                        'interpolate', 'interpolate_median']
 
 
 def interpolate(data, kernel, mask=ParameterNotSpecified):
     """Interpolation of the masked values of some data by convolution.
 
     .. note::
-        Requires ``Numba`` to be installed.
+        Requires ``Numba``.
 
     Parameters
     ----------
@@ -43,7 +44,10 @@ def interpolate(data, kernel, mask=ParameterNotSpecified):
 
     See also
     --------
-    convolve
+    interpolate_median : Numba-based utility to interpolate masked values \
+        using median convolution.
+    convolve : Numba-based utility to convolve using weighted summation.
+    convolve_median : Numba-based utility to convolve using the median.
 
     Notes
     -----
@@ -124,11 +128,11 @@ mask=[0,1,0])
     return _process(data, kernel, mask, 'interpolation')
 
 
-def convolve(data, kernel, mask=ParameterNotSpecified, rescale_kernel=True):
+def convolve(data, kernel, mask=ParameterNotSpecified, rescale=True):
     """Convolution of some data by ignoring masked values.
 
     .. note::
-        Requires ``Numba`` to be installed.
+        Requires ``Numba``.
 
     Parameters
     ----------
@@ -161,8 +165,12 @@ def convolve(data, kernel, mask=ParameterNotSpecified, rescale_kernel=True):
 
     See also
     --------
-    interpolate : Another numba-based utility to only interpolate by \
-        convolution.
+    interpolate : Numba-based utility to interpolate masked values using \
+        weighted convolution.
+    interpolate_median : Numba-based utility to interpolate masked values \
+        using median convolution.
+    convolve_median : Numba-based utility to convolve using the median.
+
     numpy.convolve : Fast one-dimensional convolution without masks.
     scipy.ndimage.convolve : Fast n-dimensional convolution without masks.
     astropy.convolution.convolve : Convolution that excludes ``NaN`` from the \
@@ -197,7 +205,13 @@ def convolve(data, kernel, mask=ParameterNotSpecified, rescale_kernel=True):
 
         >>> data = np.ma.array([1,1000,2,1], mask=[0, 1, 0, 0])
         >>> convolve(data, [1,1,1])
+        array([ 3. ,  4.5,  4.5,  4.5])
+        >>> convolve(data, [1,1,1], rescale=False)
         array([ 1. ,  1.5,  1.5,  1.5])
+
+    The ``rescale`` parameter determines if a **sum** convolution (in case it
+    is not given or ``True``) or a **mean** convolution (if ``False``) is
+    performed.
 
     Convolution of a 2D list given an explicit mask and an astropy Kernel::
 
@@ -205,7 +219,7 @@ def convolve(data, kernel, mask=ParameterNotSpecified, rescale_kernel=True):
         >>> data = [[1,1,1],[1,1000,1],[1,1,3]]
         >>> kernel = Box2DKernel(3)
         >>> mask = [[0,0,0],[0,1,0],[0,0,0]]
-        >>> convolve(data, kernel, mask)
+        >>> convolve(data, kernel, mask, rescale=False)
         array([[ 1.        ,  1.        ,  1.        ],
                [ 1.        ,  1.25      ,  1.4       ],
                [ 1.        ,  1.4       ,  1.66666667]])
@@ -220,7 +234,7 @@ def convolve(data, kernel, mask=ParameterNotSpecified, rescale_kernel=True):
         >>> mask[1,1,1] = 1
         >>> data = NDData(data, mask=mask)
         >>> kernel = np.ones((3,3,3))
-        >>> convolve(data, kernel)
+        >>> convolve(data, kernel, rescale=False)
         array([[[ 1.        ,  1.        ,  1.        ],
                 [ 1.        ,  1.        ,  1.        ],
                 [ 1.        ,  1.        ,  1.        ]],
@@ -237,22 +251,254 @@ def convolve(data, kernel, mask=ParameterNotSpecified, rescale_kernel=True):
     unmasked::
 
         >>> convolve([1,2,3], [1,1,1])
-        array([ 1.5,  2. ,  2.5])
+        array([ 4.5,  6. ,  7.5])
 
     An implicit mask can be ignored by setting the mask to ``None``::
 
         >>> convolve(np.ma.array([1,2,3], mask=[1,1,1]), [1,1,1], mask=None)
-        array([ 1.5,  2. ,  2.5])
+        array([ 4.5,  6. ,  7.5])
 
     Given an implicit and explicit mask the explicit mask is always used::
 
         >>> convolve(np.ma.array([1,2,3], mask=[1,1,1]), [1,1,1], mask=[0,1,0])
-        array([ 1.,  2.,  3.])
+        array([ 3.,  6.,  9.])
+
+    Rescaling is also possible (in that case it's the mean of the convolved
+    elements rather than the rescaled sum)::
+
+        >>> convolve([1,2,3], [1,1,1], rescale=False)
+        array([ 1.5,  2. ,  2.5])
     """
-    return _process(data, kernel, mask, 'convolution')
+    result = _process(data, kernel, mask, 'convolution')
+    if rescale:
+        result *= np.sum(getattr(kernel, 'array', kernel))
+    return result
 
 
-def _process(data, kernel, mask, mode):
+def interpolate_median(data, kernel, mask=ParameterNotSpecified):
+    """Interpolation of masked values in the data based on median convolution.
+
+    .. note::
+        Requires ``Numba``.
+
+    Parameters
+    ----------
+    data : `numpy.ndarray`, `numpy.ma.MaskedArray`, `~nddata.nddata.NDData`
+        The data to interpolate.
+
+    kernel : `numpy.ndarray`, `astropy.convolution.Kernel`
+        The kernel for the interpolation. One difference from normal
+        interpolation is that the actual values of the kernel do not matter,
+        except when it is zero then it won't use this element for the median
+        computation.
+        Each axis of the kernel must be odd.
+
+    mask : `numpy.ndarray`, optional
+        Masked values in the ``data``. Elements where the mask is equivalent to
+        1 (also ``True``) are interpreted as masked and are ignored during the
+        interpolation. If not given use the mask of the data or if it has no
+        mask either assume all the data is unmasked.
+
+    Returns
+    -------
+    interpolated : `numpy.ndarray`
+        The interpolated array.
+
+    See also
+    --------
+    interpolate : Numba-based utility to interpolate masked values using \
+        weighted convolution.
+    convolve : Numba-based utility to convolve using weighted summation.
+    convolve_median : Numba-based utility to convolve using the median.
+
+    Notes
+    -----
+    1. If the ``data`` parameter has a ``mask`` attribute then ``data.data``
+       is interpreted as ``data`` and ``array.mask`` as ``mask`` parameter.
+       This allows using `~numpy.ma.MaskedArray` objects as ``data`` parameter.
+
+    2. If an explicit ``mask`` is given (even if it is ``None``) an implicit
+       mask is ignored.
+
+    3. No border handling is possible, if the kernel extends beyond the
+       image these _outside_ values are treated as if they were masked.
+
+    4. Only implemented for 1D, 2D and 3D data.
+
+    Examples
+    --------
+    It works almost like `interpolate` but based on the ``median`` instead of
+    the **sum** or **mean** of the elements within the kernel::
+
+        >>> from nddata.utils.numbautils import interpolate_median
+        >>> import numpy as np
+
+        >>> data = np.ma.array([1,1000,2,1], mask=[0, 1, 0, 0])
+        >>> interpolate_median(data, [1,1,1])
+        array([ 1. ,  1.5,  2. ,  1. ])
+
+    Support for two dimensional arrays and masks is also implemented::
+
+        >>> data = np.arange(9).reshape(3, 3)
+        >>> data[1, 1] = 100
+        >>> mask = np.zeros((3, 3), dtype=bool)
+        >>> mask[1, 1] = 1
+        >>> interpolate_median(data, np.ones((3,3)), mask)
+        array([[ 0.,  1.,  2.],
+               [ 3.,  4.,  5.],
+               [ 6.,  7.,  8.]])
+
+    And also for three dimensional arrays::
+
+        >>> data = np.arange(27).reshape(3, 3, 3)
+        >>> data[0, 0, 0] = 10000
+        >>> mask = np.zeros((3, 3, 3))
+        >>> mask[0, 0, 0] = 1
+        >>> interpolate_median(data, np.ones((3, 3, 3)), mask)
+        array([[[  9.,   1.,   2.],
+                [  3.,   4.,   5.],
+                [  6.,   7.,   8.]],
+        <BLANKLINE>
+               [[  9.,  10.,  11.],
+                [ 12.,  13.,  14.],
+                [ 15.,  16.,  17.]],
+        <BLANKLINE>
+               [[ 18.,  19.,  20.],
+                [ 21.,  22.,  23.],
+                [ 24.,  25.,  26.]]])
+
+    Kernel elements of zero can also be used to use only specified elements for
+    the interpolation::
+
+        >>> data = np.ma.array([1,1000,2,1], mask=[0, 1, 0, 0])
+        >>> interpolate_median(data, [1,0,0])
+        array([ 1.,  1.,  2.,  1.])
+
+    This kernel uses only the left element for the interpolation.
+
+    .. note::
+        The median calculation is done by a jitted version based on
+        Insertionsort which becomes inefficient for large kernels (more than
+        hundred or several hundred elements).
+    """
+    return _process(data, kernel, mask, 'interpolation', True)
+
+
+def convolve_median(data, kernel, mask=ParameterNotSpecified):
+    """Median based convolution of some data by ignoring masked values.
+
+    .. note::
+        Requires ``Numba``.
+
+    Parameters
+    ----------
+    data : `numpy.ndarray`, `numpy.ma.MaskedArray`, `~nddata.nddata.NDData`
+        The data to convolve.
+
+    kernel : `numpy.ndarray`, `astropy.convolution.Kernel`
+        The kernel for the convolution. One difference from normal convolution
+        is that the actual values of the kernel do not matter, except when it
+        is zero then it won't use the element for the median computation.
+        Each axis of the kernel must be odd.
+
+    mask : `numpy.ndarray`, optional
+        Masked values in the ``data``. Elements where the mask is equivalent to
+        1 (also ``True``) are interpreted as masked and are ignored during the
+        convolution. If not given use the mask of the data or if it has no mask
+        either assume all the data is unmasked.
+
+    Returns
+    -------
+    convolved : `numpy.ndarray`
+        The convolved array.
+
+    See also
+    --------
+    interpolate : Numba-based utility to interpolate masked values using \
+        weighted convolution.
+    interpolate_median : Numba-based utility to interpolate masked values \
+        using median convolution.
+    convolve : Numba-based utility to convolve using weighted summation.
+
+    scipy.ndimage.median_filter : Fast n-dimensional convolution \
+        without masks.
+
+    Notes
+    -----
+    1. If the ``data`` parameter has a ``mask`` attribute then ``data.data``
+       is interpreted as ``data`` and ``array.mask`` as ``mask`` parameter.
+       This allows using `~numpy.ma.MaskedArray` objects as ``data`` parameter.
+
+    2. If an explicit ``mask`` is given (even if it is ``None``) an implicit
+       mask is ignored.
+
+    3. No border handling is possible, if the kernel extends beyond the
+       image these _outside_ values are treated as if they were masked.
+
+    4. Only implemented for 1D, 2D and 3D data.
+
+    Examples
+    --------
+    It works almost like `convolve` but based on the ``median`` instead of the
+    **sum** or **mean** of the elements within the kernel::
+
+        >>> from nddata.utils.numbautils import convolve_median
+        >>> import numpy as np
+
+        >>> data = np.ma.array([1,1000,2,1], mask=[0, 1, 0, 0])
+        >>> convolve_median(data, [1,1,1])
+        array([ 1. ,  1.5,  1.5,  1.5])
+
+    Support for two dimensional arrays and masks is also implemented::
+
+        >>> data = np.arange(9).reshape(3, 3)
+        >>> data[1, 1] = 100
+        >>> mask = np.zeros((3, 3), dtype=bool)
+        >>> mask[1, 1] = 1
+        >>> convolve_median(data, np.ones((3,3)), mask)
+        array([[ 1.,  2.,  2.],
+               [ 3.,  4.,  5.],
+               [ 6.,  6.,  7.]])
+
+    And also for three dimensional arrays::
+
+        >>> data = np.arange(27).reshape(3, 3, 3)
+        >>> data[0, 0, 0] = 10000
+        >>> mask = np.zeros((3, 3, 3))
+        >>> mask[0, 0, 0] = 1
+        >>> convolve_median(data, np.ones((3, 3, 3)), mask)
+        array([[[  9. ,   9. ,   7.5],
+                [  9. ,   9. ,   9. ],
+                [  9.5,  10. ,  10.5]],
+        <BLANKLINE>
+               [[ 12. ,  12. ,  12. ],
+                [ 13. ,  13.5,  13.5],
+                [ 14. ,  14.5,  15. ]],
+        <BLANKLINE>
+               [[ 15.5,  16. ,  16.5],
+                [ 17. ,  17.5,  18. ],
+                [ 18.5,  19. ,  19.5]]])
+
+    Explictly using kernel elements to zero excludes those elements for the
+    convolution::
+
+        >>> data = np.ma.array([1,1000,2,1], mask=[0, 1, 0, 0])
+        >>> convolve_median(data, [1,0,0])
+        array([ nan,   1.,  nan,   2.])
+
+    Here only the left element is used for the convolution. For the first
+    element the left one is outside the data and for the third element the
+    convolution element is masked so both of them result in ``NaN``.
+
+    .. note::
+        The median calculation is done by a jitted version based on
+        Insertionsort which becomes inefficient for large kernels (more than
+        hundred or several hundred elements).
+    """
+    return _process(data, kernel, mask, 'convolution', True)
+
+
+def _process(data, kernel, mask, mode, median=False):
     """Convolution and Interpolation processing is much the same before the
     actual heavy lifting is performed. This function combines the processing
     and then invokes the appropriate numba-function.
@@ -319,8 +565,13 @@ def _process(data, kernel, mask, mode):
     # chosen mode and the given dimensions. We already checked that the mode is
     # ok therefore any KeyError must happen because the dimension was not
     # supported.
+    # Median convolution and interpolation has it's own mapping:
+    if median:
+        to_func = MODE_DIM_FUNC_MEDIAN_MAP
+    else:
+        to_func = MODE_DIM_FUNC_MAP
     try:
-        return MODE_DIM_FUNC_MAP[mode][ndim](data, kernel, mask)
+        return to_func[mode][ndim](data, kernel, mask)
     except KeyError:
         raise ValueError('data must not have more than 3 dimensions.')
 
@@ -337,20 +588,20 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
         result = np.zeros(image.shape, dtype=np.float64)
 
         for i in range(0, nx, 1):
-            if mask[i] == 1:
+            if mask[i]:
                 iimin = max(i - wkx, 0)
                 iimax = min(i + wkx + 1, nx)
                 num = 0.
                 div = 0.
                 for ii in range(iimin, iimax, 1):
                     iii = wkx + ii - i
-                    if mask[ii] == 0:
+                    if not mask[ii]:
                         num += kernel[iii] * image[ii]
                         div += kernel[iii]
-                if div == 0.0:
-                    result[i] = np.nan
-                else:
+                if div:
                     result[i] = num / div
+                else:
+                    result[i] = np.nan
             else:
                 result[i] = image[i]
         return result
@@ -368,7 +619,7 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
 
         for i in range(0, nx, 1):
             for j in range(0, ny, 1):
-                if mask[i, j] == 1:
+                if mask[i, j]:
                     iimin = max(i - wkx, 0)
                     iimax = min(i + wkx + 1, nx)
                     jjmin = max(j - wky, 0)
@@ -378,14 +629,14 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
                     for ii in range(iimin, iimax, 1):
                         iii = wkx + ii - i
                         for jj in range(jjmin, jjmax, 1):
-                            if mask[ii, jj] == 0:
+                            if not mask[ii, jj]:
                                 jjj = wky + jj - j
                                 num += kernel[iii, jjj] * image[ii, jj]
                                 div += kernel[iii, jjj]
-                    if div == 0.0:
-                        result[i, j] = np.nan
-                    else:
+                    if div:
                         result[i, j] = num / div
+                    else:
+                        result[i, j] = np.nan
                 else:
                     result[i, j] = image[i, j]
         return result
@@ -407,7 +658,7 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
         for i in range(0, nx, 1):
             for j in range(0, ny, 1):
                 for k in range(0, nz, 1):
-                    if mask[i, j, k] == 1:
+                    if mask[i, j, k]:
                         iimin = max(i - wkx, 0)
                         iimax = min(i + wkx + 1, nx)
                         jjmin = max(j - wky, 0)
@@ -421,15 +672,15 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
                             for jj in range(jjmin, jjmax, 1):
                                 jjj = wky + jj - j
                                 for kk in range(kkmin, kkmax, 1):
-                                    if mask[ii, jj, kk] == 0:
+                                    if not mask[ii, jj, kk]:
                                         kkk = wkz + kk - k
                                         num += (kernel[iii, jjj, kkk] *
                                                 image[ii, jj, kk])
                                         div += kernel[iii, jjj, kkk]
-                        if div == 0.0:
-                            result[i, j, k] = np.nan
-                        else:
+                        if div:
                             result[i, j, k] = num / div
+                        else:
+                            result[i, j, k] = np.nan
                     else:
                         result[i, j, k] = image[i, j, k]
         return result
@@ -448,14 +699,14 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
             num = 0.
             div = 0.
             for ii in range(iimin, iimax, 1):
-                if mask[ii] == 0:
+                if not mask[ii]:
                     iii = wkx + ii - i
                     num += kernel[iii] * image[ii]
                     div += kernel[iii]
-            if div == 0.0:
-                result[i] = np.nan
-            else:
+            if div:
                 result[i] = num / div
+            else:
+                result[i] = np.nan
         return result
 
     @njit
@@ -480,14 +731,14 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
                 for ii in range(iimin, iimax, 1):
                     iii = wkx + ii - i
                     for jj in range(jjmin, jjmax, 1):
-                        if mask[ii, jj] == 0:
+                        if not mask[ii, jj]:
                             jjj = wky + jj - j
                             num += kernel[iii, jjj] * image[ii, jj]
                             div += kernel[iii, jjj]
-                if div == 0.0:
-                    result[i, j] = np.nan
-                else:
+                if div:
                     result[i, j] = num / div
+                else:
+                    result[i, j] = np.nan
         return result
 
     @njit
@@ -520,15 +771,15 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
                         for jj in range(jjmin, jjmax, 1):
                             jjj = wky + jj - j
                             for kk in range(kkmin, kkmax, 1):
-                                if mask[ii, jj, kk] == 0:
+                                if not mask[ii, jj, kk]:
                                     kkk = wkz + kk - k
                                     num += (kernel[iii, jjj, kkk] *
                                             image[ii, jj, kk])
                                     div += kernel[iii, jjj, kkk]
-                    if div == 0.0:
-                        result[i, j, k] = np.nan
-                    else:
+                    if div:
                         result[i, j, k] = num / div
+                    else:
+                        result[i, j, k] = np.nan
         return result
 
     MODE_DIM_FUNC_MAP = {'convolution':   {1: _convolve_with_mask_1d,
@@ -539,3 +790,357 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
                                            2: _interpolate_mask_2d,
                                            3: _interpolate_mask_3d},
                          }
+
+    @njit
+    def insertionsort(items):
+        """An insertion sort algorithm based on ``Numba``.
+
+        Parameters
+        ----------
+        items : `numpy.ndarray`
+            The items to be sorted.
+
+        Returns
+        -------
+        nothing : `None`
+            Sorting happens in-place!
+
+        Notes
+        -----
+        The insertionsort is used to determine the median for the median-based
+        convolution and interpolation. Most kernels tend to be small and
+        insertionsort has low constant costs and outperforms normal median
+        calculation in these cases.
+
+        On my computer they break even only for more than 500 elements:
+
+        .. code::
+
+            from nddata.utils.numbautils import insertionsort
+            from numba import njit
+            import numpy as np
+
+            @njit
+            def numba_median(items):
+                return np.median(items)
+
+            # Let them be compiled for the timings
+            numba_median(np.random.random(3))
+            insertionsort(np.random.random(3))
+
+            for i in [10, 20, 50, 100, 200, 300, 500, 1000]:
+                data = np.random.random(i)
+                print('-'*20 + str(i))
+                # Copy the data so the constant costs are equal
+                %timeit data = np.random.random(i); np.median(data)
+                %timeit data = np.random.random(i); numba_median(data)
+                %timeit data = np.random.random(i); insertionsort(data)
+            --------------------10
+            10000 loops, best of 3: 175 us per loop
+            10000 loops, best of 3: 21.9 us per loop
+            100000 loops, best of 3: 18.9 us per loop
+            --------------------20
+            10000 loops, best of 3: 174 us per loop
+            10000 loops, best of 3: 22.9 us per loop
+            100000 loops, best of 3: 19.4 us per loop
+            --------------------50
+            10000 loops, best of 3: 172 us per loop
+            10000 loops, best of 3: 24.1 us per loop
+            10000 loops, best of 3: 21.1 us per loop
+            --------------------100
+            10000 loops, best of 3: 173 us per loop
+            10000 loops, best of 3: 26.5 us per loop
+            10000 loops, best of 3: 26.6 us per loop
+            --------------------200
+            10000 loops, best of 3: 180 us per loop
+            10000 loops, best of 3: 33.1 us per loop
+            10000 loops, best of 3: 45.5 us per loop
+            --------------------300
+            10000 loops, best of 3: 186 us per loop
+            10000 loops, best of 3: 39.2 us per loop
+            10000 loops, best of 3: 72.8 us per loop
+            --------------------500
+            1000 loops, best of 3: 202 us per loop
+            10000 loops, best of 3: 50.6 us per loop
+            10000 loops, best of 3: 154 us per loop
+            --------------------1000
+            1000 loops, best of 3: 221 us per loop
+            10000 loops, best of 3: 80 us per loop
+            1000 loops, best of 3: 512 us per loop
+
+
+        The constant costs of creating a random array do affect all these
+        timings and obfuscate that for small arrays (size < 100) the
+        insertionsort beats even the numba-jitted version of np.median.
+        Therefore I chose the insertionsort appropach in the hope that noone
+        would use large kernels for median filtering.
+        """
+        for i in range(items.size):
+            tmp = items[i]
+            k = i
+            while k > 0 and tmp < items[k - 1]:
+                items[k] = items[k - 1]
+                k -= 1
+            items[k] = tmp
+
+    @njit
+    def median_from_sorted(items):
+        """Calculate the median from a sorted sequence.
+
+        Parameters
+        ----------
+        items : `numpy.ndarray`
+            The items to be sorted.
+
+        Returns
+        -------
+        median : number
+            The middle element if the items contain an odd number of elements
+            or the average of the two middle elements if the length of items
+            was even.
+
+        Notes
+        -----
+        This function is meant to be complementary to the interpolation and
+        convolution based on the median. The sorting is done by the
+        ``insertionsort`` function (which seems to be faster than np.median)
+        and this function calculates the median from this sorted array.
+
+        .. note::
+            The sorting must be done before it is not done inside this
+            function.
+        """
+        # Median is the middle element (odd length)
+        # or the mean of the two middle elements (even length)
+        halfsize = items.size // 2
+        if items.size % 2:
+            return items[halfsize]
+        else:
+            return 0.5 * (items[halfsize - 1] + items[halfsize])
+
+    @njit
+    def _interpolate_median_mask_1d(image, kernel, mask):
+        nx = image.shape[0]
+        nkx = kernel.shape[0]
+        wkx = nkx // 2
+
+        result = np.zeros(image.shape, dtype=np.float64)
+        tmp = np.zeros(kernel.size, dtype=image.dtype)
+
+        for i in range(0, nx, 1):
+            if mask[i]:
+                iimin = max(i - wkx, 0)
+                iimax = min(i + wkx + 1, nx)
+                elements = 0
+                for ii in range(iimin, iimax, 1):
+                    iii = wkx + ii - i
+                    if not mask[ii] and kernel[iii]:
+                        tmp[elements] = image[ii]
+                        elements += 1
+                if elements:
+                    insertionsort(tmp[:elements])
+                    median = median_from_sorted(tmp[:elements])
+                    result[i] = median
+                else:
+                    result[i] = np.nan
+            else:
+                result[i] = image[i]
+        return result
+
+    @njit
+    def _interpolate_median_mask_2d(image, kernel, mask):
+        nx = image.shape[0]
+        ny = image.shape[1]
+        nkx = kernel.shape[0]
+        nky = kernel.shape[1]
+        wkx = nkx // 2
+        wky = nky // 2
+
+        result = np.zeros(image.shape, dtype=np.float64)
+        tmp = np.zeros(kernel.size, dtype=image.dtype)
+
+        for i in range(0, nx, 1):
+            for j in range(0, ny, 1):
+                if mask[i, j]:
+                    iimin = max(i - wkx, 0)
+                    iimax = min(i + wkx + 1, nx)
+                    jjmin = max(j - wky, 0)
+                    jjmax = min(j + wky + 1, ny)
+                    elements = 0
+                    for ii in range(iimin, iimax, 1):
+                        iii = wkx + ii - i
+                        for jj in range(jjmin, jjmax, 1):
+                            jjj = wky + jj - j
+                            if not mask[ii, jj] and kernel[iii, jjj]:
+                                tmp[elements] = image[ii, jj]
+                                elements += 1
+                    if elements:
+                        insertionsort(tmp[:elements])
+                        median = median_from_sorted(tmp[:elements])
+                        result[i, j] = median
+                    else:
+                        result[i, j] = np.nan
+                else:
+                    result[i, j] = image[i, j]
+        return result
+
+    @njit
+    def _interpolate_median_mask_3d(image, kernel, mask):
+        nx = image.shape[0]
+        ny = image.shape[1]
+        nz = image.shape[2]
+        nkx = kernel.shape[0]
+        nky = kernel.shape[1]
+        nkz = kernel.shape[2]
+        wkx = nkx // 2
+        wky = nky // 2
+        wkz = nkz // 2
+
+        result = np.zeros(image.shape, dtype=np.float64)
+        tmp = np.zeros(kernel.size, dtype=image.dtype)
+
+        for i in range(0, nx, 1):
+            for j in range(0, ny, 1):
+                for k in range(0, nz, 1):
+                    if mask[i, j, k]:
+                        iimin = max(i - wkx, 0)
+                        iimax = min(i + wkx + 1, nx)
+                        jjmin = max(j - wky, 0)
+                        jjmax = min(j + wky + 1, ny)
+                        kkmin = max(k - wkz, 0)
+                        kkmax = min(k + wkz + 1, nz)
+                        elements = 0
+                        for ii in range(iimin, iimax, 1):
+                            iii = wkx + ii - i
+                            for jj in range(jjmin, jjmax, 1):
+                                jjj = wky + jj - j
+                                for kk in range(kkmin, kkmax, 1):
+                                    kkk = wkz + kk - k
+                                    if (not mask[ii, jj, kk] and
+                                            kernel[iii, jjj, kkk]):
+                                        tmp[elements] = image[ii, jj, kk]
+                                        elements += 1
+                        if elements:
+                            insertionsort(tmp[:elements])
+                            median = median_from_sorted(tmp[:elements])
+                            result[i, j, k] = median
+                        else:
+                            result[i, j, k] = np.nan
+                    else:
+                        result[i, j, k] = image[i, j, k]
+        return result
+
+    @njit
+    def _convolve_median_with_mask_1d(image, kernel, mask):
+        nx = image.shape[0]
+        nkx = kernel.shape[0]
+        wkx = nkx // 2
+
+        result = np.zeros(image.shape, dtype=np.float64)
+        tmp = np.zeros(kernel.size, dtype=image.dtype)
+
+        for i in range(0, nx, 1):
+            iimin = max(i - wkx, 0)
+            iimax = min(i + wkx + 1, nx)
+            elements = 0
+            for ii in range(iimin, iimax, 1):
+                iii = wkx + ii - i
+                if not mask[ii] and kernel[iii]:
+                    tmp[elements] = image[ii]
+                    elements += 1
+            if elements:
+                insertionsort(tmp[:elements])
+                median = median_from_sorted(tmp[:elements])
+                result[i] = median
+            else:
+                result[i] = np.nan
+        return result
+
+    @njit
+    def _convolve_median_with_mask_2d(image, kernel, mask):
+        nx = image.shape[0]
+        nkx = kernel.shape[0]
+        wkx = nkx // 2
+        ny = image.shape[1]
+        nky = kernel.shape[1]
+        wky = nky // 2
+
+        result = np.zeros(image.shape, dtype=np.float64)
+        tmp = np.zeros(kernel.size, dtype=image.dtype)
+
+        for i in range(0, nx, 1):
+            iimin = max(i - wkx, 0)
+            iimax = min(i + wkx + 1, nx)
+            for j in range(0, ny, 1):
+                jjmin = max(j - wky, 0)
+                jjmax = min(j + wky + 1, ny)
+                elements = 0
+                for ii in range(iimin, iimax, 1):
+                    iii = wkx + ii - i
+                    for jj in range(jjmin, jjmax, 1):
+                        jjj = wky + jj - j
+                        if not mask[ii, jj] and kernel[iii, jjj]:
+                            tmp[elements] = image[ii, jj]
+                            elements += 1
+                if elements:
+                    insertionsort(tmp[:elements])
+                    median = median_from_sorted(tmp[:elements])
+                    result[i, j] = median
+                else:
+                    result[i, j] = np.nan
+        return result
+
+    @njit
+    def _convolve_median_with_mask_3d(image, kernel, mask):
+        nx = image.shape[0]
+        nkx = kernel.shape[0]
+        wkx = nkx // 2
+        ny = image.shape[1]
+        nky = kernel.shape[1]
+        wky = nky // 2
+        nz = image.shape[2]
+        nkz = kernel.shape[2]
+        wkz = nkz // 2
+
+        result = np.zeros(image.shape, dtype=np.float64)
+        tmp = np.zeros(kernel.size, dtype=image.dtype)
+
+        for i in range(0, nx, 1):
+            iimin = max(i - wkx, 0)
+            iimax = min(i + wkx + 1, nx)
+            for j in range(0, ny, 1):
+                jjmin = max(j - wky, 0)
+                jjmax = min(j + wky + 1, ny)
+                for k in range(0, nz, 1):
+                    kkmin = max(k - wkz, 0)
+                    kkmax = min(k + wkz + 1, nz)
+
+                    elements = 0
+
+                    for ii in range(iimin, iimax, 1):
+                        iii = wkx + ii - i
+                        for jj in range(jjmin, jjmax, 1):
+                            jjj = wky + jj - j
+                            for kk in range(kkmin, kkmax, 1):
+                                kkk = wkz + kk - k
+                                if (not mask[ii, jj, kk] and
+                                        kernel[iii, jjj, kkk]):
+                                    tmp[elements] = image[ii, jj, kk]
+                                    elements += 1
+                    if elements:
+                        insertionsort(tmp[:elements])
+                        median = median_from_sorted(tmp[:elements])
+                        result[i, j, k] = median
+                    else:
+                        result[i, j, k] = np.nan
+        return result
+
+    MODE_DIM_FUNC_MEDIAN_MAP = {
+        'convolution':   {1: _convolve_median_with_mask_1d,
+                          2: _convolve_median_with_mask_2d,
+                          3: _convolve_median_with_mask_3d},
+
+        'interpolation': {1: _interpolate_median_mask_1d,
+                          2: _interpolate_median_mask_2d,
+                          3: _interpolate_median_mask_3d},
+        }
