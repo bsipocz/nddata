@@ -56,16 +56,6 @@ matrix:
                ASTROPY_VERSION=''
                PIP_DEPENDENCIES='astropy>=1.1'
 
-        # Older numpy versions which aren't build against python 3.5
-        - python: 2.7
-          env: NUMPY_VERSION=1.8
-               ASTROPY_VERSION=''
-               PIP_DEPENDENCIES='astropy>=1.1'
-        - python: 2.7
-          env: NUMPY_VERSION=1.7
-               ASTROPY_VERSION=''
-               PIP_DEPENDENCIES='astropy>=1.1'
-
         # Try all python versions with the latest numpy available on that
         # python version.
         - python: 2.7
