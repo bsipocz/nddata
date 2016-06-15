@@ -44,6 +44,9 @@ def test_otherfails(func):
 @pytest.mark.parametrize(('func'), [interpolate, convolve,
                                     convolve_median, interpolate_median])
 def test_no_values(func):
+    """This tests the not-docstring friendly branch where one element cannot be
+    interpolated or convolved because all other elements are masked.
+    """
     # 1D
     data = np.ones(20)
     mask = np.zeros(20)

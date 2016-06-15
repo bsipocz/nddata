@@ -128,7 +128,8 @@ mask=[0,1,0])
     return _process(data, kernel, mask, 'interpolation')
 
 
-def convolve(data, kernel, mask=ParameterNotSpecified, rescale=True):
+def convolve(data, kernel, mask=ParameterNotSpecified, rescale=True,
+             var=False):
     """Convolution of some data by ignoring masked values.
 
     .. note::
@@ -158,10 +159,18 @@ def convolve(data, kernel, mask=ParameterNotSpecified, rescale=True):
         of the kernel.
         Default is ``True``.
 
+    var : `bool`, optional
+        Also calculate the weighted variance. This can be quite slow!
+        Default is ``False``.
+
     Returns
     -------
     convolved : `numpy.ndarray`
         The convolved array.
+
+    variance : `numpy.ndarray`, optional
+        The variance. Only returned if the parameter ``var`` was true.
+
 
     See also
     --------
@@ -195,6 +204,10 @@ def convolve(data, kernel, mask=ParameterNotSpecified, rescale=True):
        because otherwise floating value precision might become significant.
 
     5. Only implemented for 1D, 2D and 3D data.
+
+    .. warning::
+        Weighted summation (and also the standard deviation) are calculated
+        with naive formulas. These might not be appropriate in all cases!
 
     Examples
     --------
@@ -268,11 +281,32 @@ def convolve(data, kernel, mask=ParameterNotSpecified, rescale=True):
 
         >>> convolve([1,2,3], [1,1,1], rescale=False)
         array([ 1.5,  2. ,  2.5])
+
+    It is also possible to calculate the variance (without degrees of freedom
+    correction)::
+
+        >>> convolve([0, 100, 40, 40], [1, 2, 1], mask=[0, 0, 1, 0],
+        ...          rescale=False, var=True)
+        (array([ 33.33333333,  66.66666667,  70.        ,  40.        ]),
+         array([ 2222.22222222,  2222.22222222,   900.        ,     0.        \
+]))
+
+    .. warning::
+        If ``var=True`` the function returns 2 results instead of one!
     """
     result = _process(data, kernel, mask, 'convolution')
+    if var:
+        variance = _process(data, kernel, mask, 'convolution', expected=result)
+    else:
+        variance = None
+
     if rescale:
         result *= np.sum(getattr(kernel, 'array', kernel))
-    return result
+
+    if variance is None:
+        return result
+    else:
+        return result, variance
 
 
 def interpolate_median(data, kernel, mask=ParameterNotSpecified):
@@ -384,7 +418,7 @@ def interpolate_median(data, kernel, mask=ParameterNotSpecified):
     return _process(data, kernel, mask, 'interpolation', True)
 
 
-def convolve_median(data, kernel, mask=ParameterNotSpecified):
+def convolve_median(data, kernel, mask=ParameterNotSpecified, mad=False):
     """Median based convolution of some data by ignoring masked values.
 
     .. note::
@@ -407,10 +441,19 @@ def convolve_median(data, kernel, mask=ParameterNotSpecified):
         convolution. If not given use the mask of the data or if it has no mask
         either assume all the data is unmasked.
 
+    mad : `bool` or ``"robust"``, optional
+        Also calculate the median absolute deviation. If ``"robust"`` is chosen
+        multiply the result with approximatly 1.4826.
+        Default is ``False``.
+
     Returns
     -------
     convolved : `numpy.ndarray`
         The convolved array.
+
+    mad : `numpy.ndarray`, optional
+        The median absolute deviation of the convolved array. Only returned if
+        ``mad`` was True.
 
     See also
     --------
@@ -494,11 +537,39 @@ def convolve_median(data, kernel, mask=ParameterNotSpecified):
         The median calculation is done by a jitted version based on
         Insertionsort which becomes inefficient for large kernels (more than
         hundred or several hundred elements).
+
+    The function can optionally determine the median absolute deviation of the
+    convolved array::
+
+        >>> convolve_median([0, 100, 40, 40], [1, 2, 1], mask=[0, 0, 0, 1],
+        ...                 mad=True)
+        (array([ 50.,  40.,  70.,  40.]), array([ 50.,  40.,  30.,   0.]))
+
+    or even calculate the robust median absolute deviation::
+
+        >>> convolve_median([0, 100, 40, 40], [1, 2, 1], mask=[0, 0, 0, 1],
+        ...                 mad='robust')
+        (array([ 50.,  40.,  70.,  40.]),
+         array([ 74.13011093,  59.30408874,  44.47806656,   0.        ]))
+
+    which is just the normal deviation multiplied by the constant factor of
+    approximatly ``1.4826``.
+
+    .. warning::
+        If ``mad=True`` the function returns 2 results instead of one!
     """
-    return _process(data, kernel, mask, 'convolution', True)
+    result = _process(data, kernel, mask, 'convolution', True)
+    if mad:
+        mad_result = _process(data, kernel, mask, 'convolution', True,
+                              expected=result)
+        if mad == 'robust':
+            mad_result *= 1.482602218505602
+        return result, mad_result
+    else:
+        return result
 
 
-def _process(data, kernel, mask, mode, median=False):
+def _process(data, kernel, mask, mode, median=False, expected=None):
     """Convolution and Interpolation processing is much the same before the
     actual heavy lifting is performed. This function combines the processing
     and then invokes the appropriate numba-function.
@@ -561,17 +632,34 @@ def _process(data, kernel, mask, mode, median=False):
     if any(i % 2 == 0 for i in kernel.shape):
         raise ValueError('kernel must have an odd shape in each dimension.')
 
-    # Use the dictionary containing the appropriate functions for the
-    # chosen mode and the given dimensions. We already checked that the mode is
-    # ok therefore any KeyError must happen because the dimension was not
-    # supported.
+    # Use the dictionary containing the appropriate functions.
     # Median convolution and interpolation has it's own mapping:
     if median:
-        to_func = MODE_DIM_FUNC_MEDIAN_MAP
+        if expected is None:
+            to_func = MODE_DIM_FUNC_MEDIAN_MAP
+        else:
+            to_func = MODE_DIM_FUNC_MEDIAN_STD_MAP
     else:
-        to_func = MODE_DIM_FUNC_MAP
+        if expected is None:
+            to_func = MODE_DIM_FUNC_MAP
+        else:
+            to_func = MODE_DIM_FUNC_MAP_STD
+
+    # No need to prepare the expected argument since it was calculated during
+    # another convolution so it must be a numpy array with right dimensions and
+    # so on.
+
+    # We already checked that the mode is ok therefore any KeyError must happen
+    # because the dimension was not supported.
     try:
-        return to_func[mode][ndim](data, kernel, mask)
+        if expected is None:
+            return to_func[mode][ndim](data, kernel, mask)
+        else:
+            # in case of interpolation just use the convolution error function.
+            # this shouldn't be possible to reach without directly invoking
+            # this private function but if I later want to add it it's
+            # already here :-)
+            return to_func['convolution'][ndim](data, kernel, mask, expected)
     except KeyError:
         raise ValueError('data must not have more than 3 dimensions.')
 
@@ -581,6 +669,7 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
 
     @njit
     def _interpolate_mask_1d(image, kernel, mask):
+        """Determine the weighted average for each masked value."""
         nx = image.shape[0]
         nkx = kernel.shape[0]
         wkx = nkx // 2
@@ -608,6 +697,7 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
 
     @njit
     def _interpolate_mask_2d(image, kernel, mask):
+        """Determine the weighted average for each masked value."""
         nx = image.shape[0]
         ny = image.shape[1]
         nkx = kernel.shape[0]
@@ -643,6 +733,7 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
 
     @njit
     def _interpolate_mask_3d(image, kernel, mask):
+        """Determine the weighted average for each masked value."""
         nx = image.shape[0]
         ny = image.shape[1]
         nz = image.shape[2]
@@ -687,6 +778,7 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
 
     @njit
     def _convolve_with_mask_1d(image, kernel, mask):
+        """Determine the weighted average for each value."""
         nx = image.shape[0]
         nkx = kernel.shape[0]
         wkx = nkx // 2
@@ -711,6 +803,7 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
 
     @njit
     def _convolve_with_mask_2d(image, kernel, mask):
+        """Determine the weighted average for each value."""
         nx = image.shape[0]
         ny = image.shape[1]
         nkx = kernel.shape[0]
@@ -743,6 +836,7 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
 
     @njit
     def _convolve_with_mask_3d(image, kernel, mask):
+        """Determine the weighted average for each value."""
         nx = image.shape[0]
         ny = image.shape[1]
         nz = image.shape[2]
@@ -782,6 +876,112 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
                         result[i, j, k] = np.nan
         return result
 
+    @njit
+    def _convolve_with_mask_std_1d(image, kernel, mask, mean):
+        """Determine the variance for each value."""
+        nx = image.shape[0]
+        nkx = kernel.shape[0]
+        wkx = nkx // 2
+
+        result = np.zeros(image.shape, dtype=np.float64)
+
+        for i in range(0, nx, 1):
+            iimin = max(i - wkx, 0)
+            iimax = min(i + wkx + 1, nx)
+            num = 0.
+            div = 0.
+            for ii in range(iimin, iimax, 1):
+                if not mask[ii]:
+                    iii = wkx + ii - i
+                    # Difference to normal convolution.
+                    diff = (image[ii] - mean[i]) ** 2
+                    num += diff * kernel[iii]
+                    div += kernel[iii]
+            if div:
+                result[i] = num / div
+            else:
+                result[i] = np.nan
+        return result
+
+    @njit
+    def _convolve_with_mask_std_2d(image, kernel, mask, mean):
+        """Determine the variance for each value."""
+        nx = image.shape[0]
+        ny = image.shape[1]
+        nkx = kernel.shape[0]
+        nky = kernel.shape[1]
+        wkx = nkx // 2
+        wky = nky // 2
+
+        result = np.zeros(image.shape, dtype=np.float64)
+
+        for i in range(0, nx, 1):
+            iimin = max(i - wkx, 0)
+            iimax = min(i + wkx + 1, nx)
+            for j in range(0, ny, 1):
+                jjmin = max(j - wky, 0)
+                jjmax = min(j + wky + 1, ny)
+                num = 0.
+                div = 0.
+                for ii in range(iimin, iimax, 1):
+                    iii = wkx + ii - i
+                    for jj in range(jjmin, jjmax, 1):
+                        if not mask[ii, jj]:
+                            jjj = wky + jj - j
+                            # Difference to normal convolution.
+                            diff = (image[ii, jj] - mean[i, j]) ** 2
+                            num += diff * kernel[iii, jjj]
+                            div += kernel[iii, jjj]
+                if div:
+                    result[i, j] = num / div
+                else:
+                    result[i, j] = np.nan
+        return result
+
+    @njit
+    def _convolve_with_mask_std_3d(image, kernel, mask, mean):
+        """Determine the variance for each value."""
+        nx = image.shape[0]
+        ny = image.shape[1]
+        nz = image.shape[2]
+        nkx = kernel.shape[0]
+        nky = kernel.shape[1]
+        nkz = kernel.shape[2]
+        wkx = nkx // 2
+        wky = nky // 2
+        wkz = nkz // 2
+
+        result = np.zeros(image.shape, dtype=np.float64)
+
+        for i in range(0, nx, 1):
+            iimin = max(i - wkx, 0)
+            iimax = min(i + wkx + 1, nx)
+            for j in range(0, ny, 1):
+                jjmin = max(j - wky, 0)
+                jjmax = min(j + wky + 1, ny)
+                for k in range(0, nz, 1):
+                    kkmin = max(k - wkz, 0)
+                    kkmax = min(k + wkz + 1, nz)
+                    num = 0.
+                    div = 0.
+                    for ii in range(iimin, iimax, 1):
+                        iii = wkx + ii - i
+                        for jj in range(jjmin, jjmax, 1):
+                            jjj = wky + jj - j
+                            for kk in range(kkmin, kkmax, 1):
+                                if not mask[ii, jj, kk]:
+                                    kkk = wkz + kk - k
+                                    # Difference to normal convolution.
+                                    diff = (image[ii, jj, kk] -
+                                            mean[i, j, k]) ** 2
+                                    num += diff * kernel[iii, jjj, kkk]
+                                    div += kernel[iii, jjj, kkk]
+                    if div:
+                        result[i, j, k] = num / div
+                    else:
+                        result[i, j, k] = np.nan
+        return result
+
     MODE_DIM_FUNC_MAP = {'convolution':   {1: _convolve_with_mask_1d,
                                            2: _convolve_with_mask_2d,
                                            3: _convolve_with_mask_3d},
@@ -790,6 +990,11 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
                                            2: _interpolate_mask_2d,
                                            3: _interpolate_mask_3d},
                          }
+
+    MODE_DIM_FUNC_MAP_STD = {'convolution':   {1: _convolve_with_mask_std_1d,
+                                               2: _convolve_with_mask_std_2d,
+                                               3: _convolve_with_mask_std_3d}
+                             }
 
     @njit
     def insertionsort(items):
@@ -920,6 +1125,7 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
 
     @njit
     def _interpolate_median_mask_1d(image, kernel, mask):
+        """Determine the median for each masked value."""
         nx = image.shape[0]
         nkx = kernel.shape[0]
         wkx = nkx // 2
@@ -949,6 +1155,7 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
 
     @njit
     def _interpolate_median_mask_2d(image, kernel, mask):
+        """Determine the median for each masked value."""
         nx = image.shape[0]
         ny = image.shape[1]
         nkx = kernel.shape[0]
@@ -986,6 +1193,7 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
 
     @njit
     def _interpolate_median_mask_3d(image, kernel, mask):
+        """Determine the median for each masked value."""
         nx = image.shape[0]
         ny = image.shape[1]
         nz = image.shape[2]
@@ -1032,6 +1240,7 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
 
     @njit
     def _convolve_median_with_mask_1d(image, kernel, mask):
+        """Determine the median for each value."""
         nx = image.shape[0]
         nkx = kernel.shape[0]
         wkx = nkx // 2
@@ -1058,6 +1267,7 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
 
     @njit
     def _convolve_median_with_mask_2d(image, kernel, mask):
+        """Determine the median for each value."""
         nx = image.shape[0]
         nkx = kernel.shape[0]
         wkx = nkx // 2
@@ -1092,6 +1302,7 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
 
     @njit
     def _convolve_median_with_mask_3d(image, kernel, mask):
+        """Determine the median for each value."""
         nx = image.shape[0]
         nkx = kernel.shape[0]
         wkx = nkx // 2
@@ -1135,6 +1346,118 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
                         result[i, j, k] = np.nan
         return result
 
+    @njit
+    def _convolve_median_with_mask_std_1d(image, kernel, mask, mean):
+        """Determine the median absolute deviation for each value."""
+        nx = image.shape[0]
+        nkx = kernel.shape[0]
+        wkx = nkx // 2
+
+        result = np.zeros(image.shape, dtype=np.float64)
+        tmp = np.zeros(kernel.size, dtype=image.dtype)
+
+        for i in range(0, nx, 1):
+            iimin = max(i - wkx, 0)
+            iimax = min(i + wkx + 1, nx)
+            elements = 0
+            for ii in range(iimin, iimax, 1):
+                iii = wkx + ii - i
+                if not mask[ii] and kernel[iii]:
+                    # Difference to normal convolution.
+                    tmp[elements] = abs(image[ii] - mean[i])
+                    elements += 1
+            if elements:
+                insertionsort(tmp[:elements])
+                median = median_from_sorted(tmp[:elements])
+                result[i] = median
+            else:
+                result[i] = np.nan
+        return result
+
+    @njit
+    def _convolve_median_with_mask_std_2d(image, kernel, mask, mean):
+        """Determine the median absolute deviation for each value."""
+        nx = image.shape[0]
+        nkx = kernel.shape[0]
+        wkx = nkx // 2
+        ny = image.shape[1]
+        nky = kernel.shape[1]
+        wky = nky // 2
+
+        result = np.zeros(image.shape, dtype=np.float64)
+        tmp = np.zeros(kernel.size, dtype=image.dtype)
+
+        for i in range(0, nx, 1):
+            iimin = max(i - wkx, 0)
+            iimax = min(i + wkx + 1, nx)
+            for j in range(0, ny, 1):
+                jjmin = max(j - wky, 0)
+                jjmax = min(j + wky + 1, ny)
+                elements = 0
+                for ii in range(iimin, iimax, 1):
+                    iii = wkx + ii - i
+                    for jj in range(jjmin, jjmax, 1):
+                        jjj = wky + jj - j
+                        if not mask[ii, jj] and kernel[iii, jjj]:
+                            # Difference to normal convolution.
+                            tmp[elements] = abs(image[ii, jj] - mean[i, j])
+                            elements += 1
+                if elements:
+                    insertionsort(tmp[:elements])
+                    median = median_from_sorted(tmp[:elements])
+                    result[i, j] = median
+                else:
+                    result[i, j] = np.nan
+        return result
+
+    @njit
+    def _convolve_median_with_mask_std_3d(image, kernel, mask, mean):
+        """Determine the median absolute deviation for each value."""
+        nx = image.shape[0]
+        nkx = kernel.shape[0]
+        wkx = nkx // 2
+        ny = image.shape[1]
+        nky = kernel.shape[1]
+        wky = nky // 2
+        nz = image.shape[2]
+        nkz = kernel.shape[2]
+        wkz = nkz // 2
+
+        result = np.zeros(image.shape, dtype=np.float64)
+        tmp = np.zeros(kernel.size, dtype=image.dtype)
+
+        for i in range(0, nx, 1):
+            iimin = max(i - wkx, 0)
+            iimax = min(i + wkx + 1, nx)
+            for j in range(0, ny, 1):
+                jjmin = max(j - wky, 0)
+                jjmax = min(j + wky + 1, ny)
+                for k in range(0, nz, 1):
+                    kkmin = max(k - wkz, 0)
+                    kkmax = min(k + wkz + 1, nz)
+
+                    elements = 0
+
+                    for ii in range(iimin, iimax, 1):
+                        iii = wkx + ii - i
+                        for jj in range(jjmin, jjmax, 1):
+                            jjj = wky + jj - j
+                            for kk in range(kkmin, kkmax, 1):
+                                kkk = wkz + kk - k
+                                if (not mask[ii, jj, kk] and
+                                        kernel[iii, jjj, kkk]):
+                                    # Difference to normal convolution.
+                                    tmp[elements] = abs(image[ii, jj, kk] -
+                                                        mean[i, j, k])
+                                    elements += 1
+                    if elements:
+                        insertionsort(tmp[:elements])
+                        median = median_from_sorted(tmp[:elements])
+                        result[i, j, k] = median
+                    else:
+                        result[i, j, k] = np.nan
+        return result
+
     MODE_DIM_FUNC_MEDIAN_MAP = {
         'convolution':   {1: _convolve_median_with_mask_1d,
                           2: _convolve_median_with_mask_2d,
@@ -1143,4 +1466,10 @@ if OPT_DEPS['NUMBA']:  # pragma: no cover
         'interpolation': {1: _interpolate_median_mask_1d,
                           2: _interpolate_median_mask_2d,
                           3: _interpolate_median_mask_3d},
+        }
+
+    MODE_DIM_FUNC_MEDIAN_STD_MAP = {
+        'convolution':   {1: _convolve_median_with_mask_std_1d,
+                          2: _convolve_median_with_mask_std_2d,
+                          3: _convolve_median_with_mask_std_3d},
         }
