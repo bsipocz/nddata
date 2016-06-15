@@ -32,40 +32,58 @@ env:
         # For this package-template, we include examples of Cython modules,
         # so Cython is required for testing. If your package does not include
         # Cython code, you can set CONDA_DEPENDENCIES=''
-        - CONDA_DEPENDENCIES=''
-        - CONDA_ALL_DEPENDENCIES='scipy numba scikit-image'
+        - CONDA_DEPENDENCIES='scipy numba scikit-image'
+
+        # If there are matplotlib or other GUI tests, uncomment the following
+        # line to use the X virtual framebuffer.
+        # - SETUP_XVFB=True
+
     matrix:
         # Make sure that egg_info works without dependencies
         - SETUP_CMD='egg_info'
-        # Try all python versions with the latest numpy
-        - SETUP_CMD='test'
 
 matrix:
     include:
 
+        # Try older numpy versions
+        - python: 3.5
+          env: NUMPY_VERSION=1.10
+               ASTROPY_VERSION=''
+               PIP_DEPENDENCIES='astropy>=1.1'
+        # some weird test failure here with python 3, therefore python 2
+        - python: 2.7
+          env: NUMPY_VERSION=1.9
+               ASTROPY_VERSION=''
+               PIP_DEPENDENCIES='astropy>=1.1'
+
+        # Try all python versions with the latest numpy available on that
+        # python version.
+        - python: 2.7
+        - python: 3.4
+        - python: 3.5
+
+        # One test without additional dependencies installed
+        - python: 3.5
+          env: CONDA_DEPENDENCIES=''
+
         # Do a coverage test in Python 2.
         - python: 2.7
           env: SETUP_CMD='test --coverage'
-               CONDA_DEPENDENCIES=$CONDA_ALL_DEPENDENCIES
         # Weirdly no data could be fetched with 3.5 so leaving this as 2.7
 
         # Check for sphinx doc build warnings - we do this first because it
         # may run for a long time
         - python: 2.7
           env: SETUP_CMD='build_sphinx -w'
-               CONDA_DEPENDENCIES=$CONDA_ALL_DEPENDENCIES
         # python 3.5 has other links to collections.abc so no switch yet.
 
         # Try Astropy development version with all dependencies
         - python: 2.7
           env: ASTROPY_VERSION=development
-               CONDA_DEPENDENCIES=$CONDA_ALL_DEPENDENCIES
         - python: 3.5
           env: ASTROPY_VERSION=development
-               CONDA_DEPENDENCIES=$CONDA_ALL_DEPENDENCIES
         - python: 3.5
           env: NUMPY_VERSION=dev
-               CONDA_DEPENDENCIES=$CONDA_ALL_DEPENDENCIES
 
         # Try the LTS astropy versions
         - python: 3.5
@@ -75,29 +93,9 @@ matrix:
         - python: 3.5
           env: NUMPY_VERSION=prerelease
 
-        # Try older numpy versions
-        - python: 3.5
-          env: NUMPY_VERSION=1.10
-        # some weird test failure here with python 3, therefore python 2
-        - python: 2.7
-          env: NUMPY_VERSION=1.9
-
-        # Older numpy versions which aren't build against python 3.5
-        - python: 2.7
-          env: NUMPY_VERSION=1.8
-        - python: 2.7
-          env: NUMPY_VERSION=1.7
-
         # Do a PEP8 test
         # - python: 2.7
         #   env: MAIN_CMD='pep8 astropy --count' SETUP_CMD=''
-
-before_install:
-
-    # If there are matplotlib tests, comment these out to
-    # Make sure that interactive matplotlib backends work
-    # - export DISPLAY=:99.0
-    # - sh -e /etc/init.d/xvfb start
 
 install:
 

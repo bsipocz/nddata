@@ -55,17 +55,19 @@ To also get some ``AstroPy`` or ``SciPy`` related statistics you can set the
 appropriate parameter to ``True``. However these might slow the execution
 down. Especially the scipy functions.
 
-SciPy::
+SciPy:
+
+.. doctest-requires:: scipy
 
     >>> data = create_random_normal_dist_array()
     >>> ndd = NDData(data)
-    >>> stats = ndd.stats(scipy=True)  # doctest: +SKIP
-    >>> print(stats['skew'])  # doctest: +SKIP
+    >>> stats = ndd.stats(scipy=True)
+    >>> print(stats['skew'])
            skew
     ------------------
     -0.000549681295095
 
-    >>> print(stats['kurtosis'])  # doctest: +SKIP
+    >>> print(stats['kurtosis'])
          kurtosis
     -----------------
     -0.00499387426427
@@ -169,11 +171,13 @@ The reason for this approximation is two-fold. The alternative
 :func:`scipy.stats.mode` is extremly slow and using this rounding can speed
 this up by a factor of 10-100. The other reason is that data containing
 floating point values is **very unlikely** to have one value more than once,
-except in some rare circumstances. For example::
+except in some rare circumstances. For example:
 
-    >>> from scipy.stats import mode as scipy_mode  # doctest: +SKIP
+.. doctest-requires:: scipy
+
+    >>> from scipy.stats import mode as scipy_mode
     >>> data = create_random_array_small()
-    >>> scipy_mode(data)  # doctest: +SKIP
+    >>> scipy_mode(data)
     ModeResult(mode=array([ 0.00018641]), count=array([1]))
 
 which just returned the smalles element found in the array and with a count of

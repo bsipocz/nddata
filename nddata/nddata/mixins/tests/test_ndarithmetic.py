@@ -1313,21 +1313,29 @@ def test_power_equivalent_units():
 
 
 def test_power_not_allowed_things():
+
+    # TODO: This is rather unhelpful but some travis ci mixup actually
+    # installed astropy 1.0.1 so this is needed...
+    if not MIN_VERSIONS['ASTROPY_1_0_3']:
+        exception = u.UnitsError
+    else:
+        exception = u.UnitConversionError
+
     # Even with the exponent being a scalar it must not have an uncertainty
     # if the base has a unit that differs from dimensionless
     ndd1 = NDDataArithmetic(2, unit='m')
     ndd2 = NDDataArithmetic(3, uncertainty=StdDevUncertainty(0.1))
-    with pytest.raises(u.UnitConversionError):
+    with pytest.raises(exception):
         ndd1.power(ndd2)
 
     ndd1 = NDDataArithmetic(2, unit='m')
     ndd2 = NDDataArithmetic(3, uncertainty=StdDevUncertainty(0.1))
-    with pytest.raises(u.UnitConversionError):
+    with pytest.raises(exception):
         ndd1.power(ndd2)
 
     ndd1 = NDDataArithmetic(200., unit='cm')
     ndd2 = NDDataArithmetic(3, uncertainty=StdDevUncertainty(0.1))
-    with pytest.raises(u.UnitConversionError):
+    with pytest.raises(exception):
         ndd1.power(ndd2)
 
 

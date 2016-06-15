@@ -55,4 +55,5 @@ import astropy
 MIN_VERSIONS['NUMPY_1_9'] = cmp_version(np.__version__, '1.9')
 MIN_VERSIONS['NUMPY_1_10'] = cmp_version(np.__version__, '1.10')
 
+MIN_VERSIONS['ASTROPY_1_0_3'] = cmp_version(astropy.__version__, '1.0.3')
 MIN_VERSIONS['ASTROPY_1_2'] = cmp_version(astropy.__version__, '1.2')
