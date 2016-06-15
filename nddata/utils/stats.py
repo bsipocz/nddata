@@ -190,4 +190,4 @@ def _mode_fallback_numpy_lt_1_9(data):  # pragma: no cover
 
     # Return the value (add 0.5 because we shifted the bins) and the number
     # of occurences.
-    return int(binborders[idx_max_count] + 1), occurences[idx_max_count]
+    return binborders[idx_max_count] + 0.5, occurences[idx_max_count]
