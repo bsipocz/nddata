@@ -45,19 +45,6 @@ env:
 matrix:
     include:
 
-        # Try older numpy versions
-        - python: 3.5
-          env: NUMPY_VERSION=1.10
-
-        # Try all python versions with the latest numpy available on that
-        # python version.
-        - python: 2.7
-        - python: 3.5
-
-        # One test without additional dependencies installed
-        - python: 3.5
-          env: CONDA_DEPENDENCIES=''
-
         # Do a coverage test in Python 2.
         - python: 2.7
           env: SETUP_CMD='test --coverage'
@@ -78,6 +65,21 @@ matrix:
         # Try the LTS astropy versions
         - python: 3.5
           env: ASTROPY_VERSION=lts
+
+        # and older numpy
+        - python: 3.5
+          env: NUMPY_VERSION=1.10
+
+        # Try all python versions with the latest numpy available on that
+        # python version.
+        - python: 2.7
+          env: SETUP_CMD='test'
+        - python: 3.5
+          env: SETUP_CMD='test'
+
+        # One test without additional dependencies installed
+        - python: 3.5
+          env: CONDA_DEPENDENCIES=''
 
         # Do a PEP8 test
         # - python: 2.7
