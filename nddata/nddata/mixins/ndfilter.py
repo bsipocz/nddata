@@ -25,8 +25,8 @@ class NDFilterMixin(object):
                 filter.
 
         .. note::
-            This function requires `Numba` and that the ``data`` has only 1, 2
-            or 3 dimensions.
+            This function requires ``Numba`` and that the ``data`` has only 1,
+            2 or 3 dimensions.
 
         Parameters
         ----------
@@ -60,8 +60,8 @@ class NDFilterMixin(object):
                 filter.
 
         .. note::
-            This function requires `Numba` and that the ``data`` has only 1, 2
-            or 3 dimensions.
+            This function requires ``Numba`` and that the ``data`` has only 1,
+            2 or 3 dimensions.
 
         Parameters
         ----------
@@ -96,8 +96,8 @@ class NDFilterMixin(object):
         """Filter the instance data by applying a weighted average filter.
 
         .. note::
-            This function requires `Numba` and that the ``data`` has only 1, 2
-            or 3 dimensions.
+            This function requires ``Numba`` and that the ``data`` has only 1,
+            2 or 3 dimensions.
 
         Parameters
         ----------
@@ -144,8 +144,8 @@ class NDFilterMixin(object):
         """Filter the instance data by applying a weighted sum filter.
 
         .. note::
-            This function requires `Numba` and that the ``data`` has only 1, 2
-            or 3 dimensions.
+            This function requires ``Numba`` and that the ``data`` has only 1,
+            2 or 3 dimensions.
 
         Parameters
         ----------
@@ -200,8 +200,8 @@ class NDFilterMixin(object):
         """Filter the instance data by applying a median filter.
 
         .. note::
-            This function requires `Numba` and that the ``data`` has only 1, 2
-            or 3 dimensions.
+            This function requires ``Numba`` and that the ``data`` has only 1,
+            2 or 3 dimensions.
 
         Parameters
         ----------
