@@ -442,17 +442,13 @@ class NDPlottingMixin(object):
         return ax.hist(data, **dkwargs)
 
     def _plotting_get_mask(self):
-        """Mostly for subclasses that don't use numpy bool masks as "mask".
-
-        This function should return ``None`` or a `numpy.ndarray` of boolean
-        type that can be used for boolean indexing. This function takes no
-        arguments but can use every attribute of the instance it wants.
-
+        """
         See also
         --------
         NDStatsMixin._stats_get_mask
         NDReduceMixin._reduce_get_mask
         NDClippingMixin._clipping_get_mask
+        NDFilterMixin._filter_get_mask
         """
         if isinstance(self.mask, np.ndarray) and self.mask.dtype == bool:
             return self.mask

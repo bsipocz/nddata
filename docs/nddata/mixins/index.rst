@@ -7,8 +7,10 @@ Mixins for added functionality
     ndslicing.rst
     ndreshape.rst
     ndarithmetic.rst
+    ndfilter.rst
     ndunitconversion.rst
     ndstats.rst
     ndclip.rst
     ndreduce.rst
     ndio.rst
+    ndplotting.rst

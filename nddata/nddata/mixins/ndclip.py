@@ -30,6 +30,7 @@ class NDClippingMixin(object):
         NDStatsMixin._stats_get_mask
         NDReduceMixin._reduce_get_mask
         NDPlottingMixin._plotting_get_mask
+        NDFilterMixin._filter_get_mask
 
         Notes
         -----

@@ -13,6 +13,7 @@ from .mixins.ndclip import NDClippingMixin
 from .mixins.ndreduce import NDReduceMixin
 from .mixins.ndreshape import NDReshapeMixin
 from .mixins.ndplot import NDPlottingMixin
+from .mixins.ndfilter import NDFilterMixin
 
 
 __all__ = ['NDData']
@@ -20,6 +21,7 @@ __all__ = ['NDData']
 
 # The base class must be last in the bases!
 class NDData(NDPlottingMixin,
+             NDFilterMixin,
              NDReshapeMixin, NDSlicingMixin,
              NDUnitConvMixin, NDArithmeticMixin, NDClippingMixin,
              NDReduceMixin,

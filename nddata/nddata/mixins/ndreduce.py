@@ -41,6 +41,7 @@ class NDReduceMixin(object):
         NDStatsMixin._stats_get_mask
         NDClippingMixin._clipping_get_mask
         NDPlottingMixin._plotting_get_mask
+        NDFilterMixin._filter_get_mask
 
         Notes
         -----

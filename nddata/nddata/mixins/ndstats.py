@@ -227,6 +227,7 @@ class NDStatsMixin(object):
         NDClippingMixin._clipping_get_mask
         NDReduceMixin._reduce_get_mask
         NDPlottingMixin._plotting_get_mask
+        NDFilterMixin._filter_get_mask
         """
         if isinstance(self.mask, np.ndarray) and self.mask.dtype == bool:
             return self.mask

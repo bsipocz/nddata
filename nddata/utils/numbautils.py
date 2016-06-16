@@ -291,6 +291,13 @@ def convolve(data, kernel, mask=ParameterNotSpecified, rescale=True,
          array([ 2222.22222222,  2222.22222222,   900.        ,     0.        \
 ]))
 
+        >>> from nddata.utils.numbautils import convolve
+        >>> convolve([0, 100, 40, 40], [1, 2, 1], mask=[0, 0, 1, 0],
+        ...          rescale=True, var=True)
+        (array([ 133.33333333,  266.66666667,  280.        ,  160.        ]),
+         array([ 35555.55555556,  35555.55555556,  14400.        ,      \
+0.        ]))
+
     .. warning::
         If ``var=True`` the function returns 2 results instead of one!
     """
@@ -301,7 +308,10 @@ def convolve(data, kernel, mask=ParameterNotSpecified, rescale=True,
         variance = None
 
     if rescale:
-        result *= np.sum(getattr(kernel, 'array', kernel))
+        kernel_sum = np.sum(getattr(kernel, 'array', kernel))
+        result *= kernel_sum
+        if variance is not None:
+            variance *= kernel_sum**2
 
     if variance is None:
         return result
