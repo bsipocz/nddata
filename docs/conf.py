@@ -58,6 +58,9 @@ automodsumm_inherited_members = True
 # Nitpicky mode to warn if links cannot be resolved.
 nitpicky = True
 
+# Additional intersphinx mappings
+intersphinx_mapping['wcsaxes'] = ('https://wcsaxes.readthedocs.io/en/latest/', None)
+
 # To perform a Sphinx version check that needs to be more specific than
 # major.minor, call `check_sphinx_version("x.y.z")` here.
 # check_sphinx_version("1.2.1")

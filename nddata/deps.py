@@ -25,7 +25,7 @@ def cmp_version(actual, ref):
 OPT_DEPS = {}
 
 try:
-    import numba as nb
+    import numba
     OPT_DEPS['NUMBA'] = True
 except ImportError:
     OPT_DEPS['NUMBA'] = False
@@ -41,6 +41,18 @@ try:
     OPT_DEPS['SCIKIT-IMAGE'] = True
 except ImportError:
     OPT_DEPS['SCIKIT-IMAGE'] = False
+
+try:
+    import matplotlib
+    OPT_DEPS['MATPLOTLIB'] = True
+except ImportError:
+    OPT_DEPS['MATPLOTLIB'] = False
+
+try:
+    import wcsaxes
+    OPT_DEPS['WCSAXES'] = True
+except ImportError:
+    OPT_DEPS['WCSAXES'] = False
 
 # Some functions or tests require at least a minimum version, I'll register
 # them here so we don't need to do it in the subpackages and I have more
