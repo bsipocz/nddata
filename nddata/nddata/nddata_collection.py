@@ -101,7 +101,7 @@ class NDDataCollection(object):
 
         Examples
         --------
-        If the inputs are of shape ``(3, )`` and we stack along axis=0 the
+        If the inputs are of shape ``(3, )`` and we stack along ``axis=0`` the
         resulting shape will be ``(n, 3)`` with ``n`` being the number of
         instances used::
 
@@ -178,6 +178,15 @@ class NDDataCollection(object):
                     [[ 0.5,  0.5,  0.5],
                      [ 0.5,  0.5,  0.5],
                      [ 0.5,  0.5,  0.5]]])
+
+        Or even if the ``ndds`` are ``strings`` to load them from the disc:
+
+            >>> def load(ndd, *args, **kwargs):
+            ...     return NDData.read(ndd, *args, **kwargs)
+
+        See also :meth:`~nddata.nddata.NDData.read`. Especially for big NDData
+        objects this can save a lot of memory if not all of them have to be
+        kept in memory.
         """
         # axis must be an unsigned integer.
         axis = as_unsigned_integer(axis)
@@ -306,8 +315,8 @@ class NDDataCollection(object):
 
         Parameters
         ----------
-        ndd_prop : `numpy.ndarray` or `None`
-            The property of the current ndd. If ``None`` don't insert anything.
+        ndd_prop : `numpy.ndarray`
+            The property of the current ndd. Should not be ``None``.
 
         ref_prop : `numpy.ndarray` or ``ParameterNotSpecified``
             If ``ParameterNotSpecified`` then create a new return (with the
@@ -330,10 +339,6 @@ class NDDataCollection(object):
             The reference property, optionally (if ndd_prop wasn't None) with
             the inserted ndd_prop.
         """
-        # If the current property is not set just return the ref_prop, there is
-        # nothing to do
-        if ndd_prop is None:
-            return ref_prop
         # In case the current property is set we need an array to insert it.
         # So if the reference property is not yet created create an array of
         # the appropriate shape with the currents value dtype.
