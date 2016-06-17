@@ -27,6 +27,7 @@ Further reading
    :maxdepth: 1
 
    nddata.rst
+   collection.rst
    mixins/index.rst
    subclassing.rst
    interface.rst

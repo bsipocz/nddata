@@ -9,6 +9,7 @@ from .nduncertainty_stddev import *
 from .nduncertainty_var import *
 from .nduncertainty_relstd import *
 from .flag_collection import *
+from .nddata_collection import *
 
 from . import utils
 from . import mixins
