@@ -3,18 +3,12 @@ Documentation
 
 This is a private spinoff of the `astropy.nddata` module.
 
-It offers a lot of customization but it's mostly about one class:
-`~nddata.nddata.NDData`.
+It offers a lot of customization but the base classes are:
 
-In it's simplest form is just a wrapper for a `numpy.ndarray`-like ``data``
-but also supports the attributes:
 
-- ``mask``
-- ``uncertainty``
-- ``unit``
-- ``wcs``
-- ``flags``
-- ``meta``
+
+- `~nddata.nddata.NDData`
+- `~nddata.nddata.NDDataCollection`
 
 
 .. toctree::
