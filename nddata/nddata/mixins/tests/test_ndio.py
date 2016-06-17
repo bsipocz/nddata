@@ -3,6 +3,8 @@ from __future__ import (absolute_import, division, print_function,
 
 from string import ascii_lowercase
 
+from astropy.io import fits
+
 from ...nddata import NDDataBase
 from ...nduncertainty_stddev import StdDevUncertainty
 from ...nduncertainty_unknown import UnknownUncertainty
@@ -357,3 +359,14 @@ class TestIOFunctions(object):
         assert isinstance(ndd3, NDDataIO)
 
     # TODO: Add one test for NDDataRef and NDDataArray!
+
+
+def test_hdulist():
+    # It should also work if the "filename" is already a HDUList.
+    data = randdata()
+    mask = randdata()
+    hdus = fits.HDUList([fits.PrimaryHDU(data),
+                         fits.ImageHDU(mask, name='mask')])
+    ndd = NDDataIO.read(hdus, format='simple_fits')
+    np.testing.assert_array_equal(ndd.data, data)
+    np.testing.assert_array_equal(ndd.mask, mask)
