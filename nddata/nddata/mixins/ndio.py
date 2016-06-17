@@ -105,9 +105,19 @@ def read_nddata_fits(filename, ext_data=0, ext_meta=0, ext_mask='mask',
     -------
     ndd : `~nddata.nddata.NDDataBase`
         The wrapped FITS file contents.
-    """
 
-    with fits.open(filename, mode='readonly', **kwargs_for_open) as hdus:
+    Notes
+    -----
+    It should also be able to process if the ``filename`` is an already loaded
+    `~astropy.io.fits.HDUList`.
+    """
+    # It should also support if a HDUList is passed in here. The HDUList also
+    # supports the context manager protocol so we open the file if it's not
+    # a HDUList but if it's a HDUList we just use the HDUList as context
+    # manager.
+    isfile = not isinstance(filename, fits.HDUList)
+    with (fits.open(filename, mode='readonly', **kwargs_for_open) if isfile
+            else filename) as hdus:
         # Read the data and meta from the specified extensions
         data = hdus[ext_data].data
         if dtype is not None:
