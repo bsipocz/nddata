@@ -14,6 +14,7 @@ from astropy.io.fits import Header
 from ..utils.sentinels import ParameterNotSpecified
 from ..utils.inputvalidation import as_unsigned_integer
 from ..utils.dictutils import dict_merge_keep_all_fill_missing
+from ..utils.console import ProgressBar
 
 __all__ = ['NDDataCollection']
 
@@ -102,9 +103,12 @@ class NDDataCollection(object):
             ndds = (func(ndd, *args, **kwargs) for ndd in ndds)
 
         # Create a list containing all stats
-        stats = [ndd.stats(scipy=scipy,
-                           astropy=astropy,
-                           decimals_mode=decimals_mode) for ndd in ndds]
+        with ProgressBar(self._num) as bar:
+            stats = []
+            for ndd in ndds:
+                stats.append(ndd.stats(scipy=scipy, astropy=astropy,
+                                       decimals_mode=decimals_mode))
+                bar.update()
 
         # And return the vstacked table
         return vstack(stats)
@@ -223,7 +227,11 @@ class NDDataCollection(object):
             ndds = (func(ndd, *args, **kwargs) for ndd in ndds)
 
         # Create a list containing all metas
-        metas = [ndd.meta for ndd in ndds]
+        with ProgressBar(self._num) as bar:
+            metas = []
+            for ndd in ndds:
+                metas.append(ndd.meta)
+                bar.update()
 
         # Unfortunatly not all possible metas are possible here:
 
@@ -424,53 +432,58 @@ class NDDataCollection(object):
         meta = ParameterNotSpecified
         wcs = ParameterNotSpecified
 
-        for idx, ndd in enumerate(ndds):
-            if func is not None:
-                ndd = func(ndd, *args, **kwargs)
-            # Compare the invariants for the class of the instance, the unit
-            # and the shape (the latter one requires that the data is a numpy
-            # array)!
-            cls = self._stack_invariant(ndd.__class__, cls, 'class')
-            unit = self._stack_invariant(ndd.unit, unit, 'unit')
-            shape = self._stack_invariant(ndd.data.shape, shape, 'shape')
-            # Create the final shape _only_ during the first iteration.
-            if not idx:
-                finalshape = list(shape)
-                finalshape.insert(axis, self._num)
-                # The wcs and meta are also taken from the first instance.
-                wcs = ndd.wcs
-                meta = ndd.meta
+        with ProgressBar(self._num) as bar:
+            for idx, ndd in enumerate(ndds):
+                if func is not None:
+                    ndd = func(ndd, *args, **kwargs)
+                # Compare the invariants for the class of the instance, the
+                # unit and the shape (the latter one requires that the data is
+                # a numpy array)!
+                cls = self._stack_invariant(ndd.__class__, cls, 'class')
+                unit = self._stack_invariant(ndd.unit, unit, 'unit')
+                shape = self._stack_invariant(ndd.data.shape, shape, 'shape')
+                # Create the final shape _only_ during the first iteration.
+                if not idx:
+                    finalshape = list(shape)
+                    finalshape.insert(axis, self._num)
+                    # The wcs and meta are also taken from the first instance.
+                    wcs = ndd.wcs
+                    meta = ndd.meta
 
-            # The data cannot be None, because we already checked it's shape.
-            data = self._stack_stacks(ndd.data, data, finalshape, axis, idx)
-
-            # If there is an uncertainty check the invariants: class and unit
-            # then compare it against the data shape and finally stack the
-            # uncertainty data.
-            if ndd.uncertainty is not None:
-                u_cls = self._stack_invariant(ndd.uncertainty.__class__, u_cls,
-                                              'uncertainty class')
-                u_unit = self._stack_invariant(ndd.uncertainty.unit, u_unit,
-                                               'uncertainty unit')
-                shape = self._stack_invariant(ndd.uncertainty.data.shape,
-                                              shape, 'uncertainty shape')
-                uncertainty = self._stack_stacks(ndd.uncertainty.data,
-                                                 uncertainty, finalshape,
-                                                 axis, idx)
-
-            # Compare the mask shape if any mask is set and then stack it.
-            if ndd.mask is not None:
-                shape = self._stack_invariant(ndd.mask.shape, shape,
-                                              'mask shape')
-                mask = self._stack_stacks(ndd.mask, mask, finalshape, axis,
+                # The data cannot be None, because we already checked it's
+                # shape.
+                data = self._stack_stacks(ndd.data, data, finalshape, axis,
                                           idx)
 
-            # Same for the flags
-            if ndd.flags is not None:
-                shape = self._stack_invariant(ndd.flags.shape, shape,
-                                              'flags shape')
-                flags = self._stack_stacks(ndd.flags, flags, finalshape, axis,
-                                           idx)
+                # If there is an uncertainty check the invariants: class and
+                # unit then compare it against the data shape and finally stack
+                # the uncertainty data.
+                if ndd.uncertainty is not None:
+                    u_cls = self._stack_invariant(ndd.uncertainty.__class__,
+                                                  u_cls, 'uncertainty class')
+                    u_unit = self._stack_invariant(ndd.uncertainty.unit,
+                                                   u_unit, 'uncertainty unit')
+                    shape = self._stack_invariant(ndd.uncertainty.data.shape,
+                                                  shape, 'uncertainty shape')
+                    uncertainty = self._stack_stacks(ndd.uncertainty.data,
+                                                     uncertainty, finalshape,
+                                                     axis, idx)
+
+                # Compare the mask shape if any mask is set and then stack it.
+                if ndd.mask is not None:
+                    shape = self._stack_invariant(ndd.mask.shape, shape,
+                                                  'mask shape')
+                    mask = self._stack_stacks(ndd.mask, mask, finalshape, axis,
+                                              idx)
+
+                # Same for the flags
+                if ndd.flags is not None:
+                    shape = self._stack_invariant(ndd.flags.shape, shape,
+                                                  'flags shape')
+                    flags = self._stack_stacks(ndd.flags, flags, finalshape,
+                                               axis, idx)
+
+                bar.update()
 
         # Data must be set at some point because the first instance MUST have
         # some data.
