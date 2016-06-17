@@ -102,7 +102,9 @@ class NDDataCollection(object):
             ndds = (func(ndd, *args, **kwargs) for ndd in ndds)
 
         # Create a list containing all stats
-        stats = [ndd.stats() for ndd in ndds]
+        stats = [ndd.stats(scipy=scipy,
+                           astropy=astropy,
+                           decimals_mode=decimals_mode) for ndd in ndds]
 
         # And return the vstacked table
         return vstack(stats)
@@ -132,6 +134,16 @@ class NDDataCollection(object):
         -------
         table_of_metas : `astropy.table.Table`
             A table containing all the meta informations.
+
+        Notes
+        -----
+
+        .. note::
+            Known Bugs:
+
+            - `astropy.io.fits.Header` may cause problems if it contains
+              multiple values for one key, for example multiple ``"COMMENT"``
+              cards.
 
         Examples
         --------
@@ -191,6 +203,19 @@ class NDDataCollection(object):
             --- ---
               2  10
               3   0
+
+        It also supports `~astropy.io.fits.Header` if they don't contain
+        multiple values for one key::
+
+            >>> from astropy.io.fits import Header
+            >>> meta = Header([('a', 10), ('b', 20)])
+            >>> ndd = NDData(1, meta=meta)
+            >>> ndds = NDDataCollection(ndd, ndd)
+            >>> print(ndds.summary_meta())
+             A   B
+            --- ---
+             10  20
+             10  20
         """
         # Get all ndds and if the func is given apply the function.
         ndds = self._ndds

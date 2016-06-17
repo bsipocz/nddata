@@ -75,7 +75,6 @@ def dict_split(dictionary, sep='_'):
         >>> dict_of_dicts = dict_split(a_dictionary, ' ')
         >>> dict_of_dicts  # doctest: +SKIP
         defaultdict(dict, {'a': {'a': 10, 'b': 15}, 'b': {'a': 10, 'b': 20}})
-
     """
     # Create a defaultdictionary so that we don't need any try/except or
     # "if x in dictionary" code. I just hope that the users don't get annoyed
@@ -134,6 +133,17 @@ def dict_merge(*dicts, **foldfunc):
 
     TypeError
         If the ``foldfunc`` doesn't take two arguments.
+
+    Notes
+    -----
+    The first given ``dict`` is copied to provide the class and
+    properties of the result.
+
+    .. note::
+        Known Bugs:
+
+        - `astropy.io.fits.Header` may cause problems if it contains multiple
+          values for one key, for example multiple ``"COMMENT"`` cards.
 
     Examples
     --------
@@ -262,6 +272,14 @@ def dict_merge_keep_all(*dicts):
     result : type of the first dictionary
         The merged dictionaries.
 
+    Notes
+    -----
+    .. note::
+        Known Bugs:
+
+        - `astropy.io.fits.Header` cannot be used as class of the first
+          argument because it doesn't support `list` as value.
+
     Examples
     --------
     These examples work with `collections.OrderedDict` which is a `dict` that
@@ -339,6 +357,12 @@ def dict_merge_keep_all_fill_missing(*dicts, **fill):
     -----
     The first given ``dict`` is copied to provide the class and
     properties of the result.
+
+    .. note::
+        Known Bugs:
+
+        - `astropy.io.fits.Header` cannot be used as class of the first
+          argument because it doesn't support `list` as value.
 
     Examples
     --------
