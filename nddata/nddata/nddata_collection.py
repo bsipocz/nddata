@@ -298,8 +298,8 @@ class NDDataCollection(object):
               2  10
               3   0
 
-        It also supports `~astropy.io.fits.Header` if they don't contain
-        multiple values for one key::
+        It does not support `~astropy.io.fits.Header` but it converts them
+        internally to an `collections.OrderedDict` before processing them::
 
             >>> from astropy.io.fits import Header
             >>> meta = Header([('a', 10), ('b', 20)])
@@ -320,7 +320,10 @@ class NDDataCollection(object):
         with ProgressBar(self._num) as bar:
             metas = []
             for ndd in ndds:
-                metas.append(ndd.meta)
+                if isinstance(ndd.meta, Header):
+                    metas.append(OrderedDict(ndd.meta.items()))
+                else:
+                    metas.append(ndd.meta)
                 bar.update()
 
         # Unfortunatly not all possible metas are possible here:
@@ -330,8 +333,7 @@ class NDDataCollection(object):
         # 1.) It cannot take lists as values but dict_merge will use lists to
         #     collect all the values. But fortunatly we only need to convert
         #     the first one because that's the type dict_merge uses in the end.
-        if isinstance(metas[0], Header):
-            metas[0] = OrderedDict(metas[0].items())
+        # That's why we needed the isinstance check in the loop above.
 
         # 2.) Header allow multiple values for comment and history.
         #     but OrderedDict can only take one key with the same name, so any
