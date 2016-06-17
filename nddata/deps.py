@@ -54,6 +54,12 @@ try:
 except ImportError:
     OPT_DEPS['WCSAXES'] = False
 
+try:
+    import traitlets
+    OPT_DEPS['TRAITLETS'] = True
+except ImportError:
+    OPT_DEPS['TRAITLETS'] = False
+
 # Some functions or tests require at least a minimum version, I'll register
 # them here so we don't need to do it in the subpackages and I have more
 # overview and consistent names:
