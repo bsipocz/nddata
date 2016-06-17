@@ -17,9 +17,9 @@ class ProgressBar(ProgressBar):  # pragma: no cover
 
     .. note::
         The problem is that I haven't seen the progressbar in notebooks,
-        probably some mess-up with stdout or stdin. This class therefore
-        always tries to use the IPython widget and only if that fails uses the
-        text-based one.
+        probably some mess-up with `sys.stdout` or `sys.stderr`. This class
+        therefore always tries to use the IPython widget and only if that fails
+        uses the text-based one.
 
     Parameters
     ----------
@@ -34,9 +34,9 @@ class ProgressBar(ProgressBar):  # pragma: no cover
             from traitlets import TraitError
             try:
                 super(ProgressBar, self).__init__(total_or_items, True, file)
-            except TraitError:
+            except (TraitError, ImportError):
                 super(ProgressBar, self).__init__(total_or_items, False, file)
-        # No traitlets means we need to use the no-widget progressbar.
+        # No traitlets means we must use the no-widget progressbar.
         else:
             super(ProgressBar, self).__init__(total_or_items, False, file)
 
