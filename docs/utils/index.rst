@@ -3,6 +3,15 @@ Utility functions and classes
 *****************************
 
 
+Console Utilities
+=================
+
+Console related utilities that alter or extend the standard output.
+
+.. automodapi:: nddata.utils.console
+    :no-inheritance-diagram:
+
+
 Context Managers
 ================
 

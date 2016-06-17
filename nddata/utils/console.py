@@ -13,11 +13,13 @@ __all__ = ['ProgressBar']
 
 class ProgressBar(ProgressBar):  # pragma: no cover
     """Like `~astropy.utils.console.ProgressBar` but always tries to load \
-            the Ipython widget.
+            the ``Ipython`` widget.
 
     .. note::
         The problem is that I haven't seen the progressbar in notebooks,
-        probably some mess-up with stdout or stdin.
+        probably some mess-up with stdout or stdin. This class therefore
+        always tries to use the IPython widget and only if that fails uses the
+        text-based one.
 
     Parameters
     ----------
@@ -37,3 +39,13 @@ class ProgressBar(ProgressBar):  # pragma: no cover
         # No traitlets means we need to use the no-widget progressbar.
         else:
             super(ProgressBar, self).__init__(total_or_items, False, file)
+
+    def map(self, *args, **kwargs):
+        """See :meth:`~astropy.utils.console.ProgressBar.map` for more infos.
+        """
+        return super(ProgressBar, self).map(*args, **kwargs)
+
+    def update(self, *args, **kwargs):
+        """See :meth:`~astropy.utils.console.ProgressBar.update` for more infos.
+        """
+        return super(ProgressBar, self).update(*args, **kwargs)
