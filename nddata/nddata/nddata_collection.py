@@ -3,10 +3,17 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+from collections import OrderedDict
+
 import numpy as np
+
+from astropy import log
+from astropy.table import Table
+from astropy.io.fits import Header
 
 from ..utils.sentinels import ParameterNotSpecified
 from ..utils.inputvalidation import as_unsigned_integer
+from ..utils.dictutils import dict_merge_keep_all_fill_missing
 
 __all__ = ['NDDataCollection']
 
@@ -25,17 +32,119 @@ class NDDataCollection(object):
         self._num = len(ndds)
         self._ndds = ndds
 
-    @property
-    def num(self):
-        """The number of NDData objects in the collection.
-        """
-        return self._num
+    def get_all_metas(self, fill=None, func=None, *args, **kwargs):
+        """Get all meta information of the instances as Table.
 
-    @property
-    def ndds(self):
-        """The NDData objects saved.
+        Parameters
+        ----------
+        fill : any type, optional
+            In case one meta doesn't contain a key that the other meta
+            contained the value is filled with this value.
+            Default is ``None``.
+
+        func : `collections.Callable` or `None`, optional
+            A function that is applied to the ``ndd`` before processing.
+            This can be useful if the ``ndds`` are strings and they should be
+            lazy loaded. If ``None`` the ``ndds`` are directly used.
+            as they are.
+
+        args, kwargs :
+            additional parameter for ``func``. These are ignored if ``func`` is
+            ``None``. The call to the function is:
+            ``func(ndd, *args, **kwargs)``.
+
+        Returns
+        -------
+        table_of_metas : `astropy.table.Table`
+            A table containing all the meta informations.
+
+        Examples
+        --------
+        A simple example where each ``meta`` contains the same keys::
+
+            >>> from collections import OrderedDict
+            >>> from nddata.nddata import NDData, NDDataCollection
+
+            >>> ndd1 = NDData(1, meta=OrderedDict([('a', 2), ('b', 10)]))
+            >>> ndd2 = NDData(2, meta=OrderedDict([('a', 3), ('b', 20)]))
+            >>> ndds = NDDataCollection(ndd1, ndd2)
+            >>> print(ndds.get_all_metas())
+             a   b
+            --- ---
+              2  10
+              3  20
+
+        But it also works if a key is missing in some::
+
+            >>> ndd1 = NDData(1, meta=OrderedDict([('a', 2), ('b', 10)]))
+            >>> ndd2 = NDData(2, meta=OrderedDict([('a', 3)]))
+            >>> ndds = NDDataCollection(ndd1, ndd2)
+            >>> print(ndds.get_all_metas())
+             a   b
+            --- ----
+              2   10
+              3 None
+
+        .. note::
+            This will force the column where the missing values are present to
+            change to ``dtype=object``. To work around this one can manually
+            alter the ``fill`` value.
+
+        The ``fill`` value can be used to fill missing entries::
+
+            >>> ndds = NDDataCollection(ndd1, ndd2)
+            >>> print(ndds.get_all_metas(fill=0))
+             a   b
+            --- ---
+              2  10
+              3   0
+
+        It is also possible to give a function that applies to all the set
+        ``ndds`` before they are processed. For example to lazy load from
+        files::
+
+            >>> def load(ndd, *args, **kwargs):
+            ...     return NDData.read(ndd, *args, **kwargs)
+
+        This will require the ``ndds`` to be valid filenames. Also possible
+        would be some conversion to ``NDData`` (even though there is actually
+        no current use-case where this might make sense)::
+
+            >>> from nddata.nddata import NDDataBase
+            >>> print(ndds.get_all_metas(fill=0, func=NDDataBase))
+             a   b
+            --- ---
+              2  10
+              3   0
         """
-        return self._ndds
+        # Get all ndds and if the func is given apply the function.
+        ndds = self._ndds
+        if func is not None:
+            ndds = (func(ndd, *args, **kwargs) for ndd in ndds)
+
+        # Create a list containing all metas
+        metas = [ndd.meta for ndd in ndds]
+
+        # Unfortunatly not all possible metas are possible here:
+
+        # There are some possible problems here when the input is an
+        # astropy.io.fits.Header.
+        # 1.) It cannot take lists as values but dict_merge will use lists to
+        #     collect all the values. But fortunatly we only need to convert
+        #     the first one because that's the type dict_merge uses in the end.
+        if isinstance(metas[0], Header):
+            metas[0] = OrderedDict(metas[0].items())
+
+        # 2.) Header allow multiple values for comment and history.
+        #     but OrderedDict can only take one key with the same name, so any
+        #     subsequent comment will be removed.
+        # TODO: Make that work ...
+
+        # 3.) Header allow comments for each key-value pair. These are
+        #     ignored with the dict_merge but could be valuable for the table.
+        # TODO: Make that work too ...
+
+        return Table(dict_merge_keep_all_fill_missing(*metas, fill=fill))
 
     def stack(self, axis=0, func=None, *args, **kwargs):
         """Stack the NDData objects into one instance.
@@ -84,9 +193,9 @@ class NDDataCollection(object):
             Default is ``0``.
 
         func : `collections.Callable` or `None`, optional
-            A function that is applied to the ``ndd`` before it is stacked.
+            A function that is applied to the ``ndd`` before processing.
             This can be useful if the ``ndds`` are strings and they should be
-            lazy loaded inside the stacking. If ``None`` the ``ndds`` are used
+            lazy loaded. If ``None`` the ``ndds`` are directly used.
             as they are.
 
         args, kwargs :
@@ -126,6 +235,8 @@ class NDDataCollection(object):
 
             >>> ndds = NDDataCollection(NDData([1,2,3]), NDData([3.5,2,1]))
             >>> ndds.stack(axis=1)
+            INFO: possible loss of information when casting float64 to int32 \
+[nddata.nddata.nddata_collection]
             NDData([[1, 3],
                     [2, 2],
                     [3, 1]])
@@ -192,7 +303,7 @@ class NDDataCollection(object):
         axis = as_unsigned_integer(axis)
 
         # Load the ndds saved...
-        ndds = self.ndds
+        ndds = self._ndds
 
         # Setup the invariant parameters.
         cls = ParameterNotSpecified
@@ -223,7 +334,7 @@ class NDDataCollection(object):
             # Create the final shape _only_ during the first iteration.
             if not idx:
                 finalshape = list(shape)
-                finalshape.insert(axis, self.num)
+                finalshape.insert(axis, self._num)
                 # The wcs and meta are also taken from the first instance.
                 wcs = ndd.wcs
                 meta = ndd.meta
@@ -350,6 +461,13 @@ class NDDataCollection(object):
         # appropriate section where we need to insert the reference.
         slicer = [slice(None) for _ in shape]
         slicer[axis] = idx
-        # Insert the reference and return the reference.
+        # Insert the reference and return the reference. In case the dtype
+        # cannot be safely cast to the type of the reference array just
+        # issue a Warning. The alternative would be to recreate the reference
+        # array.
+        # TODO: Maybe do some "astype(ndd_prop.dtype, copy=False)" here...
+        if not np.can_cast(ndd_prop.dtype, ref_prop.dtype, casting='safe'):
+            log.info('possible loss of information when casting {0} to '
+                     '{1}'.format(ndd_prop.dtype, ref_prop.dtype))
         ref_prop[tuple(slicer)] = ndd_prop
         return ref_prop

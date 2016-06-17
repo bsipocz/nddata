@@ -224,3 +224,14 @@ def test_collection_meta_unit_wcs():
     assert stack.meta['a'] == 2
     assert stack.unit == 'm'
     assert stack.wcs == 2
+
+
+def test_collection_allmeta_func():
+    ndd1 = NDDataBase(3, meta={'a': 1})
+    ndd2 = NDDataBase(3, meta={'a': 2})
+    ndd3 = NDDataBase(3, meta={'a': 3})
+    ndds = NDDataCollection(ndd1, ndd2, ndd3)
+    # A stupid function to convert it to NDData but well ... it works :-/
+    # TODO: Use a good function here!!!
+    np.testing.assert_array_equal(ndds.get_all_metas(func=NDData)['a'],
+                                  [1, 2, 3])
