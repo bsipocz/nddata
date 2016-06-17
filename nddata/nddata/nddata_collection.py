@@ -33,6 +33,64 @@ class NDDataCollection(object):
         self._num = len(ndds)
         self._ndds = ndds
 
+    def apply_func(self, func, *args, **kwargs):
+        """Very general method to apply a function on all saved elements.
+
+        .. note::
+            This method will only apply the function with the provided
+            arguments on every element: ``func(ndd, *args, **kwargs)``.
+
+        .. note::
+            This is just a replacement for a for-loop with
+            `~nddata.utils.console.ProgressBar`. So it's less efficient than
+            writing the for-loop yourself.
+
+        Parameters
+        ----------
+        func : `collections.Callable`
+            A function that is applied to the ``ndd`` before processing.
+            This can be useful if the ``ndds`` are strings and they should be
+            lazy loaded.
+
+        args, kwargs :
+            additional parameter for ``func``. These are ignored if ``func`` is
+            ``None``. The call to the function is:
+            ``func(ndd, *args, **kwargs)``.
+
+        Returns
+        -------
+        nothing : `None`
+            The returns of the function are discarded.
+
+        Examples
+        --------
+        For example to add a ``meta`` keyword to all instances::
+
+            >>> from nddata.nddata import NDData, NDDataCollection
+            >>> from collections import OrderedDict
+            >>> ndd1 = NDData(1, meta=OrderedDict([('a', 1), ('b', 1)]))
+            >>> ndd2 = NDData(1, meta=OrderedDict([('a', 2), ('b', 2)]))
+            >>> ndds = NDDataCollection(ndd1, ndd2)
+            >>> def add_meta_kw(ndd):
+            ...     ndd.meta['c'] = 3
+            >>> ndds.apply_func(add_meta_kw)
+            >>> ndd1.meta
+            OrderedDict([('a', 1), ('b', 1), ('c', 3)])
+            >>> ndd2.meta
+            OrderedDict([('a', 2), ('b', 2), ('c', 3)])
+
+        The `collections.OrderedDict` is just used so that the output is
+        always the same. This also works for normal `dict` or other Mappings.
+        """
+        # Use the saved ndds
+        ndds = self._ndds
+
+        # Start a progressbar and apply the function to each ndd in the list.
+        with ProgressBar(self._num) as bar:
+            for ndd in ndds:
+                func(ndd, *args, **kwargs)
+                bar.update()
+
     def summary_stats(self, scipy=False, astropy=False, decimals_mode=0,
                       func=None, *args, **kwargs):
         """Get a Table containing some statistic about the instances.
@@ -52,7 +110,6 @@ class NDDataCollection(object):
             A function that is applied to the ``ndd`` before processing.
             This can be useful if the ``ndds`` are strings and they should be
             lazy loaded. If ``None`` the ``ndds`` are directly used.
-            as they are.
 
         args, kwargs :
             additional parameter for ``func``. These are ignored if ``func`` is
@@ -132,7 +189,6 @@ class NDDataCollection(object):
             A function that is applied to the ``ndd`` before processing.
             This can be useful if the ``ndds`` are strings and they should be
             lazy loaded. If ``None`` the ``ndds`` are directly used.
-            as they are.
 
         args, kwargs :
             additional parameter for ``func``. These are ignored if ``func`` is
@@ -311,7 +367,6 @@ class NDDataCollection(object):
             A function that is applied to the ``ndd`` before processing.
             This can be useful if the ``ndds`` are strings and they should be
             lazy loaded. If ``None`` the ``ndds`` are directly used.
-            as they are.
 
         args, kwargs :
             additional parameter for ``func``. These are ignored if ``func`` is
