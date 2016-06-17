@@ -68,6 +68,11 @@ class NDDataCollection(object):
         --------
         nddata.nddata.NDData.stats : equivalent method for one instance.
 
+        Notes
+        -----
+        A `~nddata.utils.console.ProgressBar` is shown while processing the
+        list.
+
         Examples
         --------
         If the ndds are already given as `~nddata.nddata.NDData` instances::
@@ -141,6 +146,8 @@ class NDDataCollection(object):
 
         Notes
         -----
+        A `~nddata.utils.console.ProgressBar` is shown while processing the
+        list.
 
         .. note::
             Known Bugs:
@@ -315,6 +322,11 @@ class NDDataCollection(object):
         -------
         stacked : `~nddata.nddata.NDDataBase`-like
             The stacked ndds as instance of the same class as the inputs.
+
+        Notes
+        -----
+        A `~nddata.utils.console.ProgressBar` is shown while processing the
+        list.
 
         Examples
         --------

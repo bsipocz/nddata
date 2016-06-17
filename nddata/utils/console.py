@@ -13,11 +13,13 @@ __all__ = ['ProgressBar']
 
 class ProgressBar(ProgressBar):  # pragma: no cover
     """Like `~astropy.utils.console.ProgressBar` but always tries to load \
-            the Ipython widget.
+            the ``Ipython`` widget.
 
     .. note::
         The problem is that I haven't seen the progressbar in notebooks,
-        probably some mess-up with stdout or stdin.
+        probably some mess-up with `sys.stdout` or `sys.stderr`. This class
+        therefore always tries to use the IPython widget and only if that fails
+        uses the text-based one.
 
     Parameters
     ----------
@@ -32,8 +34,27 @@ class ProgressBar(ProgressBar):  # pragma: no cover
             from traitlets import TraitError
             try:
                 super(ProgressBar, self).__init__(total_or_items, True, file)
-            except TraitError:
+            # Possible exceptions:
+            # TraitError : IPython is installed but it's not possible to start
+            #              the widget.
+            # ImportError : IPython widgets are not avaiable (or something else
+            #               which would be needed).
+            # NameError : I think this is an upstream problem with older
+            #             astropy versions which have some problems with the
+            #             version determination of IPython...
+            # maybe better catch "Exception" here...
+            except (TraitError, ImportError, NameError):
                 super(ProgressBar, self).__init__(total_or_items, False, file)
-        # No traitlets means we need to use the no-widget progressbar.
+        # No traitlets means we must use the no-widget progressbar.
         else:
             super(ProgressBar, self).__init__(total_or_items, False, file)
+
+    def map(self, *args, **kwargs):
+        """See :meth:`~astropy.utils.console.ProgressBar.map` for more infos.
+        """
+        return super(ProgressBar, self).map(*args, **kwargs)
+
+    def update(self, *args, **kwargs):
+        """See :meth:`~astropy.utils.console.ProgressBar.update` for more infos.
+        """
+        return super(ProgressBar, self).update(*args, **kwargs)
