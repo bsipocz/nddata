@@ -233,5 +233,5 @@ def test_collection_allmeta_func():
     ndds = NDDataCollection(ndd1, ndd2, ndd3)
     # A stupid function to convert it to NDData but well ... it works :-/
     # TODO: Use a good function here!!!
-    np.testing.assert_array_equal(ndds.get_all_metas(func=NDData)['a'],
+    np.testing.assert_array_equal(ndds.summary_meta(func=NDData)['a'],
                                   [1, 2, 3])

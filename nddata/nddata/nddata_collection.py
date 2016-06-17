@@ -8,7 +8,7 @@ from collections import OrderedDict
 import numpy as np
 
 from astropy import log
-from astropy.table import Table
+from astropy.table import Table, vstack
 from astropy.io.fits import Header
 
 from ..utils.sentinels import ParameterNotSpecified
@@ -32,7 +32,82 @@ class NDDataCollection(object):
         self._num = len(ndds)
         self._ndds = ndds
 
-    def get_all_metas(self, fill=None, func=None, *args, **kwargs):
+    def summary_stats(self, scipy=False, astropy=False, decimals_mode=0,
+                      func=None, *args, **kwargs):
+        """Get a Table containing some statistic about the instances.
+
+        .. note::
+            This requires that the instances implement the
+            `~nddata.nddata.mixins.NDStatsMixin`.
+
+        Parameters
+        ----------
+        scipy, astropy, decimals_mode : `bool`, optional
+            See :meth:`~nddata.nddata.NDData.stats`.
+            Default is ``False`` (scipy), ``False`` (astropy), ``0``
+            (decimals_mode).
+
+        func : `collections.Callable` or `None`, optional
+            A function that is applied to the ``ndd`` before processing.
+            This can be useful if the ``ndds`` are strings and they should be
+            lazy loaded. If ``None`` the ``ndds`` are directly used.
+            as they are.
+
+        args, kwargs :
+            additional parameter for ``func``. These are ignored if ``func`` is
+            ``None``. The call to the function is:
+            ``func(ndd, *args, **kwargs)``.
+
+        Returns
+        -------
+        table_of_stats : `astropy.table.Table`
+            A table containing all the statistic informations.
+
+        See also
+        --------
+        nddata.nddata.NDData.stats : equivalent method for one instance.
+
+        Examples
+        --------
+        If the ndds are already given as `~nddata.nddata.NDData` instances::
+
+            >>> import numpy as np
+            >>> from nddata.nddata import NDData, NDDataCollection
+            >>> ndd1 = NDData([1,2,3])
+            >>> ndd2 = NDData([3,4,5])
+            >>> ndds = NDDataCollection(ndd1, ndd2)
+            >>> print(ndds.summary_stats())
+            elements min max mean median mode      std            var       masked invalid
+            -------- --- --- ---- ------ ---- -------------- -------------- ------ -------
+                   3   1   3  2.0    2.0    1 0.816496580928 0.666666666667      0       0
+                   3   3   5  4.0    4.0    3 0.816496580928 0.666666666667      0       0
+
+        If these need to be converted::
+
+            >>> ndd1 = [1,2,3]
+            >>> ndd2 = np.ma.array([3,4,5], mask=[0,1,0])
+            >>> ndds = NDDataCollection(ndd1, ndd2)
+
+        A function argument must be given::
+
+            >>> print(ndds.summary_stats(func=NDData))
+            elements min max mean median mode      std            var       masked invalid
+            -------- --- --- ---- ------ ---- -------------- -------------- ------ -------
+                   3   1   3  2.0    2.0    1 0.816496580928 0.666666666667      0       0
+                   2   3   5  4.0    4.0    3            1.0            1.0      1       0
+        """
+        # Get all ndds and if the func is given apply the function.
+        ndds = self._ndds
+        if func is not None:
+            ndds = (func(ndd, *args, **kwargs) for ndd in ndds)
+
+        # Create a list containing all stats
+        stats = [ndd.stats() for ndd in ndds]
+
+        # And return the vstacked table
+        return vstack(stats)
+
+    def summary_meta(self, fill=None, func=None, *args, **kwargs):
         """Get all meta information of the instances as Table.
 
         Parameters
@@ -68,7 +143,7 @@ class NDDataCollection(object):
             >>> ndd1 = NDData(1, meta=OrderedDict([('a', 2), ('b', 10)]))
             >>> ndd2 = NDData(2, meta=OrderedDict([('a', 3), ('b', 20)]))
             >>> ndds = NDDataCollection(ndd1, ndd2)
-            >>> print(ndds.get_all_metas())
+            >>> print(ndds.summary_meta())
              a   b
             --- ---
               2  10
@@ -79,7 +154,7 @@ class NDDataCollection(object):
             >>> ndd1 = NDData(1, meta=OrderedDict([('a', 2), ('b', 10)]))
             >>> ndd2 = NDData(2, meta=OrderedDict([('a', 3)]))
             >>> ndds = NDDataCollection(ndd1, ndd2)
-            >>> print(ndds.get_all_metas())
+            >>> print(ndds.summary_meta())
              a   b
             --- ----
               2   10
@@ -93,7 +168,7 @@ class NDDataCollection(object):
         The ``fill`` value can be used to fill missing entries::
 
             >>> ndds = NDDataCollection(ndd1, ndd2)
-            >>> print(ndds.get_all_metas(fill=0))
+            >>> print(ndds.summary_meta(fill=0))
              a   b
             --- ---
               2  10
@@ -111,7 +186,7 @@ class NDDataCollection(object):
         no current use-case where this might make sense)::
 
             >>> from nddata.nddata import NDDataBase
-            >>> print(ndds.get_all_metas(fill=0, func=NDDataBase))
+            >>> print(ndds.summary_meta(fill=0, func=NDDataBase))
              a   b
             --- ---
               2  10
@@ -233,9 +308,11 @@ class NDDataCollection(object):
 
         But be careful if the data contains different dtypes::
 
-            >>> ndds = NDDataCollection(NDData([1,2,3]), NDData([3.5,2,1]))
+            >>> ndd1 = NDData(np.array([1,2,3], np.int32))
+            >>> ndd2 = NDData(np.array([3.5,2,1], np.float64))
+            >>> ndds = NDDataCollection(ndd1, ndd2)
             >>> ndds.stack(axis=1)
-            INFO: possible loss of information when casting float64 to int32 \
+            INFO: possible loss of information when casting float64 to int32. \
 [nddata.nddata.nddata_collection]
             NDData([[1, 3],
                     [2, 2],
@@ -245,7 +322,7 @@ class NDDataCollection(object):
         is `int`) and the following ``data`` are cast to this dtype. So simply
         reversing the instances solves this::
 
-            >>> ndds = NDDataCollection(NDData([3.5,2,1]), NDData([1,2,3]))
+            >>> ndds = NDDataCollection(ndd2, ndd1)
             >>> ndds.stack(axis=1)
             NDData([[ 3.5,  1. ],
                     [ 2. ,  2. ],
@@ -468,6 +545,6 @@ class NDDataCollection(object):
         # TODO: Maybe do some "astype(ndd_prop.dtype, copy=False)" here...
         if not np.can_cast(ndd_prop.dtype, ref_prop.dtype, casting='safe'):
             log.info('possible loss of information when casting {0} to '
-                     '{1}'.format(ndd_prop.dtype, ref_prop.dtype))
+                     '{1}.'.format(ndd_prop.dtype, ref_prop.dtype))
         ref_prop[tuple(slicer)] = ndd_prop
         return ref_prop
