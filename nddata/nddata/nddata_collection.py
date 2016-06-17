@@ -28,10 +28,36 @@ class NDDataCollection(object):
         An arbitary number of nddata-like objects. There are no restrictions
         on the classes or values of the attributes while creating an instance
         but some methods do.
+
+    Examples
+    --------
+    The methods assume that all parameters are `~nddata.nddata.NDData`-like::
+
+        >>> from nddata.nddata import NDData, NDDataCollection
+        >>> ndd1 = NDData([1,2,3])
+        >>> ndd2 = NDData([3,2,1])
+        >>> NDDataCollection(ndd1, ndd2)
+        NDDataCollection (2 objects)
+
+    But all methods also allow a ``func`` with optional arguments that converts
+    the objects in a lazy-like fashion (they are only converted when they are
+    needed). This allows memory efficient loading from files:
+
+    .. code::
+
+        ndds = NDDataCollection('file1.fits', 'file2.fits')
+        ndds.stack(func=NDData.read, format='simple_fits')
+
+    This will create a stack of the contents of ``file1.fits`` and
+    ``file2.fits`` but the files will only be read into memory when they are
+    inserted to the stack.
     """
     def __init__(self, *ndds):
         self._num = len(ndds)
         self._ndds = ndds
+
+    def __repr__(self):
+        return '{0} ({1} objects)'.format(self.__class__.__name__, self._num)
 
     def apply_func(self, func, *args, **kwargs):
         """Very general method to apply a function on all saved elements.
@@ -255,10 +281,11 @@ class NDDataCollection(object):
 
         It is also possible to give a function that applies to all the set
         ``ndds`` before they are processed. For example to lazy load from
-        files::
+        files:
 
-            >>> def load(ndd, *args, **kwargs):
-            ...     return NDData.read(ndd, *args, **kwargs)
+        .. code::
+
+            ndds.summary_meta(func=NDData.read, format="simple_fits")
 
         This will require the ``ndds`` to be valid filenames. Also possible
         would be some conversion to ``NDData`` (even though there is actually
@@ -469,8 +496,9 @@ class NDDataCollection(object):
 
         Or even if the ``ndds`` are ``strings`` to load them from the disc:
 
-            >>> def load(ndd, *args, **kwargs):
-            ...     return NDData.read(ndd, *args, **kwargs)
+        .. code::
+
+             ndds.stack(axis=0, func=NDData.read, format="simple_fits")
 
         See also :meth:`~nddata.nddata.NDData.read`. Especially for big NDData
         objects this can save a lot of memory if not all of them have to be
