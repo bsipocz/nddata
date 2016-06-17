@@ -42,6 +42,7 @@ class ProgressBar(ProgressBar):  # pragma: no cover
             # NameError : I think this is an upstream problem with older
             #             astropy versions which have some problems with the
             #             version determination of IPython...
+            # maybe better catch "Exception" here...
             except (TraitError, ImportError, NameError):
                 super(ProgressBar, self).__init__(total_or_items, False, file)
         # No traitlets means we must use the no-widget progressbar.
