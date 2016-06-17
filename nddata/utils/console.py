@@ -34,7 +34,15 @@ class ProgressBar(ProgressBar):  # pragma: no cover
             from traitlets import TraitError
             try:
                 super(ProgressBar, self).__init__(total_or_items, True, file)
-            except (TraitError, ImportError):
+            # Possible exceptions:
+            # TraitError : IPython is installed but it's not possible to start
+            #              the widget.
+            # ImportError : IPython widgets are not avaiable (or something else
+            #               which would be needed).
+            # NameError : I think this is an upstream problem with older
+            #             astropy versions which have some problems with the
+            #             version determination of IPython...
+            except (TraitError, ImportError, NameError):
                 super(ProgressBar, self).__init__(total_or_items, False, file)
         # No traitlets means we must use the no-widget progressbar.
         else:
