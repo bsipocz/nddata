@@ -13,7 +13,7 @@ if six.PY2:  # pragma: no cover
     from future_builtins import zip
 
 __all__ = ['create_slices', 'expand_multi_dims', 'is_numeric_array',
-           'mgrid_for_array', 'pad']
+           'mgrid_for_array', 'pad', 'new_masked_elements']
 
 # Boolean, unsigned integer, signed integer, float, complex.
 _NUMERIC_KINDS = set('buifc')
@@ -492,3 +492,41 @@ def mgrid_for_array(data):
     else:
         grid = list(grid)
     return grid
+
+
+def new_masked_elements(oldmask, newmask):
+    """Returns a mask indicating the values that are masked in ``newmask`` \
+            and unmasked in ``oldmask``.
+
+    Parameters
+    ----------
+    oldmask : boolean `numpy.ndarray`
+        The reference mask.
+
+    newmask : boolean `numpy.ndarray`
+        The new mask.
+
+    Returns
+    -------
+    new_masked : boolean `numpy.ndarray`
+        A mask where ``True`` indicates that they are masked in the ``newmask``
+        but not masked in the ``oldmask`` and ``False`` otherwise.
+
+    Examples
+    --------
+    This is a convenience function to get a mask indicating elements that are
+    masked which are not in a reference::
+
+        >>> from nddata.utils.numpyutils import new_masked_elements
+        >>> import numpy as np
+        >>> mask_old = np.array([False, False, True, True], dtype=bool)
+        >>> mask_new = np.array([False, True, False, True], dtype=bool)
+        >>> new_masked_elements(mask_old, mask_new)
+        array([False,  True, False, False], dtype=bool)
+
+    This can be useful if one works in-place with a mask but wants to further
+    process (or simply count) the newly masked elements.
+    """
+    newmask = np.array(newmask, dtype=bool, copy=False)
+    oldmask = np.array(oldmask, dtype=bool, copy=False)
+    return (newmask == 1) & (oldmask == 0)
