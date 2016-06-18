@@ -358,6 +358,33 @@ class TestIOFunctions(object):
         assert isinstance(ndd2, NDDataIO)
         assert isinstance(ndd3, NDDataIO)
 
+    def test_ndiomixin_read_auto_identify(self, tmpdir):
+        # This is exactly copied from test_ndiomixin_read but without the
+        # format argument while read/write
+        data = np.ones((10, 10))
+        meta = dict([(j, i) for i, j in enumerate(ascii_lowercase)])
+        unit = 'adu'
+        mask = np.random.random((10, 10)) > 0.5
+        uncertainty = UnknownUncertainty(np.ones((5, 5)))
+        flags = np.zeros(data.shape)
+        ndd1 = NDDataBase(data, uncertainty=uncertainty, unit=unit, meta=meta,
+                          mask=mask, flags=flags)
+
+        filename = str(self.temp(tmpdir))
+        write_nddata_fits(ndd1, filename)
+        ndd2 = NDDataIO.read(filename)
+
+        anotherfile = str(self.temp(tmpdir))
+        ndd2.write(anotherfile)
+        ndd3 = NDDataIO.read(anotherfile)
+
+        self.compare_nddata(ndd1, ndd2)
+        self.compare_nddata(ndd1, ndd3)
+
+        # Extra tests:
+        assert isinstance(ndd2, NDDataIO)
+        assert isinstance(ndd3, NDDataIO)
+
     # TODO: Add one test for NDDataRef and NDDataArray!
 
 
