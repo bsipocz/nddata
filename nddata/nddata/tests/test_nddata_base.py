@@ -604,3 +604,12 @@ def test_arithmetic_not_supported():
     ndd = NDDataBase(np.ones((5, 5)))
     with pytest.raises(TypeError):
         ndd + ndd
+
+
+def test_mask_as_boolean_mask():
+    ndd = NDDataBase(np.ones((3, 3)), mask=False)
+    with pytest.raises(ValueError):
+        ndd._get_mask_numpylike()
+
+    ndd.mask = np.ones((3, 3))
+    assert ndd._get_mask_numpylike().dtype == bool
