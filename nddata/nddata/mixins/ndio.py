@@ -296,6 +296,6 @@ def write_nddata_fits(ndd, filename, ext_mask='mask', ext_uncert='uncert',
         hdulist.writeto(filename, **kwargs_for_write)
 
 
-# TODO: Register reader and writer WITHOUT identifier (for now...)
 io_registry.register_reader('simple_fits', NDIOMixin, read_nddata_fits)
 io_registry.register_writer('simple_fits', NDIOMixin, write_nddata_fits)
+io_registry.register_identifier('simple_fits', NDIOMixin, fits.connect.is_fits)

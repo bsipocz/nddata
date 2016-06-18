@@ -34,8 +34,8 @@ Reading and writing FITS files
     in subsequent versions if the need arises.
 
 
-To use these you have to include a ``format='simple_fits'`` parameter when
-calling these methods::
+To can include a ``format='simple_fits'`` parameter when calling these
+methods::
 
     >>> import numpy as np
     >>> from nddata.nddata import NDData
@@ -48,6 +48,9 @@ Reading the file again::
     >>> ndd2 = NDData.read('filename.fits', format='simple_fits')
     >>> ndd2
     NDData([1, 2, 3, 4])
+
+In case the file can be identified as ``fits`` file you do not need to
+specify the ``format='simple_fits'``.
 
 With more attributes these will be conserved as well::
 
