@@ -52,7 +52,7 @@ class NDFilterMixin(object):
         >>> ndd.mask
         array([False, False, False], dtype=bool)
         """
-        self.data = interpolate(self.data, kernel, self._filter_get_mask())
+        self.data = interpolate(self.data, kernel, self._get_mask_numpylike())
         self.mask = np.isnan(self.data)
 
     def interpolate_median(self, kernel):
@@ -89,7 +89,7 @@ class NDFilterMixin(object):
         array([False, False, False], dtype=bool)
         """
         self.data = interpolate_median(self.data, kernel,
-                                       self._filter_get_mask())
+                                       self._get_mask_numpylike())
         self.mask = np.isnan(self.data)
 
     def filter_average(self, kernel, uncertainty=False):
@@ -248,12 +248,12 @@ class NDFilterMixin(object):
         kwargs = self._filter_get_invariants()
         if uncertainty:
             c_data, c_uncert = convolve_median(self.data, kernel,
-                                               self._filter_get_mask(),
+                                               self._get_mask_numpylike(),
                                                mad=uncertainty)
             kwargs['uncertainty'] = StdDevUncertainty(c_uncert, copy=False)
         else:
             c_data = convolve_median(self.data, kernel,
-                                     self._filter_get_mask(), mad=False)
+                                     self._get_mask_numpylike(), mad=False)
             kwargs['uncertainty'] = None
 
         kwargs['mask'] = np.isnan(c_data)
@@ -266,12 +266,12 @@ class NDFilterMixin(object):
         kwargs = self._filter_get_invariants()
         if var:
             c_data, c_uncert = convolve(self.data, kernel,
-                                        self._filter_get_mask(),
+                                        self._get_mask_numpylike(),
                                         rescale=rescale, var=True)
             kwargs['uncertainty'] = VarianceUncertainty(c_uncert,
                                                         copy=False)
         else:
-            c_data = convolve(self.data, kernel, self._filter_get_mask(),
+            c_data = convolve(self.data, kernel, self._get_mask_numpylike(),
                               rescale=rescale, var=False)
             kwargs['uncertainty'] = None
 
@@ -283,21 +283,3 @@ class NDFilterMixin(object):
         """
         return {'wcs': self.wcs, 'meta': self.meta, 'unit': self.unit,
                 'flags': self.flags}
-
-    def _filter_get_mask(self):
-        """
-        See also
-        --------
-        NDStatsMixin._stats_get_mask
-        NDReduceMixin._reduce_get_mask
-        NDClippingMixin._clipping_get_mask
-        NDPlottingMixin._plotting_get_mask
-        """
-        if isinstance(self.mask, np.ndarray) and self.mask.dtype == bool:
-            return self.mask
-        # The default is an empty mask with the same shape because we don't
-        # just clip the masked values but create a masked array we operate on.
-        return np.zeros(self.data.shape, dtype=bool)
-        # numpy 1.11 also special cases False and True but not before, so this
-        # function is awfully slow then.
-        # return False

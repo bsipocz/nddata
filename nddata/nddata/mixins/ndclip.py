@@ -18,39 +18,6 @@ class NDClippingMixin(object):
         None and will overwrite the current mask with the resulting mask.
     """
 
-    def _clipping_get_mask(self):
-        """Mostly for subclasses that don't use numpy bool masks as "mask".
-
-        This function should return ``None`` or a `numpy.ndarray` of boolean
-        type that can be used for boolean indexing. This function takes no
-        arguments but can use every attribute of the instance it wants.
-
-        See also
-        --------
-        NDStatsMixin._stats_get_mask
-        NDReduceMixin._reduce_get_mask
-        NDPlottingMixin._plotting_get_mask
-        NDFilterMixin._filter_get_mask
-
-        Notes
-        -----
-        It is very important that you do not return "None" here because
-        np.ma.array(self.data, mask=None) is MUCH MUCH MUCH more slower than
-        np.ma.array(self.data, mask=np.zeros(self.data.shape, dtype=bool)).
-        I measured 800 ms for a (100, 100, 100) array with None vs. 450 us with
-        np.zeros. This is more than a factor of 1000!
-        See also:
-        http://stackoverflow.com/questions/37468069/why-is-np-ma-array-so-slow-with-mask-none-or-mask-0
-        """
-        if isinstance(self.mask, np.ndarray) and self.mask.dtype == bool:
-            return self.mask
-        # The default is an empty mask with the same shape because we don't
-        # just clip the masked values but create a masked array we operate on.
-        return np.zeros(self.data.shape, dtype=bool)
-        # numpy 1.11 also special cases False and True but not before, so this
-        # function is awfully slow then.
-        # return False
-
     def clip_extrema(self, nlow=0, nhigh=0, axis=None):
         """Clip the lowest and/or highest values along an axis.
 
@@ -148,7 +115,7 @@ dtype=bool)
         # We will work with masked arrays and their methods here so we have
         # to create one. Get the mask from a customizable function so
         # subclasses can override it.
-        marr = np.ma.array(self.data, mask=self._clipping_get_mask(),
+        marr = np.ma.array(self.data, mask=self._get_mask_numpylike(),
                            copy=False)
 
         # If the axis is None the procedure differs from integer axis cases
@@ -256,7 +223,7 @@ dtype=bool)
         if nlow == 0 and nhigh == 0:
             return None
 
-        marr = np.ma.array(self.data, mask=self._clipping_get_mask(),
+        marr = np.ma.array(self.data, mask=self._get_mask_numpylike(),
                            copy=False, hard_mask=False)
 
         if axis is None:
@@ -335,7 +302,7 @@ dtype=bool)
             array([False,  True,  True,  True, False], dtype=bool)
         """
         # Get the current mask.
-        mask = self._clipping_get_mask()
+        mask = self._get_mask_numpylike()
         # Combine the mask by using a logical_or. The most appropriate way
         # of finding invalid values is by using the inverse of np.isfinite.
         # np.isfinite return True for each value that is not NaN or not Inf so
@@ -483,7 +450,7 @@ False], dtype=bool)
 
         # Create a masked array on which to perform the centering and deviation
         # determination. Based on the current data and mask.
-        marr = np.ma.array(self.data, mask=self._clipping_get_mask(),
+        marr = np.ma.array(self.data, mask=self._get_mask_numpylike(),
                            copy=False)
 
         # The initial count of unmasked elements. This is used as break
@@ -586,7 +553,7 @@ True,  True], dtype=bool)
             return None
 
         # In any case we need the current mask.
-        mask = self._clipping_get_mask()
+        mask = self._get_mask_numpylike()
 
         # Mask values below or above the threshold if any of these parameters
         # are set. Then make an in-place logical_or to propagate these values.
