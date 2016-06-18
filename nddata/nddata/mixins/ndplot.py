@@ -340,9 +340,6 @@ class NDPlottingMixin(object):
             >>> mask = np.zeros((100, 100), dtype=bool)
             >>> mask[30:50, 30:50] = 1
             >>> ndd2.mask = mask
-            >>> # Masks that are no boolean numpy arrays are interpreted as
-            >>> # masks containing no masked value. For example "False".
-            >>> ndd.mask = False
             >>> # Create a contour with the unmasked (left) data.
             >>> from nddata.utils.stats import minmax
             >>> min_, max_ = minmax(ndd.data)
@@ -441,26 +438,8 @@ class NDPlottingMixin(object):
         # Contour takes the data as grid of x, y and z coordinates.
         return ax.hist(data, **dkwargs)
 
-    def _plotting_get_mask(self):
-        """
-        See also
-        --------
-        NDStatsMixin._stats_get_mask
-        NDReduceMixin._reduce_get_mask
-        NDClippingMixin._clipping_get_mask
-        NDFilterMixin._filter_get_mask
-        """
-        if isinstance(self.mask, np.ndarray) and self.mask.dtype == bool:
-            return self.mask
-        # The default is an empty mask with the same shape because we don't
-        # just clip the masked values but create a masked array we operate on.
-        return np.zeros(self.data.shape, dtype=bool)
-        # numpy 1.11 also special cases False and True but not before, so this
-        # function is awfully slow then.
-        # return False
-
     def _plotting_get_masked_data(self):
         """Returns a masked array if a mask is present otherwise just returns
         the data.
         """
-        return np.ma.array(self.data, mask=self._plotting_get_mask())
+        return np.ma.array(self.data, mask=self._get_mask_numpylike())

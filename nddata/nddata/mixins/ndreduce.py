@@ -29,32 +29,6 @@ class NDReduceMixin(object):
         themselves- depending on the type of attribute.
     """
 
-    def _reduce_get_mask(self):
-        """Mostly for subclasses that don't use numpy bool masks as "mask".
-
-        This function should return ``None`` or a `numpy.ndarray` of boolean
-        type that can be used for boolean indexing. This function takes no
-        arguments but can use every attribute of the instance it wants.
-
-        See also
-        --------
-        NDStatsMixin._stats_get_mask
-        NDClippingMixin._clipping_get_mask
-        NDPlottingMixin._plotting_get_mask
-        NDFilterMixin._filter_get_mask
-
-        Notes
-        -----
-        See NDClippingMixin._clipping_get_mask for more context why this
-        method works like this. It is essential for efficiency to create a
-        boolean array here in case no mask is set.
-        """
-        if isinstance(self.mask, np.ndarray) and self.mask.dtype == bool:
-            return self.mask
-        # The default is an empty mask with the same shape because we don't
-        # clip the masked values but create a masked array we operate on.
-        return np.zeros(self.data.shape, dtype=bool)
-
     def _reduce_get_others(self):
         # Meta and unit should stay the same for the reduce functions.
         kwargs = {'meta': do_copy(self.meta),
@@ -131,7 +105,7 @@ class NDReduceMixin(object):
 
         # Get the data and the mask from the instance attributes
         data = self.data
-        mask = self._reduce_get_mask()
+        mask = self._get_mask_numpylike()
 
         # Setup the masked array based on the data and mask saved in the
         # instance. Important profiling information about this np.any is
@@ -245,7 +219,7 @@ class NDReduceMixin(object):
         # with mean and std
         axis = as_unsigned_integer(axis)
         data = self.data
-        mask = self._reduce_get_mask()
+        mask = self._get_mask_numpylike()
 
         # np.mean and np.var work on masked arrays so can create a normal numpy
         # array if no value is masked. This will probably be a lot faster.
@@ -351,7 +325,7 @@ class NDReduceMixin(object):
         # rationale see these other methods.
         axis = as_unsigned_integer(axis)
         data = self.data
-        mask = self._reduce_get_mask()
+        mask = self._get_mask_numpylike()
 
         if np.any(mask):
             marr = np.ma.array(data, mask=mask, copy=False)

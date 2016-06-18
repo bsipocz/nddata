@@ -153,7 +153,7 @@ class NDStatsMixin(object):
         # Get the mask, the standard is just checking if it's a boolean array
         # and returning it or if it's something else it returns None. But
         # subclasses can modify this method to also evaluate other masks.
-        mask = self._stats_get_mask()
+        mask = self._get_mask_numpylike()
         # No need to return anything here, the statistics are inserted in the
         # dictionary and are updated in-place
         self._stats_data(stats, mask, scipy=scipy, astropy=astropy,
@@ -169,8 +169,7 @@ class NDStatsMixin(object):
 
         # Delete masked values, this will directly convert it to a 1D array
         # if the mask is not appropriate then ravel it.
-        if mask is not None:
-            data = data[~self.mask]
+        data = data[~mask]
         size_masked = data.size
 
         # Delete invalid (NaN, Inf) values. This should ensure that the result
@@ -214,25 +213,3 @@ class NDStatsMixin(object):
         stats['invalid'] = [size_masked - size_valid]
 
         return data
-
-    def _stats_get_mask(self):
-        """Mostly for subclasses that don't use numpy bool masks as "mask".
-
-        This function should return ``None`` or a `numpy.ndarray` of boolean
-        type that can be used for boolean indexing. This function takes no
-        arguments but can use every attribute of the instance it wants.
-
-        See also
-        --------
-        NDClippingMixin._clipping_get_mask
-        NDReduceMixin._reduce_get_mask
-        NDPlottingMixin._plotting_get_mask
-        NDFilterMixin._filter_get_mask
-        """
-        if isinstance(self.mask, np.ndarray) and self.mask.dtype == bool:
-            return self.mask
-        # In case no valid mask was found just return None. Different from
-        # other Mixins we don't create a masked array but just index the data
-        # with the mask. So we can easily special case "mask is None" in the
-        # computation without the need to create a valid mask.
-        return None

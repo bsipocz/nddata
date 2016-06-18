@@ -342,6 +342,52 @@ class NDDataBase(NDDataMeta):
                               flags=self.flags, uncertainty=self.uncertainty,
                               meta=self.meta, wcs=self.wcs, copy=True)
 
+    def _get_mask_numpylike(self):
+        """Returns the ``mask`` as boolean `numpy.ndarray`
+
+        .. note::
+            Subclasses that don't use a `bool` `numpy.ndarray` as ``mask``
+            attribute should overwrite this method!
+
+        Returns
+        -------
+        mask : boolean `numpy.ndarray`
+            The masked array created from the instance contents.
+
+        Raises
+        ------
+        ValueError
+            In case the shape of the mask and data differ.
+
+        Notes
+        -----
+        Currently it's implemented like this if the ``mask`` is:
+
+        - ``None``: Return a boolean array containing False everywhere.
+        - ``boolean array``: Just return it.
+        - otherwise : try to cast it to a boolean numpy array.
+
+        It is very important that one does not return "None" here because
+        np.ma.array(self.data, mask=None) is MUCH MUCH MUCH more slower than
+        np.ma.array(self.data, mask=np.zeros(self.data.shape, dtype=bool)).
+        I measured 800 ms for a (100, 100, 100) array with None vs. 450 us with
+        np.zeros. This is more than a factor of 1000!
+        See also:
+        http://stackoverflow.com/questions/37468069/why-is-np-ma-array-so-slow-with-mask-none-or-mask-0
+        """
+        if self.mask is None:
+            # If the mask is None just create an empty array
+            mask = np.zeros(self.data.shape, dtype=bool)
+        elif isinstance(self.mask, np.ndarray) and self.mask.dtype == bool:
+            mask = self.mask
+        else:
+            mask = np.array(self.mask, dtype=bool, copy=False)
+
+        if mask.shape != self.data.shape:
+            raise ValueError('the shape of mask and data are not equal.')
+
+        return mask
+
     def is_identical(self, other, strict=True):
         """Checks if two `NDDataBase`-like objects are identical.
 
