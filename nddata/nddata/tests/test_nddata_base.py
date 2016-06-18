@@ -4,7 +4,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import textwrap
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
 
 import numpy as np
 from numpy.testing import assert_array_equal
@@ -16,6 +16,17 @@ from ..meta.nduncertainty_meta import NDUncertainty
 from astropy.tests.helper import pytest
 from astropy import units as u
 from astropy.utils import NumpyRNGContext
+
+
+# Check that the meta descriptor is working as expected. The MetaBaseTest class
+# takes care of defining all the tests, and we simply have to define the class
+# and any minimal set of args to pass.
+from astropy.utils.tests.test_metadata import MetaBaseTest
+
+
+class TestMetaNDData(MetaBaseTest):
+    test_class = NDDataBase
+    args = np.array([[1.]])
 
 
 class FakeUncertainty(NDUncertainty):
@@ -446,17 +457,6 @@ def test_param_flags():
     assert ndd2.flags[0, 0] == 1
 
 
-# Check that the meta descriptor is working as expected. The MetaBaseTest class
-# takes care of defining all the tests, and we simply have to define the class
-# and any minimal set of args to pass.
-from astropy.utils.tests.test_metadata import MetaBaseTest
-
-
-class TestMetaNDData(MetaBaseTest):
-    test_class = NDDataBase
-    args = np.array([[1.]])
-
-
 # Representation tests
 def test_nddata_repr():
     arr1d = NDDataBase(np.array([1, 2, 3]))
@@ -607,9 +607,11 @@ def test_arithmetic_not_supported():
 
 
 def test_mask_as_boolean_mask():
+    # If the shape of data and mask do not match it raises a ValueError
     ndd = NDDataBase(np.ones((3, 3)), mask=False)
     with pytest.raises(ValueError):
         ndd._get_mask_numpylike()
 
+    # other dtypes are converted to booleans
     ndd.mask = np.ones((3, 3))
     assert ndd._get_mask_numpylike().dtype == bool
