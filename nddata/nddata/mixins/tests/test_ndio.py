@@ -4,8 +4,11 @@ from __future__ import (absolute_import, division, print_function,
 from string import ascii_lowercase
 
 from astropy.io import fits
+from astropy.tests.helper import pytest
 
-from ...nddata import NDDataBase
+from ....deps import OPT_DEPS
+from ...nddata import NDData
+from ...nddata_base import NDDataBase
 from ...nduncertainty_stddev import StdDevUncertainty
 from ...nduncertainty_unknown import UnknownUncertainty
 from ...nduncertainty_var import VarianceUncertainty
@@ -384,6 +387,21 @@ class TestIOFunctions(object):
         # Extra tests:
         assert isinstance(ndd2, NDDataIO)
         assert isinstance(ndd3, NDDataIO)
+
+    @pytest.mark.skipif(not OPT_DEPS['NUMBA'], reason='numba is required.')
+    def test_nddata_write_read_numba(self, tmpdir):
+        """Regression test for endianness conversion for numba functions.
+
+        Since this happens mostly when reading from files this is probably a
+        better place for a test than the numbautils.
+        """
+        ndd1 = NDData(np.ones((3, 3)))
+
+        filename = str(self.temp(tmpdir))
+        ndd1.write(filename)
+        ndd2 = NDData.read(filename)
+
+        ndd2.filter_average(np.ones((3, 3)))
 
     # TODO: Add one test for NDDataRef and NDDataArray!
 

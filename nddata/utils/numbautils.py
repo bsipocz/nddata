@@ -12,7 +12,31 @@ __all__ = ['convolve', 'convolve_median', 'interpolate', 'interpolate_median']
 
 if not OPT_DEPS['NUMBA']:  # pragma: no cover
     __doctest_skip__ = ['convolve', 'convolve_median',
-                        'interpolate', 'interpolate_median']
+                        'interpolate', 'interpolate_median',
+                        'convert_to_native_bytorder']
+
+
+def convert_to_native_bytorder(array):
+    """Convert a numpy array with endian dtype to an array of native dtype.
+
+    Parameters
+    ----------
+    array : `numpy.ndarray`-like
+        The array to convert. Must be convertable to a numpy.ndarray.
+
+    Returns
+    -------
+    converted_array : `numpy.ndarray`
+        The converted array. If the array already was in native dtype the array
+        is simple returned without making a copy.
+
+    Notes
+    -----
+    This function is essential when using ``Numba`` because it cannot process
+    small/big endian arrays. At least it seems like that.
+    """
+    array = np.asarray(array)
+    return array.astype(array.dtype.type, copy=False)
 
 
 def interpolate(data, kernel, mask=ParameterNotSpecified):
@@ -602,7 +626,7 @@ def _process(data, kernel, mask, mode, median=False, expected=None):
         # the data saved as the data attribute.
         data = data.data
 
-    data = np.asarray(data)
+    data = convert_to_native_bytorder(data)
 
     # Only in case no explicit mask was given use the one extracted from the
     # data.
@@ -627,7 +651,7 @@ def _process(data, kernel, mask, mode, median=False, expected=None):
 
     # It is possible that the kernel is an astropy kernel, in that case it has
     # an attribute "array" and we use that one:
-    kernel = np.asarray(getattr(kernel, 'array', kernel))
+    kernel = convert_to_native_bytorder(getattr(kernel, 'array', kernel))
 
     # Evaluate how many dimensions the array has, this is needed to find the
     # appropriate convolution or interpolation function.
