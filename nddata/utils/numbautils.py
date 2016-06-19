@@ -8,7 +8,8 @@ import numpy as np
 from .sentinels import ParameterNotSpecified
 from ..deps import OPT_DEPS
 
-__all__ = ['convolve', 'convolve_median', 'interpolate', 'interpolate_median']
+__all__ = ['convolve', 'convolve_median', 'interpolate', 'interpolate_median',
+           'convert_to_native_bytorder']
 
 if not OPT_DEPS['NUMBA']:  # pragma: no cover
     __doctest_skip__ = ['convolve', 'convolve_median',
