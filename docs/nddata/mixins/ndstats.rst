@@ -66,7 +66,6 @@ SciPy:
            skew
     ------------------
     -0.000549681295095
-
     >>> print(stats['kurtosis'])
          kurtosis
     -----------------
