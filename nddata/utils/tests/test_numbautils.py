@@ -72,6 +72,8 @@ def test_rebin():
     # Fails if the data has more than one dimension
     with pytest.raises(ValueError):
         grid_rebin(np.ones((3, 3)), np.arange(9), np.arange(9))
+    with pytest.raises(ValueError):
+        grid_rebin(np.ones((3, 3)), np.arange(9).reshape(3, 3), np.arange(9))
     # or multidimensional new grids
     with pytest.raises(ValueError):
         grid_rebin(np.ones(9), np.arange(9), np.arange(9).reshape(3, 3))
