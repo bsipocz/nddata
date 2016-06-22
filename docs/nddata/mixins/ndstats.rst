@@ -66,7 +66,6 @@ SciPy:
            skew
     ------------------
     -0.000549681295095
-
     >>> print(stats['kurtosis'])
          kurtosis
     -----------------
@@ -74,17 +73,17 @@ SciPy:
 
 AstroPy::
 
+    >>> data = create_random_normal_dist_array()
+    >>> ndd = NDData(data)
     >>> stats2 = ndd.stats(astropy=True)
     >>> print(stats2['mad'])
          mad
     -------------
     2.00112451652
-
     >>> print(stats2['biweight_location'])
     biweight_location
     -----------------
         20.0010321296
-
     >>> print(stats2['biweight_midvariance'])
     biweight_midvariance
     --------------------
@@ -183,6 +182,7 @@ except in some rare circumstances. For example:
 which just returned the smalles element found in the array and with a count of
 1. With :func:`nddata.utils.stats.mode` you can analyze this bahaviour::
 
+    >>> data = create_random_array_small()
     >>> from nddata.utils.stats import mode
     >>> mode(data)
     (0.0, 5027)

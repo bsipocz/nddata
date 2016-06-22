@@ -9,12 +9,10 @@ from .sentinels import ParameterNotSpecified
 from ..deps import OPT_DEPS
 
 __all__ = ['convolve', 'convolve_median', 'interpolate', 'interpolate_median',
-           'convert_to_native_bytorder']
+           'grid_rebin', 'convert_to_native_bytorder']
 
 if not OPT_DEPS['NUMBA']:  # pragma: no cover
-    __doctest_skip__ = ['convolve', 'convolve_median',
-                        'interpolate', 'interpolate_median',
-                        'convert_to_native_bytorder']
+    __doctest_skip__ = ['*']
 
 
 def convert_to_native_bytorder(array):
@@ -38,6 +36,72 @@ def convert_to_native_bytorder(array):
     """
     array = np.asarray(array)
     return array.astype(array.dtype.type, copy=False)
+
+
+def grid_rebin(data, old_grid, new_grid):
+    """Rebin the data from a given grid to a new grid preserving the \
+            total number of counts.
+
+    The function assumes that the grid points represent the center of the
+    grid bin and that the bin extends half the distance to the next bin.
+
+    Parameters
+    ----------
+    data : `numpy.ndarray`
+        The data to rebin.
+
+    old_grid : `numpy.ndarray`
+        The grid points for the data. Must have the same shape as the data.
+
+    new_grid : `numpy.ndarray`
+        The new grid to rebin.
+
+    Returns
+    -------
+    rebinned_data : `numpy.ndarray`
+        The data rebinned from ``old_grid`` to ``new_grid``. It has the
+        same shape as ``new_grid``.
+
+    Examples
+    --------
+    Downsampling some data is possible::
+
+        >>> grid_rebin(np.ones(10),
+        ...            np.arange(10),
+        ...            np.array([-3,-1,1,3,5,7,9,11]))
+        array([ 0. ,  0.5,  2. ,  2. ,  2. ,  2. ,  1.5,  0. ])
+
+    as well as upsamling::
+
+        >>> grid_rebin(np.ones(5), np.arange(0, 10, 2), np.arange(-1, 10))
+        array([ 0.25,  0.5 ,  0.5 ,  0.5 ,  0.5 ,  0.5 ,  0.5 ,  0.5 ,  0.5 ,
+                0.5 ,  0.25])
+
+    Notes
+    -----
+    This function is currently implemented in an inefficient manner, for very
+    large ``data`` this may become very slow.
+    """
+    if not OPT_DEPS['NUMBA']:  # pragma: no cover
+        raise ImportError('grid_rebin requires numba to be installed.')
+
+    data = convert_to_native_bytorder(data)
+    old_grid = convert_to_native_bytorder(old_grid)
+    new_grid = convert_to_native_bytorder(new_grid)
+
+    if data.shape != old_grid.shape:
+        raise ValueError('data ({0}) and old grid ({1}) must have the same '
+                         'size'.format(data.size, old_grid.size))
+
+    if data.ndim > 1:
+        raise ValueError('grid rebin is only possible for one-dimensional '
+                         'data.')
+
+    if new_grid.ndim > 1:
+        raise ValueError('grid rebin is only possible for one-dimensional '
+                         'grids.')
+
+    return _rebin_count_conservation(data, old_grid, new_grid)
 
 
 def interpolate(data, kernel, mask=ParameterNotSpecified):
@@ -701,6 +765,115 @@ def _process(data, kernel, mask, mode, median=False, expected=None):
 
 if OPT_DEPS['NUMBA']:  # pragma: no cover
     from numba import njit
+
+    @njit
+    def _rebin_count_conservation(data, old_grid, new_grid):
+        """Rebin the data from a given grid to a new grid preserving the \
+                total number of counts.
+
+        The function assumes that the grid points represent the center of the
+        grid bin and that the bin extends half the distance to the next bin.
+
+        Parameters
+        ----------
+        data : `numpy.ndarray`
+            The data to rebin.
+
+        old_grid : `numpy.ndarray`
+            The grid points for the data. Must have the same shape as the data.
+
+        new_grid : `numpy.ndarray`
+            The new grid to rebin.
+
+        Returns
+        -------
+        rebinned_data : `numpy.ndarray`
+            The data rebinned from ``old_grid`` to ``new_grid``. It has the
+            same shape as ``new_grid``.
+
+        Notes
+        -----
+        This function is very inefficient it compares each ``old_grid`` point
+        to each ``new_grid`` point. Resulting in an overall O(n*m) runtime
+        behaviour where n is the number of elements in the old_grid and m the
+        number of elements in the new grid. This could be done more efficiently
+        but "better now than never".
+        """
+        # Get the borders and how big each grid bin is
+        old_grid_borders, old_grid_extends = _create_borders(old_grid)
+        new_grid_borders, new_grid_extends = _create_borders(new_grid)
+        # Create an array for the result
+        new_data = np.zeros(new_grid.size, dtype=np.float64)
+        # Go through the old grid
+        for old_idx in range(old_grid.size):
+            # Go through the new grid
+            for new_idx in range(new_grid.size):
+                # Get the bounds for the new and old grid bin
+                lower_old = old_grid_borders[old_idx]
+                lower_new = new_grid_borders[new_idx]
+                upper_old = old_grid_borders[old_idx + 1]
+                upper_new = new_grid_borders[new_idx + 1]
+                # If the upper boundary of the old grid point is below the
+                # lower end of the new grid end we have no overlap.
+                if upper_old < lower_new:
+                    overlap = 0
+                # Same if the lower old end is above the new upper end.
+                elif lower_old > upper_new:
+                    overlap = 0
+                # If the old grid bin is completly inside the new one
+                elif lower_old >= lower_new and upper_old <= upper_new:
+                    overlap = 1
+                # If the new grid bin is completly inside the old one
+                elif lower_new >= lower_old and upper_new <= upper_old:
+                    overlap = (upper_new - lower_new) / old_grid_extends[old_idx]
+                # Partial overlap:
+                elif lower_old < lower_new:
+                    overlap = (upper_old - lower_new) / old_grid_extends[old_idx]
+                else:
+                    overlap = (upper_new - lower_old) / old_grid_extends[old_idx]
+                new_data[new_idx] += overlap * data[old_idx]
+
+        return new_data
+
+    @njit
+    def _create_borders(grid):
+        """Create borders and the size between borders for a grid.
+
+        Parameters
+        ----------
+        grid : `numpy.ndarray`
+            The grid for which to create the borders.
+
+        Returns
+        -------
+        borders : `numpy.ndarray`
+            The borders for each grid bin. Has one data point more than
+            the grid has points.
+
+        grid_widths : `numpy.ndarray`
+            The width of each ``grid`` point.
+        """
+        borders = np.empty(grid.size + 1, dtype=np.float64)
+
+        # First point needs a special treatement.
+        difference = grid[1] - grid[0]
+        half_difference = difference / 2
+        borders[0] = grid[0] - half_difference
+
+        for i in range(grid.size - 1):
+            difference = grid[i+1] - grid[i]
+            half_difference = difference / 2
+            borders[i+1] = grid[i] + half_difference
+
+        # Last point too needs a special case too.
+        # Unfortunatly numba doesn't compile the loop as
+        # efficiently if I use the last calculated "half_difference"
+        # so it's faster to calculate it again.
+        difference = grid[-1] - grid[-2]
+        half_difference = difference / 2
+        borders[-1] = grid[-1] + half_difference
+
+        return borders, np.diff(borders)
 
     @njit
     def _interpolate_mask_1d(image, kernel, mask):
