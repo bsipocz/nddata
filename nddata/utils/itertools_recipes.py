@@ -84,7 +84,7 @@ def tabulate(function, start=0):
         >>> from nddata.utils.itertools_recipes import tabulate, take
         >>> from math import sqrt
         >>> t = tabulate(sqrt, 0)
-        >>> take(3, t)
+        >>> take(t, 3)
         [0.0, 1.0, 1.4142135623730951]
 
     .. warning::
@@ -95,13 +95,13 @@ def tabulate(function, start=0):
 
 
 def tail(iterable, n):
-    """Return an iterator over the last n items
+    """Return an iterator over the last n items.
 
     Parameters
     ----------
-
     iterable : `collections.Iterable`
         The iterable from which to take the last items.
+
     n : `int`
         How many elements.
 
@@ -272,7 +272,7 @@ def padnone(iterable):
     Examples
     --------
     >>> from nddata.utils.itertools_recipes import padnone
-    >>> take(5, padnone([1,2,3]))
+    >>> take(padnone([1,2,3]), 5)
     [1, 2, 3, None, None]
 
     .. warning::
@@ -378,7 +378,7 @@ def repeatfunc(func, *args, **times):
     >>> import random
 
     >>> random.seed(5)
-    >>> take(5, repeatfunc(random.random))
+    >>> take(repeatfunc(random.random), 5)
     [0.6229016948897019,
      0.7417869892607294,
      0.7951935655656966,
