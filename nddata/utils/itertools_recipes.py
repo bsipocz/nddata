@@ -33,16 +33,16 @@ if six.PY3:  # pragma: no cover
                         'random_permutation', 'random_product']
 
 
-def take(n, iterable):
+def take(iterable, n):
     """Return first n items of the iterable as a list.
 
     Parameters
     ----------
-    n : `int`
-        Number of items to take from the iterable.
-
     iterable : `collections.Iterable`
         Any iterable from which to take the items.
+
+    n : `int`
+        Number of items to take from the iterable.
 
     Returns
     -------
@@ -52,7 +52,7 @@ def take(n, iterable):
     Examples
     --------
     >>> from nddata.utils.itertools_recipes import take
-    >>> take(5, range(10, 20))
+    >>> take(range(10, 20), 5)
     [10, 11, 12, 13, 14]
     """
     return list(islice(iterable, n))
@@ -92,6 +92,32 @@ def tabulate(function, start=0):
         something like ``list(tabulate())``!
     """
     return map(function, count(start))
+
+
+def tail(iterable, n):
+    """Return an iterator over the last n items
+
+    Parameters
+    ----------
+
+    iterable : `collections.Iterable`
+        The iterable from which to take the last items.
+    n : `int`
+        How many elements.
+
+    Returns
+    -------
+    iterator : `collections.Iterator`
+        The last n items as iterator.
+
+    Examples
+    --------
+    >>> from nddata.utils.itertools_recipes import tail
+    >>> list(tail('ABCDEFG', 3))
+    ['E', 'F', 'G']
+    """
+    # tail(3, 'ABCDEFG') --> E F G
+    return iter(deque(iterable, maxlen=n))
 
 
 def consume(iterator, n):
@@ -466,18 +492,18 @@ def roundrobin(*iterables):
             nexts = cycle(islice(nexts, pending))
 
 
-def partition(pred, iterable):
+def partition(iterable, pred):
     """Use a predicate to partition entries into false entries and true \
             entries.
 
     Parameters
     ----------
+    iterable : `collections.Iterable`
+        Iterable to partition.
+
     pred : `collections.Callable`
         The predicate which determines the group in which the value of the
         iterable belongs.
-
-    iterable : `collections.Iterable`
-        Iterable to partition.
 
     Returns
     -------
@@ -491,7 +517,7 @@ def partition(pred, iterable):
     --------
     >>> from nddata.utils.itertools_recipes import partition
     >>> def is_odd(val): return val % 2
-    >>> [list(i) for i in partition(is_odd, range(10))]
+    >>> [list(i) for i in partition(range(10), is_odd)]
     [[0, 2, 4, 6, 8], [1, 3, 5, 7, 9]]
     """
     t1, t2 = tee(iterable)
@@ -657,6 +683,40 @@ def iter_except(func, exception, first=None):
             yield func()
     except exception:
         pass
+
+
+def first_true(iterable, default=False, pred=None):
+    """Returns the first true value in the iterable or default.
+
+    Parameters
+    ----------
+    iterable : `collections.Iterable`
+        The iterable for which to determine the first true value.
+
+    default : any type, optional
+        The default value if no true value was found.
+
+    pred : `collections.Callable` or `None`, optional
+        If `None` find the first true value. If not `None` find the first value
+        for which ``pred(value)`` is true.
+        Default is ``None``.
+
+    Examples
+    --------
+    >>> from nddata.utils.itertools_recipes import first_true
+    >>> first_true([0, '', tuple(), 10])
+    10
+
+    >>> first_true([0,2,5,8,10], pred=lambda x: x%2)  # First odd number
+    5
+
+    >>> first_true([0,0,0,0])
+    False
+
+    >>> first_true([0,0,0,0], default=100)  # default value if no true value.
+    100
+    """
+    return next(filter(pred, iterable), default)
 
 
 def random_product(*iterables, **repeat):
