@@ -3,13 +3,16 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from collections import defaultdict
+from collections import defaultdict, ItemsView, KeysView, ValuesView, Mapping
 
 from astropy.extern import six
 
+from .itertools_recipes import unique_everseen
+from .sentinels import ParameterNotSpecified
+
 
 __all__ = ['dict_split', 'dict_merge', 'dict_merge_keep_all',
-           'dict_merge_keep_all_fill_missing']
+           'dict_merge_keep_all_fill_missing', 'ListDict']
 
 
 MERGE_FOLD_FUNCS = {
@@ -417,3 +420,279 @@ def dict_merge_keep_all_fill_missing(*dicts, **fill):
             result[kw][idx] = d[kw]
 
     return result
+
+
+class ListDict(object):
+    """Simulates a dictionary that contains the values of
+    multiple dictionaries for each key.
+
+    Parameters
+    ----------
+    dictionaries : `dict`-like
+        An arbitary number of dictionary-like objects.
+
+    fill : any type, optional
+        If the key was not present in any of the dictionaries
+        this fill values is assumed instead.
+        Default is ``None``.
+
+    Examples
+    --------
+    For example two dictionaries::
+
+        >>> from nddata.utils.dictutils import ListDict
+        >>> d1 = {'a': 10, 'b': 10, 'c': 10}
+        >>> d2 = {'a': 20, 'b': 20, 'd': 20}
+        >>> ld = ListDict(d1, d2)
+        >>> ld
+        ListDict (4 distinct keys in 2 objects)
+
+    Adding more dictionaries can be done with :meth:`update` or the **inplace**
+    ``+=`` operator::
+
+        >>> d3 = {'a': 30, 'b': 30, 'e': 30}
+        >>> ld.update(d3)
+        >>> ld
+        ListDict (5 distinct keys in 3 objects)
+
+        >>> d4 = {'a': 40, 'b': 40, 'f': 40}
+        >>> ld += d4
+        >>> ld
+        ListDict (6 distinct keys in 4 objects)
+
+    The instance can be accessed like a normal dictionary. Either with
+    direct indexing::
+
+        >>> ld['a']
+        (10, 20, 30, 40)
+
+    Or by using :meth:`keys`, :meth:`values` or :meth:`items`::
+
+        >>> sorted(ld.keys())
+        ['a', 'b', 'c', 'd', 'e', 'f']
+
+        >>> sorted(ld.items())
+        [('a', (10, 20, 30, 40)),
+         ('b', (10, 20, 30, 40)),
+         ('c', (10, None, None, None)),
+         ('d', (None, 20, None, None)),
+         ('e', (None, None, 30, None)),
+         ('f', (None, None, None, 40))]
+
+    The `fill` value defaults to ``None`` but can be set when creating the
+    instance or by setting the property::
+
+        >>> ld = ListDict(d1, d2, d3, d4, fill=0)
+        >>> ld['c']  # (10, 0, 0, 0)
+
+        >>> ld.fill = '--'
+        >>> ld['c']  # (10, '--', '--', '--')
+
+    Or just temporarly set by using :meth:`get`::
+
+        >>> ld.get('c', 'x')
+        (10, 'x', 'x', 'x')
+
+    Accessing a key that is not present in any of the dictionaries
+    **does not** raise a ``KeyError``::
+
+        >>> ld['q']
+        ('--', '--', '--', '--')
+
+    If one wants to check if a key is set in any of the dictionaries use ``in``::
+
+        >>> 'q' in ld
+        False
+        >>> 'e' in ld
+        True
+
+    Changes to the original dictionaries are propagated to the `ListDict`::
+
+        >>> d4['c'] = 40
+        >>> ld['c']
+        (10, '--', '--', 40)
+
+    .. note::
+        The values of the dictionaries cannot be changed through `ListDict`.
+
+    .. note::
+        The values are created on the fly. Using many and/or large
+        dictionaries can be quite slow.
+
+    `repr` and `str` of the instance are identical::
+
+        >>> ld
+        ListDict (6 distinct keys in 4 objects)
+        >>> str(ld)
+        'ListDict (6 distinct keys in 4 objects)'
+
+    And can be compared like normal dictionaries (the order of the keys
+    does not matter)::
+
+        >>> ListDict(d1, d2, d3, d4) == ListDict(d1, d2, d3, d4)
+        True
+
+    But the order of the dictionaries matters::
+
+        >>> ListDict(d1, d2) != ListDict(d2, d1)
+        True
+
+    But also the fill value does matter::
+
+        >>> ListDict(d1, d2, fill=0) == ListDict(d1, d2, fill=1)
+        False
+    """
+    def __init__(self, *dictionaries, **kwargs):
+        # Always convert the tuple of dictionaries to a list of
+        # these.
+        if not dictionaries:
+            self._dictionaries = []
+        else:
+            self._dictionaries = list(dictionaries)
+
+        # Process keyword arguments (python2 cannot handle keyword-only args...)
+        self.fill = kwargs.pop('fill', None)
+        if kwargs:
+            msg = ['{0}={1}'.format(key, kwargs[key]) for key in kwargs]
+            raise TypeError('Unrecognized argument(s) "{0}".'
+                            ''.format(', '.join(msg)))
+
+    @property
+    def fill(self):
+        """(any type) Fill value for missing entries.
+        """
+        return self._fill
+
+    @fill.setter
+    def fill(self, value):
+        self._fill = value
+
+    @property
+    def ndicts(self):
+        """(int) Number of saved dictionaries (readonly).
+        """
+        return len(self._dictionaries)
+
+    @property
+    def nkeys(self):
+        """(int) Number of keys in the dictionaries (readonly).
+
+        This is equivalent to calling `len` on the instance.
+        """
+        return len(self)
+
+    def keys(self):
+        """Get the keys of the dictionaries.
+
+        Returns
+        -------
+        values : `collections.KeysView`
+            A generator containing the keys of the dictionaries.
+
+        Notes
+        -----
+        The keys are unordered except the keys of the dictionaries
+        themselves are ordered.
+        """
+        return KeysView(self)
+
+    def values(self):
+        """Get the values of the dictionaries.
+
+        Returns
+        -------
+        values : `collections.ValuesView`
+            A generator containing the values of the dictionaries.
+
+        Notes
+        -----
+        The values are unordered with respect to the keys except the
+        dictionaries themselves are ordered.
+        """
+        return ValuesView(self)
+
+    def items(self):
+        """Get the (key, value) pairs of the dictionaries.
+
+        Returns
+        -------
+        items : `collections.ItemsView`
+            A generator containing the (key, value) pairs of the
+            dictionaries.
+
+        Notes
+        -----
+        The keys are unordered except the dictionaries themselves
+        are ordered.
+        """
+        return ItemsView(self)
+
+    def __repr__(self):
+        return ('{0.__class__.__name__} ({0.nkeys} distinct keys in {0.ndicts}'
+                ' objects)'.format(self))
+        # cls_name = self.__class__.__name__
+        # indentation = len(cls_name) + 1
+        # linebreak = ', \n{0}'.format(' ' * indentation)
+        # entries = ['{0}: {1}'.format(key, self[value]) for key in self]
+        # return '{0}({1})'.format(cls_name, linebreak.join(entries))
+
+    def __str__(self):
+        return self.__repr__()
+
+    def __len__(self):
+        return sum(1 for _ in self)
+
+    def __contains__(self, key):
+        return any(key in dct for dct in self._dictionaries)
+
+    def __iter__(self):
+        return unique_everseen(key for dictionary in self._dictionaries
+                               for key in dictionary)
+
+    def __getitem__(self, key):
+        return self.get(key, self.fill)
+
+    def get(self, key, fill=ParameterNotSpecified):
+        """Get the values for ``key`` with the option to temporaryly
+        overwrite the `fill` value.
+
+        Parameters
+        ----------
+        key : any type
+            Get the values for this key.
+
+        fill : any type, optional
+            If given use this value instead of `fill`, otherwise `fill` is
+            used.
+
+        Returns
+        -------
+        values : `tuple` of values
+            The values for this key of each dictionary as tuple.
+        """
+        if fill is ParameterNotSpecified:
+            fill = self.fill
+        return tuple(dct.get(key, fill) for dct in self._dictionaries)
+
+    def update(self, dictionary):
+        """Add a dictionary to the list of dictionaries.
+
+        Parameters
+        ----------
+        dictionary : `collections.Mapping`
+            The mapping to append.
+        """
+        self._dictionaries.append(dictionary)
+
+    def __iadd__(self, dictionary):
+        self.update(dictionary)
+        return self
+
+    def __eq__(self, other):
+        return dict(self.items()) == dict(other.items())
+
+    def __ne__(self, other):
+        return not self == other
+
+# Register it as a Mapping to allow "duck typing".
+Mapping.register(ListDict)
