@@ -483,10 +483,12 @@ class ListDict(object):
     instance or by setting the property::
 
         >>> ld = ListDict(d1, d2, d3, d4, fill=0)
-        >>> ld['c']  # (10, 0, 0, 0)
+        >>> ld['c']
+        (10, 0, 0, 0)
 
         >>> ld.fill = '--'
-        >>> ld['c']  # (10, '--', '--', '--')
+        >>> ld['c']
+        (10, '--', '--', '--')
 
     Or just temporarly set by using :meth:`get`::
 
@@ -499,7 +501,8 @@ class ListDict(object):
         >>> ld['q']
         ('--', '--', '--', '--')
 
-    If one wants to check if a key is set in any of the dictionaries use ``in``::
+    If one wants to check if a key is set in any of the dictionaries use
+    ``in``::
 
         >>> 'q' in ld
         False
@@ -550,7 +553,7 @@ class ListDict(object):
         else:
             self._dictionaries = list(dictionaries)
 
-        # Process keyword arguments (python2 cannot handle keyword-only args...)
+        # Process keyword arguments (python2 cannot handle keyword-only args)
         self.fill = kwargs.pop('fill', None)
         if kwargs:
             msg = ['{0}={1}'.format(key, kwargs[key]) for key in kwargs]
