@@ -695,6 +695,7 @@ def first_true(iterable, default=False, pred=None):
 
     default : any type, optional
         The default value if no true value was found.
+        Default is ``False``.
 
     pred : `collections.Callable` or `None`, optional
         If `None` find the first true value. If not `None` find the first value
@@ -937,6 +938,7 @@ def last_true(iterable, default=False, pred=None):
 
     default : any type, optional
         The default value if no true value was found.
+        Default is ``False``.
 
     pred : `collections.Callable` or `None`, optional
         If `None` find the last true value. If not `None` find the last value
