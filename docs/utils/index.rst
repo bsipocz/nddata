@@ -56,9 +56,17 @@ properties but they allow to reuse common attribute requirements.
 Dictionary Utilities
 ====================
 
-Some dictionary utility functions
+Some dictionary utility functions.
 
 .. automodapi:: nddata.utils.dictutils
+
+
+Spectral extraction Utilities
+=============================
+
+Some extraction utilities for spectra.
+
+.. automodapi:: nddata.utils.extraction
 
 
 Garbagecollector
