@@ -695,11 +695,18 @@ def first_true(iterable, default=False, pred=None):
 
     default : any type, optional
         The default value if no true value was found.
+        Default is ``False``.
 
     pred : `collections.Callable` or `None`, optional
         If `None` find the first true value. If not `None` find the first value
         for which ``pred(value)`` is true.
         Default is ``None``.
+
+    Returns
+    -------
+    first : any type
+        The first true value or the first value for which ``pred`` is true.
+        If there is no such value then ``default`` is returned.
 
     Examples
     --------
@@ -707,13 +714,13 @@ def first_true(iterable, default=False, pred=None):
     >>> first_true([0, '', tuple(), 10])
     10
 
-    >>> first_true([0,2,5,8,10], pred=lambda x: x%2)  # First odd number
-    5
+    >>> first_true([0, 2, 3, 5, 8, 10], pred=lambda x: x%2)  # First odd number
+    3
 
-    >>> first_true([0,0,0,0])
+    >>> first_true([0, 0, 0, 0])
     False
 
-    >>> first_true([0,0,0,0], default=100)  # default value if no true value.
+    >>> first_true([0, 0, 0, 0], default=100)  # default value if no true value
     100
     """
     return next(filter(pred, iterable), default)
@@ -931,11 +938,18 @@ def last_true(iterable, default=False, pred=None):
 
     default : any type, optional
         The default value if no true value was found.
+        Default is ``False``.
 
     pred : `collections.Callable` or `None`, optional
         If `None` find the last true value. If not `None` find the last value
         for which ``pred(value)`` is true.
         Default is ``None``.
+
+    Returns
+    -------
+    last : any type
+        The last true value or the last value for which ``pred`` is true.
+        If there is no such value then ``default`` is returned.
 
     Examples
     --------
@@ -943,13 +957,13 @@ def last_true(iterable, default=False, pred=None):
     >>> last_true([0, '', tuple(), 10])
     10
 
-    >>> last_true([0,2,5,8,10], pred=lambda x: x%2)  # Last odd number
+    >>> last_true([0, 2, 3, 5, 8, 10], pred=lambda x: x%2)  # Last odd number
     5
 
-    >>> last_true([0,0,0,0])
+    >>> last_true([0, 0, 0, 0])
     False
 
-    >>> last_true([0,0,0,0], default=100)  # default value if no true value.
+    >>> last_true([0, 0, 0, 0], default=100)  # default value if no true value.
     100
     """
     return next(tail(filter(pred, iterable), 1), default)
