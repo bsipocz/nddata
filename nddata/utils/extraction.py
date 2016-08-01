@@ -24,13 +24,14 @@ def DER_SNR(flux):
     Examples
     --------
     >>> import numpy as np
-    >>> from nddata.utils.extractionction import DER_SNR
+    >>> from nddata.utils.extraction import DER_SNR
 
     >>> DER_SNR([1,10,2,5])
     0.0
 
     >>> np.random.seed(5678)
     >>> DER_SNR(np.random.normal(100,2,1000))
+    51.047834702481914
 
     >>> np.random.seed(None)
 
