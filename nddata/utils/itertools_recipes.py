@@ -20,11 +20,10 @@ if six.PY2:  # pragma: no cover
 
 
 __all__ = ['take', 'tabulate', 'tail', 'consume', 'nth', 'all_equal',
-           'quantify',
-           'padnone', 'ncycles', 'dotproduct', 'flatten', 'repeatfunc',
-           'pairwise', 'grouper', 'roundrobin', 'powerset', 'unique_everseen',
-           'unique_justseen', 'iter_except', 'first_true', 'random_product',
-           'random_permutation', 'random_combination',
+           'quantify', 'padnone', 'ncycles', 'dotproduct', 'flatten',
+           'repeatfunc', 'pairwise', 'grouper', 'roundrobin', 'powerset',
+           'unique_everseen', 'unique_justseen', 'iter_except', 'first_true',
+           'random_product', 'random_permutation', 'random_combination',
            'random_combination_with_replacement', 'tee_lookahead', 'last_true']
 
 # FIXME: Due to a change in random.choice the results are not reproducible for
