@@ -19,12 +19,13 @@ if six.PY2:  # pragma: no cover
     range = xrange
 
 
-__all__ = ['take', 'tabulate', 'consume', 'nth', 'all_equal', 'quantify',
+__all__ = ['take', 'tabulate', 'tail', 'consume', 'nth', 'all_equal',
+           'quantify',
            'padnone', 'ncycles', 'dotproduct', 'flatten', 'repeatfunc',
            'pairwise', 'grouper', 'roundrobin', 'powerset', 'unique_everseen',
-           'unique_justseen', 'iter_except', 'random_product',
+           'unique_justseen', 'iter_except', 'first_true', 'random_product',
            'random_permutation', 'random_combination',
-           'random_combination_with_replacement', 'tee_lookahead']
+           'random_combination_with_replacement', 'tee_lookahead', 'last_true']
 
 # FIXME: Due to a change in random.choice the results are not reproducible for
 # between pre python 3.2 and afterwards.
