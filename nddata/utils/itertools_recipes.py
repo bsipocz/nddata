@@ -916,3 +916,40 @@ def tee_lookahead(t, i):
     for value in islice(copy(t), i, None):
         return value
     raise IndexError(i)
+
+
+# Special ones (not from the python documentation)
+
+
+def last_true(iterable, default=False, pred=None):
+    """Returns the last true value in the iterable or default.
+
+    Parameters
+    ----------
+    iterable : `collections.Iterable`
+        The iterable for which to determine the last true value.
+
+    default : any type, optional
+        The default value if no true value was found.
+
+    pred : `collections.Callable` or `None`, optional
+        If `None` find the last true value. If not `None` find the last value
+        for which ``pred(value)`` is true.
+        Default is ``None``.
+
+    Examples
+    --------
+    >>> from nddata.utils.itertools_recipes import last_true
+    >>> last_true([0, '', tuple(), 10])
+    10
+
+    >>> last_true([0,2,5,8,10], pred=lambda x: x%2)  # Last odd number
+    5
+
+    >>> last_true([0,0,0,0])
+    False
+
+    >>> last_true([0,0,0,0], default=100)  # default value if no true value.
+    100
+    """
+    return next(tail(filter(pred, iterable), 1), default)
