@@ -479,6 +479,13 @@ class ListDict(object):
          ('e', (None, None, 30, None)),
          ('f', (None, None, None, 40))]
 
+         >>> (10, None, None, None) in ld.values()
+         True
+
+    These can be used like the equivalent dictionary methods. For example as
+    iterators or for ``in`` checks. However the order may differ if the
+    saved dictionaries are not ordered.
+
     The `fill` value defaults to ``None`` but can be set when creating the
     instance or by setting the property::
 
@@ -494,6 +501,9 @@ class ListDict(object):
 
         >>> ld.get('c', 'x')
         (10, 'x', 'x', 'x')
+
+        >>> ld.get('c')  # without a fill value this is equivalent to "['c']"
+        (10, '--', '--', '--')
 
     Accessing a key that is not present in any of the dictionaries
     **does not** raise a ``KeyError``::
