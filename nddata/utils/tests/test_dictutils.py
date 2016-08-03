@@ -8,7 +8,7 @@ import math
 from astropy.tests.helper import pytest
 
 from ..dictutils import (dict_split, dict_merge, dict_merge_keep_all,
-                         dict_merge_keep_all_fill_missing)
+                         dict_merge_keep_all_fill_missing, ListDict)
 
 # Just tests that ensure the appropriate exceptions are returned:
 
@@ -73,3 +73,17 @@ def test_merge_keep_all_fill_missing():
     reference = {'a': [1, 2, 3], 'b': [1, 2, 3], 'c': [1, 2, 3],
                  'd': [1, 0, 0], 'e': [0, 2, 0], 'f': [0, 0, 3]}
     assert merged == reference
+
+
+def test_listdict_empty():
+    ld = ListDict()
+    assert not ld.ndicts
+    assert not ld.nkeys
+
+
+def test_listdict_wrong_kwargs():
+    with pytest.raises(TypeError):
+        ListDict({'a': 10}, fills=0)
+
+    with pytest.raises(TypeError):
+        ListDict(fills=0)
