@@ -3,12 +3,16 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from collections import defaultdict, ItemsView, KeysView, ValuesView, Mapping
+from collections import (defaultdict, ItemsView, KeysView, ValuesView, Mapping,
+                         OrderedDict)
 
 from astropy.extern import six
+from astropy.table import Table, MaskedColumn
 
 from .itertools_recipes import unique_everseen
 from .sentinels import ParameterNotSpecified
+
+from ..deps import MIN_VERSIONS
 
 
 __all__ = ['dict_split', 'dict_merge', 'dict_merge_keep_all',
@@ -706,6 +710,55 @@ class ListDict(object):
 
     def __ne__(self, other):
         return not self == other
+
+    def _mask(self, key):
+        """Get a tuple representing the mask for a key.
+
+        Parameters
+        ----------
+        key : any type
+            Get the mask for this key.
+
+        Returns
+        -------
+        mask : `tuple` of `bool`
+            Like the `values` but contains ``True`` for each dictionary that
+            does not contain this key and ``False`` if the dictionary contains
+            it.
+        """
+        return tuple(key not in dct for dct in self._dictionaries)
+
+    def to_astropy_table(self, keys=None):
+        """Convert this instance to an `~astropy.table.Table`.
+
+        Returns
+        -------
+        table : `~astropy.table.Table`
+            A table containing the keys as columns and the values as rows.
+
+        Notes
+        -----
+        Currently there is no support for masked Tables.
+
+        Examples
+        --------
+        To get consistent results the dictionaries will be ordered::
+
+            >>> from nddata.utils.dictutils import ListDict
+            >>> from collections import OrderedDict
+            >>> d1 = OrderedDict([('a', 1), ('b', 1), ('c', 1)])
+            >>> d2 = OrderedDict([('a', 2), ('b', 2)])
+            >>> ld = ListDict(d1, d2)
+            >>> print(ld.to_astropy_table())
+             a   b   c
+            --- --- ----
+              1   1    1
+              2   2 None
+        """
+        if keys is None:
+            keys = self
+        return Table([MaskedColumn(self[key], mask=self._mask(key), name=key)
+                      for key in keys])
 
 # Register it as a Mapping to allow "duck typing".
 Mapping.register(ListDict)

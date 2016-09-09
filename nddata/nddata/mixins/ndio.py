@@ -299,3 +299,47 @@ def write_nddata_fits(ndd, filename, ext_mask='mask', ext_uncert='uncert',
 io_registry.register_reader('simple_fits', NDIOMixin, read_nddata_fits)
 io_registry.register_writer('simple_fits', NDIOMixin, write_nddata_fits)
 io_registry.register_identifier('simple_fits', NDIOMixin, fits.connect.is_fits)
+
+
+def read_nddata_fits_header(filename, ext_meta=0, **kwargs_for_open):
+    """Read header from a FITS file and wrap the contents in a \
+            `~nddata.nddata.NDDataBase`.
+
+    Parameters
+    ----------
+    filename : str and other types
+        see :func:`~astropy.io.fits.open` what possible types are allowed.
+
+    ext_meta : str or int, optional
+        Extensions from which to read ``meta``.
+        Default is ``0``.
+
+    kwargs_for_open :
+        Additional keyword arguments that are passed to
+        :func:`~astropy.io.fits.open` (not all of them might be possible).
+
+    Returns
+    -------
+    ndd : `~nddata.nddata.NDDataBase`
+        The wrapped FITS file contents.
+
+    Notes
+    -----
+    It should also be able to process if the ``filename`` is an already loaded
+    `~astropy.io.fits.HDUList`.
+    """
+    # It should also support if a HDUList is passed in here. The HDUList also
+    # supports the context manager protocol so we open the file if it's not
+    # a HDUList but if it's a HDUList we just use the HDUList as context
+    # manager.
+    isfile = not isinstance(filename, fits.HDUList)
+    with (fits.open(filename, mode='readonly', **kwargs_for_open) if isfile
+            else filename) as hdus:
+
+        meta = hdus[ext_meta].header
+
+    # Just create an NDData instance: This will be upcast to the appropriate
+    # class
+    return NDDataBase(0, meta=meta, copy=False)
+
+io_registry.register_reader('fits_header', NDIOMixin, read_nddata_fits_header)
