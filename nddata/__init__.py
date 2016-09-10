@@ -10,6 +10,6 @@ from ._astropy_init import *
 if not _ASTROPY_SETUP_:
     # Import the dictionaries containing informations about the dependencies
     # and the version requirements.
-    from deps import OPT_DEPS, MIN_VERSIONS
+    from .deps import OPT_DEPS, MIN_VERSIONS
     from . import nddata
     from . import utils
