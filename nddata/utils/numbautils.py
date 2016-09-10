@@ -210,8 +210,8 @@ def interpolate(data, kernel, mask=ParameterNotSpecified):
 
     Given an implicit and explicit mask the explicit mask is always used::
 
-        >>> interpolate(np.ma.array([1,2,3], mask=[1,1,1]), [1,1,1], \
-mask=[0,1,0])
+        >>> interpolate(np.ma.array([1,2,3], mask=[1,1,1]), [1,1,1],
+        ...             mask=[0,1,0])
         array([ 1.,  2.,  3.])
     """
     return _process(data, kernel, mask, 'interpolation')
