@@ -131,8 +131,7 @@ def create_slices(point, shape, origin='start'):
     central index::
 
         >>> array2 = np.arange(5)
-        >>> array[create_slices(point=4, shape=array2, origin='center')] =\
- array2
+        >>> array[create_slices(point=4, shape=array2, origin='center')] = array2
         >>> array
         array([ 0,  1,  0,  1,  2,  3,  4,  7,  8,  9, 10, 11, 12, 13, 14])
     """
