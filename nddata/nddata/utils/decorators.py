@@ -4,9 +4,9 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import warnings
+from inspect import signature
 
 from astropy.utils import wraps
-from astropy.utils.compat.funcsigs import signature
 from astropy.utils.exceptions import AstropyUserWarning
 
 from ..nddata import NDDataBase
